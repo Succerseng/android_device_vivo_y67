@@ -36,7 +36,9 @@ LOCAL_SHARED_LIBRARIES := \
     libbinder \
     libhardware \
     libutils \
-    libgoodixfingerprintd_binder
+    libgoodixfingerprintd_binder \
+    libgf_ca \
+    libgf_algo
 
 LOCAL_MODULE_TAGS := optional
 #include $(MTK_SHARED_LIBRARY)

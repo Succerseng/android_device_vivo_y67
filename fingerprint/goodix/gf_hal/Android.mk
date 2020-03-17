@@ -31,7 +31,8 @@ LOCAL_SRC_FILES_64 := $(GOODIX_BLOB_64_PATH)/libgf_hal.so
 LOCAL_SRC_FILES_32 := $(GOODIX_BLOB_32_PATH)/libgf_hal.so
 LOCAL_SHARED_LIBRARIES := \
     libcutils \
-    libgf_ca
+    libgf_ca \
+    libgf_algo
 LOCAL_MULTILIB := both
 LOCAL_MODULE_CLASS := SHARED_LIBRARIES
 LOCAL_MODULE_SUFFIX := .so
