@@ -35,9 +35,11 @@ PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/camera/custom_hal/armeabi-v7a/libcam.halsensor.so:system/lib/libcam.halsensor.so \
     $(LOCAL_PATH)/camera/custom_hal/armeabi-v7a/libcam.metadataprovider.so:system/lib/libcam.metadataprovider.so \
     $(LOCAL_PATH)/camera/custom_hal/armeabi-v7a/libcam.paramsmgr.so:system/lib/libcam.paramsmgr.so \
+    $(LOCAL_PATH)/camera/custom_hal/armeabi-v7a/libcam.metadata.so:system/lib/libcam.metadata.so \
     $(LOCAL_PATH)/camera/custom_hal/arm64-v8a/libcam.halsensor.so:system/lib64/libcam.halsensor.so \
     $(LOCAL_PATH)/camera/custom_hal/arm64-v8a/libcam.metadataprovider.so:system/lib64/libcam.metadataprovider.so \
-    $(LOCAL_PATH)/camera/custom_hal/arm64-v8a/libcam.paramsmgr.so:system/lib64/libcam.paramsmgr.so
+    $(LOCAL_PATH)/camera/custom_hal/arm64-v8a/libcam.paramsmgr.so:system/lib64/libcam.paramsmgr.so \
+    $(LOCAL_PATH)/camera/custom_hal/arm64-v8a/libcam.metadata.so:system/lib64/libcam.metadata.so
 
 # Recovery allowed devices
 TARGET_OTA_ASSERT_DEVICE := y67,pd1612
@@ -63,8 +65,13 @@ PRODUCT_COPY_FILES += \
     frameworks/native/data/etc/android.hardware.sensor.gyroscope.xml:system/etc/permissions/android.hardware.sensor.gyroscope.xml \
     frameworks/native/data/etc/android.hardware.sensor.light.xml:system/etc/permissions/android.hardware.sensor.light.xml \
     frameworks/native/data/etc/android.hardware.sensor.proximity.xml:system/etc/permissions/android.hardware.sensor.proximity.xml \
+    frameworks/native/data/etc/android.hardware.sensor.compass.xml:system/etc/permissions/android.hardware.sensor.compass.xml \
     frameworks/native/data/etc/android.hardware.touchscreen.multitouch.jazzhand.xml:system/etc/permissions/android.hardware.touchscreen.multitouch.jazzhand.xml \
-    frameworks/native/data/etc/handheld_core_hardware.xml:system/etc/permissions/handheld_core_hardware.xml
+    frameworks/native/data/etc/handheld_core_hardware.xml:system/etc/permissions/handheld_core_hardware.xml \
+    frameworks/native/data/etc/android.hardware.telephony.cdma.xml:system/etc/permissions/android.hardware.telephony.cdma.xml \
+    frameworks/native/data/etc/android.hardware.sensor.accelerometer.xml:system/etc/permissions/android.hardware.sensor.accelerometer.xml \
+    frameworks/native/data/etc/android.hardware.sensor.stepcounter.xml:system/etc/permissions/android.hardware.sensor.stepcounter.xml \
+    frameworks/native/data/etc/android.hardware.sensor.stepdetector.xml:system/etc/permissions/android.hardware.sensor.stepdetector.xml
 
 # Prebuilt
 PRODUCT_COPY_FILES += \
@@ -166,10 +173,6 @@ TARGET_SCREEN_WIDTH := 720
 PRODUCT_PACKAGES += \
     fingerprintd \
     fingerprint.mt6755
-
-# GPS
-PRODUCT_PACKAGES += \
-    YGPS
 
 # Telephony
 SIM_COUNT := 2
