@@ -1,0 +1,10 @@
+on init
+    #goodix
+    chown system system /dev/goodix_fp
+    chmod 0644 /dev/goodix_fp
+
+on property:persist.logd.logpersistd=logcatd
+    service goodixfpd /system/bin/goodixfingerprintd
+    class late_start
+    user system
+    group system sdcard_rw
