@@ -19,6 +19,7 @@ DEVICE_PATH := device/vivo/y67
 
 # Disable NINJA
 #USE_NINJA := false
+USE_TWRP := yes
 
 MTK_PROJECT_CONFIG ?= $(DEVICE_PATH)/ProjectConfig.mk
 include $(MTK_PROJECT_CONFIG)
@@ -68,3 +69,15 @@ TARGET_USERIMAGES_USE_EXT4 := true
 TARGET_USERIMAGES_USE_F2FS := true
 
 TARGET_SYSTEM_PROP += $(DEVICE_PATH)/system.prop
+
+ifeq (($USE_TWRP), yes)
+TW_DEFAULT_BRIGHTNESS := 30
+TW_MAX_BRIGHTNESS := 255
+TW_THEME := portrait_hdpi
+TW_DEVICE_VERSION := PD1612
+TW_DEFAULT_LANGUAGE := zh_CN
+RECOVERY_SDCARD_ON_DATA := true
+TW_USE_TOOLBOX := yes
+RECOVERY_GRAPHICS_USE_LINELENGTH := true
+PRODUCT_COPY_FILES += $(LOCAL_PATH)/rootdir/twrp.fstab:root/etc/twrp.fstab
+endif

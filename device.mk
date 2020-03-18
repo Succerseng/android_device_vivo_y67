@@ -83,10 +83,15 @@ PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/prebuilt/camera/marshmallow/lib/libMtkOmxVenc.so:system/lib/libMtkOmxVenc.so \
     $(LOCAL_PATH)/prebuilt/camera/marshmallow/lib/libvcodecdrv.so:system/lib/libvcodecdrv.so \
     $(LOCAL_PATH)/prebuilt/camera/marshmallow/lib/libvcodec_utility.so:system/lib/libvcodec_utility.so \
+    $(LOCAL_PATH)/prebuilt/camera/marshmallow/lib/libMtkOmxWmaDec:system/lib/libMtkOmxWmaDec \
+    $(LOCAL_PATH)/prebuilt/camera/marshmallow/lib/libvcodec_cap.so:system/lib/libvcodec_cap.so \
+    $(LOCAL_PATH)/prebuilt/camera/marshmallow/lib/libvcodec_oal.so:system/lib/libvcodec_oal.so \
     $(LOCAL_PATH)/prebuilt/camera/marshmallow/lib64/libhdrproc.so:system/lib64/libhdrproc.so \
     $(LOCAL_PATH)/prebuilt/camera/marshmallow/lib64/libMtkOmxCore.so:system/lib64/libMtkOmxCore.so \
     $(LOCAL_PATH)/prebuilt/camera/marshmallow/lib64/libvcodecdrv.so:system/lib64/libvcodecdrv.so \
     $(LOCAL_PATH)/prebuilt/camera/marshmallow/lib64/libvcodec_utility.so:system/lib64/libvcodec_utility.so \
+    $(LOCAL_PATH)/prebuilt/camera/marshmallow/lib64/libvcodec_cap.so:system/lib64/libvcodec_cap.so \
+    $(LOCAL_PATH)/prebuilt/camera/marshmallow/lib64/libvcodec_oal.so:system/lib64/libvcodec_oal.so \
     $(LOCAL_PATH)/prebuilt/camera/nougat/lib/libbwc.so:system/lib/libbwc.so \
     $(LOCAL_PATH)/prebuilt/camera/nougat/lib/libgui_ext.so:system/lib/libgui_ext.so \
     $(LOCAL_PATH)/prebuilt/camera/nougat/lib/libm4u.so:system/lib/libm4u.so \
