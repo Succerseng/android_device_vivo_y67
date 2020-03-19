@@ -83,7 +83,7 @@ PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/prebuilt/camera/marshmallow/lib/libMtkOmxVenc.so:system/lib/libMtkOmxVenc.so \
     $(LOCAL_PATH)/prebuilt/camera/marshmallow/lib/libvcodecdrv.so:system/lib/libvcodecdrv.so \
     $(LOCAL_PATH)/prebuilt/camera/marshmallow/lib/libvcodec_utility.so:system/lib/libvcodec_utility.so \
-    $(LOCAL_PATH)/prebuilt/camera/marshmallow/lib/libMtkOmxWmaDec:system/lib/libMtkOmxWmaDec \
+    $(LOCAL_PATH)/prebuilt/camera/marshmallow/lib/libMtkOmxWmaDec.so:system/lib/libMtkOmxWmaDec.so \
     $(LOCAL_PATH)/prebuilt/camera/marshmallow/lib/libvcodec_cap.so:system/lib/libvcodec_cap.so \
     $(LOCAL_PATH)/prebuilt/camera/marshmallow/lib/libvcodec_oal.so:system/lib/libvcodec_oal.so \
     $(LOCAL_PATH)/prebuilt/camera/marshmallow/lib64/libhdrproc.so:system/lib64/libhdrproc.so \
