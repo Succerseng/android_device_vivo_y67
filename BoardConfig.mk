@@ -19,7 +19,7 @@ DEVICE_PATH := device/vivo/y67
 
 # Disable NINJA
 #USE_NINJA := false
-USE_TWRP := yes
+BLOCK_BASED_OTA := true
 
 MTK_PROJECT_CONFIG ?= $(DEVICE_PATH)/ProjectConfig.mk
 include $(MTK_PROJECT_CONFIG)
@@ -70,6 +70,9 @@ TARGET_USERIMAGES_USE_F2FS := true
 
 TARGET_SYSTEM_PROP += $(DEVICE_PATH)/system.prop
 
+USE_TWRP := yes
+MCDEVICEDAEMON_PD1612 := true
+# Twrp
 ifeq ($(USE_TWRP), yes)
 TW_DEFAULT_BRIGHTNESS := 25
 TW_EXCLUDE_TWRPAPP := true
@@ -84,4 +87,14 @@ RECOVERY_GRAPHICS_USE_LINELENGTH := true
 TW_INTERNAL_STORAGE_PATH := "/data/media"
 TW_INTERNAL_STORAGE_MOUNT_POINT := "data"
 PRODUCT_COPY_FILES := $(DEVICE_PATH)/rootdir/twrp.fstab:recovery/root/etc/twrp.fstab
+ifeq ($(MCDEVICEDAEMON_PD1612), true)
+PRODUCT_COPY_FILES += \
+    $(DEVICE_PATH)/rootdir/ramdisk/system/bin/mcDriverDaemon:recovery/root/sbin/mcDriverDaemon \
+    $(DEVICE_PATH)/rootdir/ramdisk/system/lib64/libMcClient_vivo.so:recovery/root/system/lib64/libMcClient_vivo.so \
+    $(DEVICE_PATH)/rootdir/ramdisk/vendor/lib64/hw/keystore.mt6755.so:recovery/root/vendor/lib64/hw/keystore.mt6755.so \
+    $(DEVICE_PATH)/rootdir/ramdisk/system/app/mcRegistry/020f0000000000000000000000000000.drbin:recovery/root/system/app/mcRegistry/020f0000000000000000000000000000.drbin \
+    $(DEVICE_PATH)/rootdir/ramdisk/system/app/mcRegistry/05120000000000000000000000000000.drbin:recovery/root/system/app/mcRegistry/05120000000000000000000000000000.drbin \
+    $(DEVICE_PATH)/rootdir/ramdisk/system/app/mcRegistry/070b0000000000000000000000000000.drbin:recovery/root/system/app/mcRegistry/070b0000000000000000000000000000.drbin \
+    $(DEVICE_PATH)/rootdir/init.vivo.mcDeviceDaemon.rc:recovery/root/init.vivo.mcDeviceDaemon.rc
+endif
 endif

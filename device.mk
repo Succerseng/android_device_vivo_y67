@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+LOCAL_PATH := device/vivo/y67
 
 VENDOR_BLOBS ?= vendor/vivo/y67/y67-vendor.mk
 $(call inherit-product-if-exists, $(VENDOR_BLOBS))
