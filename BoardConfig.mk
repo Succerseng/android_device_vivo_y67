@@ -91,7 +91,7 @@ TW_EXCLUDE_SUPERSU := true
 RECOVERY_GRAPHICS_USE_LINELENGTH := true
 TW_INTERNAL_STORAGE_PATH := "/data/media"
 TW_INTERNAL_STORAGE_MOUNT_POINT := "data"
-PRODUCT_COPY_FILES := $(DEVICE_PATH)/rootdir/twrp.fstab:recovery/root/etc/twrp.fstab
+PRODUCT_COPY_FILES += $(DEVICE_PATH)/rootdir/twrp.fstab:recovery/root/etc/twrp.fstab
 ifeq ($(MCDEVICEDAEMON_PD1612), true)
 PRODUCT_COPY_FILES += \
     $(DEVICE_PATH)/rootdir/ramdisk/system/bin/mcDriverDaemon:recovery/root/sbin/mcDriverDaemon \
