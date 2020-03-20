@@ -15,7 +15,8 @@
 LOCAL_PATH := device/vivo/y67
 
 VENDOR_BLOBS ?= vendor/vivo/y67/y67-vendor.mk
-$(call inherit-product-if-exists, $(VENDOR_BLOBS))
+#$(call inherit-product-if-exists, $(VENDOR_BLOBS))
+$(call inherit-product, $(VENDOR_BLOBS))
 
 MTK_PROJECT_CONFIG ?= device/vivo/y67/ProjectConfig.mk
 include $(MTK_PROJECT_CONFIG)

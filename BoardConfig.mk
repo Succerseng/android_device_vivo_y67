@@ -19,7 +19,12 @@ DEVICE_PATH := device/vivo/y67
 
 # Disable NINJA
 #USE_NINJA := false
-BLOCK_BASED_OTA := true
+#BLOCK_BASED_OTA := true
+
+# FLash
+#USE_F2FS_FORMAT_EXT4 := true
+#LOCAL_BINARY_PATH := /sbin/local_binary
+#FLASH_VERIFICATION_NAME := $(PRODUCT_DEVICE)
 
 MTK_PROJECT_CONFIG ?= $(DEVICE_PATH)/ProjectConfig.mk
 include $(MTK_PROJECT_CONFIG)
@@ -96,5 +101,8 @@ PRODUCT_COPY_FILES += \
     $(DEVICE_PATH)/rootdir/ramdisk/system/app/mcRegistry/05120000000000000000000000000000.drbin:recovery/root/system/app/mcRegistry/05120000000000000000000000000000.drbin \
     $(DEVICE_PATH)/rootdir/ramdisk/system/app/mcRegistry/070b0000000000000000000000000000.drbin:recovery/root/system/app/mcRegistry/070b0000000000000000000000000000.drbin \
     $(DEVICE_PATH)/rootdir/init.vivo.mcDeviceDaemon.rc:recovery/root/init.vivo.mcDeviceDaemon.rc
+ifeq ($(LOCAL_BINARY_PATH),)
+PRODUCT_PACKAGE := local_binary
+endif
 endif
 endif
