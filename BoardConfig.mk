@@ -22,9 +22,9 @@ DEVICE_PATH := device/vivo/y67
 #BLOCK_BASED_OTA := true
 
 # FLash
-#USE_F2FS_FORMAT_EXT4 := true
-#LOCAL_BINARY_PATH := /sbin/local_binary
-#FLASH_VERIFICATION_NAME := $(PRODUCT_DEVICE)
+USE_F2FS_FORMAT_EXT4 := true
+FLASH_VERIFICATION_NAME := $(PRODUCT_DEVICE)
+LOCAL_BINARY_PATH := /sbin/local_updater
 
 MTK_PROJECT_CONFIG ?= $(DEVICE_PATH)/ProjectConfig.mk
 include $(MTK_PROJECT_CONFIG)
@@ -85,7 +85,7 @@ TW_MAX_BRIGHTNESS := 255
 TW_THEME := portrait_hdpi
 TW_DEFAULT_LANGUAGE := zh_CN
 TW_EXTRA_LANGUAGES := true
-TW_USE_TOOLBOX := yes
+TW_USE_TOOLBOX := true
 RECOVERY_SDCARD_ON_DATA := true
 TW_EXCLUDE_SUPERSU := true
 RECOVERY_GRAPHICS_USE_LINELENGTH := true
@@ -102,7 +102,8 @@ PRODUCT_COPY_FILES += \
     $(DEVICE_PATH)/rootdir/ramdisk/system/app/mcRegistry/070b0000000000000000000000000000.drbin:recovery/root/system/app/mcRegistry/070b0000000000000000000000000000.drbin \
     $(DEVICE_PATH)/rootdir/init.vivo.mcDeviceDaemon.rc:recovery/root/init.vivo.mcDeviceDaemon.rc
 ifeq ($(LOCAL_BINARY_PATH),)
-PRODUCT_PACKAGE := local_binary
+PRODUCT_PACKAGE += \
+    local_updater
 endif
 endif
 endif
