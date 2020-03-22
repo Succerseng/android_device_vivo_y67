@@ -101,9 +101,7 @@ PRODUCT_COPY_FILES += \
     $(DEVICE_PATH)/rootdir/ramdisk/system/app/mcRegistry/05120000000000000000000000000000.drbin:recovery/root/system/app/mcRegistry/05120000000000000000000000000000.drbin \
     $(DEVICE_PATH)/rootdir/ramdisk/system/app/mcRegistry/070b0000000000000000000000000000.drbin:recovery/root/system/app/mcRegistry/070b0000000000000000000000000000.drbin \
     $(DEVICE_PATH)/rootdir/init.vivo.mcDeviceDaemon.rc:recovery/root/init.vivo.mcDeviceDaemon.rc
-ifeq ($(LOCAL_BINARY_PATH),)
 PRODUCT_PACKAGE += \
     local_updater
-endif
 endif
 endif

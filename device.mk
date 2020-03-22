@@ -50,9 +50,6 @@ TARGET_OTA_ASSERT_DEVICE := y67,pd1612
 PRODUCT_DEFAULT_PROPERTY_OVERRIDES += \
     ro.usb.vid=2970
 
-# Overlay
-DEVICE_PACKAGE_OVERLAYS += $(LOCAL_PATH)/overlay
-
 # Init
 PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/rootdir/init.target.rc:root/init.target.rc \
