@@ -1,0 +1,12 @@
+[
+    {
+      "repository": "android_external_stlport",
+      "target_path": "external/stlport"
+    }
+    {
+    "remote":"github",
+    "repository": "babq/android_vendor_vivo_y67",
+    "target_path": "vendor/vivo/y67",
+    "revision":"android-7.1"
+    }
+]

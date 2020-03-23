@@ -1,4 +1,4 @@
-# Copyright (C) 2016 The LineageOS Project
+# Copyright (C) 2020 The LineageOS Project
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,17 +12,54 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+
 LOCAL_PATH := device/vivo/y67
 
-VENDOR_BLOBS ?= vendor/vivo/y67/y67-vendor.mk
-#$(call inherit-product-if-exists, $(VENDOR_BLOBS))
-$(call inherit-product, $(VENDOR_BLOBS))
+# ADB Debugging
+ifneq ($(TARGET_BUILD_VARIANT), user)
+ADDITIONAL_DEFAULT_PROPERTIES += \
+    ro.adb.secure=0 \
+    ro.debuggable=1 \
+    ro.mtk_gps_support=1 \
+    ro.mtk_agps_app=1 \
+    ro.secure=0
+endif
 
-MTK_PROJECT_CONFIG ?= device/vivo/y67/ProjectConfig.mk
-include $(MTK_PROJECT_CONFIG)
+# Audio
+PRODUCT_PACKAGES += \
+    audio.a2dp.default \
+    audio.usb.default \
+    audio.r_submix.default \
+    libaudiopolicymanagerdefault \
+    libtinyalsa \
+    libtinycompress \
+    libtinymix \
+    libtinyxml \
+    libfs_mgr
 
-#audio
-PRODUCT_COPY_FILES += $(LOCAL_PATH)/audio/audio_policy.conf:system/etc/audio_policy.conf
+PRODUCT_COPY_FILES += \
+    $(LOCAL_PATH)/configs/a2dp_audio_policy_configuration.xml:system/etc/a2dp_audio_policy_configuration.xml \
+    $(LOCAL_PATH)/configs/audio_device.xml:system/etc/audio_device.xml \
+    $(LOCAL_PATH)/configs/audio_effects.conf:system/etc/audio_effects.conf \
+    $(LOCAL_PATH)/configs/audio_em.xml:system/etc/audio_em.xml \
+    $(LOCAL_PATH)/configs/audio_policy_configuration.xml:system/etc/audio_policy_configuration.xml \
+    $(LOCAL_PATH)/configs/audio_policy_volumes.xml:system/etc/audio_policy_volumes.xml \
+    $(LOCAL_PATH)/configs/default_volume_tables.xml:system/etc/default_volume_tables.xml \
+    $(LOCAL_PATH)/configs/r_submix_audio_policy_configuration.xml:system/etc/r_submix_audio_policy_configuration.xml \
+    $(LOCAL_PATH)/configs/usb_audio_policy_configuration.xml:system/etc/usb_audio_policy_configuration.xml \
+    $(LOCAL_PATH)/configs/audio_policy.conf:system/etc/audio_policy.conf
+
+# Build proprietary bits when available
+ifneq ($(MTKPATH),)
+$(call inherit-product-if-exists, $(MTKPATH)/config/mt6755.mk)
+endif
+
+# Boot animation
+TARGET_SCREEN_HEIGHT := 1280
+TARGET_SCREEN_WIDTH := 720
+
+# Call hwui memory config
+$(call inherit-product-if-exists, frameworks/native/build/phone-xxxhdpi-4096-hwui-memory.mk)
 
 # Camera
 PRODUCT_PACKAGES += \
@@ -31,6 +68,57 @@ PRODUCT_PACKAGES += \
 
 PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/camera/camerasize.xml:system/etc/camerasize.xml
+
+# Charger Mode
+PRODUCT_PACKAGES += \
+    charger_res_images
+
+ifneq ($(TARGET_BUILD_VARIANT), user)
+# Mediatek logging service
+PRODUCT_PACKAGES += \
+    mobile_log_d \
+    netdiag \
+    tcpdump
+endif
+
+# Charger and USB
+PRODUCT_DEFAULT_PROPERTY_OVERRIDES += \
+    ro.usb.vid=2970
+
+# Dalvik heap configurations
+$(call inherit-product-if-exists, frameworks/native/build/phone-xxxhdpi-4096-dalvik-heap.mk)
+
+# Display
+PRODUCT_PACKAGES += \
+    libion
+
+# Fingerprint
+PRODUCT_PACKAGES += \
+    fingerprintd \
+    fingerprint.mt6755
+
+# FM
+PRODUCT_PACKAGES += \
+    libfmjni \
+    FMRadio
+
+# GPS
+PRODUCT_PACKAGES += \
+    gps.mt6755 \
+    YGPS
+
+$(call inherit-product, device/common/gps/gps_us_supl.mk)
+
+PRODUCT_COPY_FILES += \
+    $(LOCAL_PATH)/configs/agps_profiles_conf2.xml:system/etc/agps_profiles_conf2.xml \
+    $(LOCAL_PATH)/configs/slp_conf:system/etc/slp_conf
+
+# Graphics
+MTK_GPU_VERSION := mali midgard r7p0
+
+# IO Scheduler
+PRODUCT_PROPERTY_OVERRIDES += \
+    sys.io.scheduler=bfq
 
 # Include ov8858 s5k2p8
 PRODUCT_COPY_FILES += \
@@ -43,17 +131,40 @@ PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/camera/custom_hal/arm64-v8a/libcam.paramsmgr.so:system/lib64/libcam.paramsmgr.so \
     $(LOCAL_PATH)/camera/custom_hal/arm64-v8a/libcam.metadata.so:system/lib64/libcam.metadata.so
 
-# Recovery allowed devices
-TARGET_OTA_ASSERT_DEVICE := y67,pd1612
-
-# Charger and USB
-PRODUCT_DEFAULT_PROPERTY_OVERRIDES += \
-    ro.usb.vid=2970
-
 # Init
 PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/rootdir/init.target.rc:root/init.target.rc \
     $(LOCAL_PATH)/rootdir/init.goodix.fingerprint.rc:root/init.goodix.fingerprint.rc
+
+# Key Layouts
+PRODUCT_COPY_FILES += \
+    $(LOCAL_PATH)/configs/keylayouts/ACCDET.kl:system/usr/keylayout/ACCDET.kl \
+    $(LOCAL_PATH)/configs/keylayouts/mtk-kpd.kl:system/usr/keylayout/mtk-kpd.kl
+
+# Media
+PRODUCT_COPY_FILES += \
+    $(LOCAL_PATH)/configs/media_codecs_performance.xml:system/etc/media_codecs_performance.xml \
+    $(LOCAL_PATH)/configs/media_profiles.xml:system/etc/media_profiles.xml \
+    $(LOCAL_PATH)/configs/media_codecs.xml:system/etc/media_codecs.xml \
+    $(LOCAL_PATH)/configs/media_codecs_mediatek_audio.xml:system/etc/media_codecs_mediatek_audio.xml \
+    $(LOCAL_PATH)/configs/media_codecs_mediatek_video.xml:system/etc/media_codecs_mediatek_video.xml \
+    $(LOCAL_PATH)/configs/mtk_omx_core.cfg:system/etc/mtk_omx_core.cfg
+
+PRODUCT_COPY_FILES += \
+    frameworks/av/media/libstagefright/data/media_codecs_google_audio.xml:system/etc/media_codecs_google_audio.xml \
+    frameworks/av/media/libstagefright/data/media_codecs_google_telephony.xml:system/etc/media_codecs_google_telephony.xml \
+    frameworks/av/media/libstagefright/data/media_codecs_google_video_le.xml:system/etc/media_codecs_google_video_le.xml
+
+# Mediatek platform
+PRODUCT_PACKAGES += \
+   libmtk_symbols
+
+# MTK Config
+MTK_PROJECT_CONFIG ?= device/vivo/y67/ProjectConfig.mk
+include $(MTK_PROJECT_CONFIG)
+
+# Overlay
+DEVICE_PACKAGE_OVERLAYS += $(LOCAL_PATH)/overlay
 
 # Permissions
 PRODUCT_COPY_FILES += \
@@ -70,7 +181,14 @@ PRODUCT_COPY_FILES += \
     frameworks/native/data/etc/android.hardware.telephony.cdma.xml:system/etc/permissions/android.hardware.telephony.cdma.xml \
     frameworks/native/data/etc/android.hardware.sensor.accelerometer.xml:system/etc/permissions/android.hardware.sensor.accelerometer.xml \
     frameworks/native/data/etc/android.hardware.sensor.stepcounter.xml:system/etc/permissions/android.hardware.sensor.stepcounter.xml \
-    frameworks/native/data/etc/android.hardware.sensor.stepdetector.xml:system/etc/permissions/android.hardware.sensor.stepdetector.xml
+    frameworks/native/data/etc/android.hardware.sensor.stepdetector.xml:system/etc/permissions/android.hardware.sensor.stepdetector.xml \
+    frameworks/native/data/etc/android.hardware.bluetooth.xml:system/etc/permissions/android.hardware.bluetooth.xml \
+    frameworks/native/data/etc/android.hardware.bluetooth_le.xml:system/etc/permissions/android.hardware.bluetooth_le.xml \
+    frameworks/native/data/etc/android.hardware.location.gps.xml:system/etc/permissions/android.hardware.location.gps.xml \
+    frameworks/native/data/etc/android.hardware.telephony.gsm.xml:system/etc/permissions/android.hardware.telephony.gsm.xml \
+    frameworks/native/data/etc/android.hardware.usb.accessory.xml:system/etc/permissions/android.hardware.usb.accessory.xml \
+    frameworks/native/data/etc/android.hardware.wifi.direct.xml:system/etc/permissions/android.hardware.wifi.direct.xml \
+    frameworks/native/data/etc/android.hardware.wifi.xml:system/etc/permissions/android.hardware.wifi.xml
 
 # Prebuilt
 PRODUCT_COPY_FILES += \
@@ -142,10 +260,46 @@ PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/prebuilt/ril/custom/lib64/mtk-ril.so:system/lib64/mtk-ril.so \
     $(LOCAL_PATH)/prebuilt/ril/custom/lib64/mtk-rilmd2.so:system/lib64/mtk-rilmd2.so
 
-# Media
+# Power
+PRODUCT_PACKAGES += \
+    power.mt6755
+
+# Radio dependencies
+PRODUCT_PACKAGES += \
+    muxreport \
+    terservice
+
 PRODUCT_COPY_FILES += \
-    $(LOCAL_PATH)/configs/media_codecs_performance.xml:system/etc/media_codecs_performance.xml \
-    $(LOCAL_PATH)/configs/media_profiles.xml:system/etc/media_profiles.xml
+    $(LOCAL_PATH)/configs/spn-conf.xml:system/etc/spn-conf.xml
+
+# Recovery allowed devices
+TARGET_OTA_ASSERT_DEVICE := y67,pd1612
+
+# Recovery Ramdisk
+PRODUCT_PACKAGES += \
+    init.recovery.mt6755.rc
+
+PRODUCT_COPY_FILES += \
+    $(LOCAL_PATH)/recovery/sbin/fuelgauged_static:recovery/root/sbin/fuelgauged_static
+
+# Root
+PRODUCT_PACKAGES += \
+    fstab.mt6755 \
+    init.mt6755.rc \
+    init.mt6755.modem.rc \
+    init.mt6755.usb.rc \
+    ueventd.mt6755.rc
+
+# Screen density
+PRODUCT_AAPT_CONFIG := normal
+PRODUCT_AAPT_PREF_CONFIG := xxhdpi
+PRODUCT_AAPT_PREBUILT_DPI := xxhdpi xhdpi hdpi
+
+# Telephony
+SIM_COUNT := 2
+PRODUCT_PROPERTY_OVERRIDES += ro.telephony.sim.count=$(SIM_COUNT)
+PRODUCT_PROPERTY_OVERRIDES += persist.radio.default.sim=0
+PRODUCT_PROPERTY_OVERRIDES += persist.radio.multisim.config=dsds
 
 # Thermal
 PRODUCT_COPY_FILES += \
@@ -164,43 +318,23 @@ PRODUCT_COPY_FILES += \
 	$(LOCAL_PATH)/prebuilt/thermal/custom/bin/thermald:system/bin/thermald \
 	$(LOCAL_PATH)/prebuilt/thermal/custom/bin/thermalloadalgod:system/bin/thermalloadalgod
 
-# Screen density
-PRODUCT_AAPT_CONFIG := normal
-PRODUCT_AAPT_PREF_CONFIG := xxhdpi
-PRODUCT_AAPT_PREBUILT_DPI := xxhdpi xhdpi hdpi
-
-# Boot animation
-TARGET_SCREEN_HEIGHT := 1280
-TARGET_SCREEN_WIDTH := 720
-
-# Fingerprint
-PRODUCT_PACKAGES += \
-    fingerprintd \
-    fingerprint.mt6755
-
-# Telephony
-SIM_COUNT := 2
-PRODUCT_PROPERTY_OVERRIDES += ro.telephony.sim.count=$(SIM_COUNT)
-PRODUCT_PROPERTY_OVERRIDES += persist.radio.default.sim=0
-PRODUCT_PROPERTY_OVERRIDES += persist.radio.multisim.config=dsds
-
-# Graphics
-MTK_GPU_VERSION := mali midgard r7p0
-
-# IO Scheduler
-PRODUCT_PROPERTY_OVERRIDES += \
-    sys.io.scheduler=bfq
-
-# Dalvik heap configurations
-$(call inherit-product-if-exists, frameworks/native/build/phone-xxxhdpi-4096-dalvik-heap.mk)
-
-# Call hwui memory config
-$(call inherit-product-if-exists, frameworks/native/build/phone-xxxhdpi-4096-hwui-memory.mk)
+# Vendor
+VENDOR_BLOBS ?= vendor/vivo/y67/y67-vendor.mk
+#$(call inherit-product-if-exists, $(VENDOR_BLOBS))
+$(call inherit-product, $(VENDOR_BLOBS))
 
 # Versioning
 PRODUCT_PROPERTY_OVERRIDES += \
     ro.mediatek.version.release=$(MTK_BUILD_VERNO) \
     ro.mediatek.chip_ver=$(MTK_CHIP_VER)
 
-# Inherit the rest from mt6755-common
-$(call inherit-product, device/cyanogen/mt6755-common/mt6755.mk)
+# Wifi
+PRODUCT_PACKAGES += \
+    libwpa_client \
+    hostapd \
+    wpa_supplicant \
+
+PRODUCT_COPY_FILES += \
+    $(LOCAL_PATH)/configs/wpa_supplicant.conf:system/etc/wifi/wpa_supplicant.conf \
+    $(LOCAL_PATH)/configs/wpa_supplicant_overlay.conf:system/etc/wifi/wpa_supplicant_overlay.conf \
+    $(LOCAL_PATH)/configs/p2p_supplicant_overlay.conf:system/etc/wifi/p2p_supplicant_overlay.conf
