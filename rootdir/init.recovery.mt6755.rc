@@ -1,4 +1,3 @@
-import init.vivo.mcDeviceDaemon.rc
 
 on fs
     chmod 0666 /dev/kmsg

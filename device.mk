@@ -92,11 +92,6 @@ $(call inherit-product-if-exists, frameworks/native/build/phone-xxxhdpi-4096-dal
 PRODUCT_PACKAGES += \
     libion
 
-# Fingerprint
-PRODUCT_PACKAGES += \
-    fingerprintd \
-    fingerprint.mt6755
-
 # FM
 PRODUCT_PACKAGES += \
     libfmjni \
@@ -130,11 +125,6 @@ PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/camera/custom_hal/arm64-v8a/libcam.metadataprovider.so:system/lib64/libcam.metadataprovider.so \
     $(LOCAL_PATH)/camera/custom_hal/arm64-v8a/libcam.paramsmgr.so:system/lib64/libcam.paramsmgr.so \
     $(LOCAL_PATH)/camera/custom_hal/arm64-v8a/libcam.metadata.so:system/lib64/libcam.metadata.so
-
-# Init
-PRODUCT_COPY_FILES += \
-    $(LOCAL_PATH)/rootdir/init.target.rc:root/init.target.rc \
-    $(LOCAL_PATH)/rootdir/init.goodix.fingerprint.rc:root/init.goodix.fingerprint.rc
 
 # Key Layouts
 PRODUCT_COPY_FILES += \
@@ -273,16 +263,37 @@ TARGET_OTA_ASSERT_DEVICE := y67,pd1612
 
 # Recovery Ramdisk
 PRODUCT_COPY_FILES += \
+    $(LOCAL_PATH)/rootdir/ramdisk/sbin/fuelgauged_static:root/sbin/fuelgauged_static \
     $(LOCAL_PATH)/rootdir/ramdisk/sbin/fuelgauged_static:recovery/root/sbin/fuelgauged_static \
     $(LOCAL_PATH)/rootdir/init.recovery.mt6755.rc:recovery/root/init.recovery.mt6755.rc
 
 # Root
 PRODUCT_PACKAGES += \
+    factory_init.project.rc \
+    factory_init.rc \
+    init.aee.rc \
+    init.c2k.rc \
+    init.common_svc.rc \
+    init.factory.rc \
+    init.mal.rc \
+    init.modem.rc \
     fstab.mt6755 \
     init.mt6755.rc \
-    init.mt6755.modem.rc \
     init.mt6755.usb.rc \
-    ueventd.mt6755.rc
+    init.powermo.rc \
+    init.project.rc \
+    ueventd.mt6755.rc \
+    init.trace.rc \
+    init.trustonic.rc \
+    init.usb.rc \
+    init.vivo.rc \
+    init.volte.rc \
+    meta_init.c2k.rc \
+    meta_init.modem.rc \
+    meta_init.project.rc \
+    meta_init.rc \
+    init.xlog.rc \
+    ueventd.rc
 
 # Screen density
 PRODUCT_AAPT_CONFIG := normal
