@@ -159,10 +159,6 @@ PRODUCT_COPY_FILES += \
 PRODUCT_PACKAGES += \
    libmtk_symbols
 
-# MTK Config
-MTK_PROJECT_CONFIG ?= device/vivo/y67/ProjectConfig.mk
-include $(MTK_PROJECT_CONFIG)
-
 # Overlay
 DEVICE_PACKAGE_OVERLAYS += $(LOCAL_PATH)/overlay
 
@@ -276,11 +272,9 @@ PRODUCT_COPY_FILES += \
 TARGET_OTA_ASSERT_DEVICE := y67,pd1612
 
 # Recovery Ramdisk
-PRODUCT_PACKAGES += \
-    init.recovery.mt6755.rc
-
 PRODUCT_COPY_FILES += \
-    $(LOCAL_PATH)/recovery/sbin/fuelgauged_static:recovery/root/sbin/fuelgauged_static
+    $(LOCAL_PATH)/rootdir/ramdisk/sbin/fuelgauged_static:recovery/root/sbin/fuelgauged_static \
+    $(LOCAL_PATH)/rootdir/init.recovery.mt6755.rc:recovery/root/init.recovery.mt6755.rc
 
 # Root
 PRODUCT_PACKAGES += \
