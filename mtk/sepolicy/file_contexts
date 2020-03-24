@@ -538,5 +538,32 @@
 /dev/esfp0(/.*)? u:object_r:esfp0_device:s0
 
 # aka.jiang add for fingerprint ET3XX 20160308
-/system/bin/etsd  u:object_r:etsd_exec:s0
-/dev/esfp0       u:object_r:etsd_data_file:s0
+#/system/bin/etsd  u:object_r:etsd_exec:s0
+#/dev/esfp0       u:object_r:etsd_data_file:s0
+
+#vivo liuxiaodong add for VIVO_SEPOLICY
+/dev/iqoo_flashlight_platform	u:object_r:iqoo_flashlight_platform_device:s0
+
+# vivo liuzhengguang add for VIVO_SEPOLICY start
+/dev/goodix_fp          u:object_r:goodixfingerprintd_device:s0
+/system/bin/goodixfingerprintd u:object_r:goodixfingerprintd_exec:s0
+# vivo liuzhengguang add for VIVO_SEPOLICY end
+
+#vivo laiyangming add for VIVO_SEPOLICY begin
+#vivo laiyangming add for magnetometer sensor device access
+/sys/class/input/input[0-15]+/hard_offset u:object_r:magnetometer_yas537_file:s0
+/system/vendor/etc/yas_set.cfg u:object_r:yas537_access_file3:s0
+/data/system/yas_lib.cfg u:object_r:yas537_access_file4:s0
+/data/system/yas_lib.cfg.tmp u:object_r:yas537_access_file5:s0
+#/system/vendor/lib64/libyasalgo.so u:object_r:yas537_access_file1:s0
+#/system/vendor/lib/libyasalgo.so u:object_r:yas537_access_file2:s0
+/system/bin/yamaha537fusiond u:object_r:yamaha537fusiond_exec:s0
+#vivo laiyangming add for VIVO_SEPOLICY end
+# zhangjianping add for VIVO_DEPOLICY alipay fp service
+/system/bin/alipay_service u:object_r:alipayfpserver_exec:s0
+# vivo wangbowen add for getuk native service
+/system/bin/getuk    u:object_r:getuk_exec:s0
+# for battery&charging
+/sys/devices/platform/battery/call_state u:object_r:sysfs_battery_file:s0
+/sys/devices/platform/battery/operate u:object_r:sysfs_battery_file:s0
+

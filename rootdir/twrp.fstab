@@ -25,4 +25,6 @@
 /system_image		emmc	/dev/block/platform/mtk-msdc.0/11230000.msdc0/by-name/system  backup=1;flashimg=1
 /flashinfo		emmc	/dev/block/platform/mtk-msdc.0/11230000.msdc0/by-name/flashinfo backup=1;flashimg=1
 /ppl			emmc	/dev/block/platform/mtk-msdc.0/11230000.msdc0/by-name/ppl		 backup=1;flashimg=1
-/sdcard1		        auto	/dev/block/platform/mtk-msdc.0/11240000.msdc1/mmcblk1		 storage;wipeingui;removable;backup=0;flashimg=0
+
+#无法挂载外置sdcard，官方recovery也不行
+#/sdcard1		        auto	/dev/block/platform/mtk-msdc.0/11240000.msdc1/mmcblk1		 storage;wipeingui;removable;backup=0;flashimg=0

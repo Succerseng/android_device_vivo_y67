@@ -267,8 +267,24 @@ PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/rootdir/ramdisk/sbin/fuelgauged_static:recovery/root/sbin/fuelgauged_static \
     $(LOCAL_PATH)/rootdir/init.recovery.mt6755.rc:recovery/root/init.recovery.mt6755.rc
 
+ifeq ($(MCDEVICEDAEMON_PD1612), true)
+PRODUCT_COPY_FILES += \
+    $(DEVICE_PATH)/rootdir/ramdisk/system/bin/mcDriverDaemon:recovery/root/sbin/mcDriverDaemon \
+    $(DEVICE_PATH)/rootdir/ramdisk/system/lib64/libMcClient.so:recovery/root/system/lib64/libMcClient.so \
+    $(DEVICE_PATH)/rootdir/ramdisk/system/lib64/hw/keystore.mt6755.so:recovery/root/system/lib64/hw/keystore.mt6755.so \
+    $(DEVICE_PATH)/rootdir/ramdisk/system/app/mcRegistry/020f0000000000000000000000000000.drbin:recovery/root/system/app/mcRegistry/020f0000000000000000000000000000.drbin \
+    $(DEVICE_PATH)/rootdir/ramdisk/system/app/mcRegistry/05120000000000000000000000000000.drbin:recovery/root/system/app/mcRegistry/05120000000000000000000000000000.drbin \
+    $(DEVICE_PATH)/rootdir/ramdisk/system/app/mcRegistry/070b0000000000000000000000000000.drbin:recovery/root/system/app/mcRegistry/070b0000000000000000000000000000.drbin \
+    $(DEVICE_PATH)/rootdir/ramdisk/system/app/mcRegistry/020b0000000000000000000000000000.drbin:recovery/root/system/app/mcRegistry/020b0000000000000000000000000000.drbin \
+    $(DEVICE_PATH)/rootdir/ramdisk/system/app/mcRegistry/030b0000000000000000000000000000.drbin:recovery/root/system/app/mcRegistry/030b0000000000000000000000000000.drbin \
+    $(DEVICE_PATH)/rootdir/ramdisk/system/app/mcRegistry/5a7b770d08d14b8fb00f53de4173145a.drbin:recovery/root/system/app/mcRegistry/5a7b770d08d14b8fb00f53de4173145a.drbin \
+    $(DEVICE_PATH)/rootdir/ramdisk/system/app/mcRegistry/05070000000000000000000000000000.drbin:recovery/root/system/app/mcRegistry/05070000000000000000000000000000.drbin
+#PRODUCT_PACKAGE += \
+#    local_updater
+endif
+
 # Root
-PRODUCT_PACKAGES += \
+#PRODUCT_PACKAGES += \
     factory_init.project.rc \
     factory_init.rc \
     init.aee.rc \
@@ -288,17 +304,23 @@ PRODUCT_PACKAGES += \
     init.usb.rc \
     init.vivo.rc \
     init.volte.rc \
-    meta_init.c2k.rc \
-    meta_init.modem.rc \
-    meta_init.project.rc \
-    meta_init.rc \
     init.xlog.rc \
     ueventd.rc
+PRODUCT_PACKAGES += \
+    fstab.mt6755 \
+    init.mt6755.rc \
+    init.mt6755.modem.rc \
+    init.mt6755.usb.rc \
+    ueventd.mt6755.rc
 
 # Screen density
 PRODUCT_AAPT_CONFIG := normal
 PRODUCT_AAPT_PREF_CONFIG := xxhdpi
 PRODUCT_AAPT_PREBUILT_DPI := xxhdpi xhdpi hdpi
+
+# SU
+PEPDUCT_PACKAGES += \
+    su
 
 # Telephony
 SIM_COUNT := 2

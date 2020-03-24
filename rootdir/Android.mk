@@ -10,29 +10,32 @@ $(foreach target,$(1), \
    $(eval include $(BUILD_PREBUILT)))
 endef
 
+#$(call add-rootdir-targets, \
+    official_rc/factory_init.project.rc \
+    official_rc/factory_init.rc \
+    official_rc/init.aee.rc \
+    official_rc/init.c2k.rc \
+    official_rc/init.common_svc.rc \
+    official_rc/init.factory.rc \
+    official_rc/init.mal.rc \
+    official_rc/init.modem.rc \
+    official_rc/init.mt6755.rc \
+    official_rc/init.mt6755.usb.rc \
+    official_rc/init.powermo.rc \
+    official_rc/init.project.rc \
+    official_rc/ueventd.mt6755.rc \
+    official_rc/init.trace.rc \
+    official_rc/init.trustonic.rc \
+    official_rc/init.usb.rc \
+    official_rc/init.vivo.rc \
+    official_rc/init.volte.rc \
+    official_rc/init.xlog.rc \
+    official_rc/ueventd.rc)
+
 $(call add-rootdir-targets, \
-    factory_init.project.rc \
-    factory_init.rc \
-    init.aee.rc \
-    init.c2k.rc \
-    init.common_svc.rc \
-    init.factory.rc \
-    init.mal.rc \
-    init.modem.rc \
     fstab.mt6755 \
     init.mt6755.rc \
+    init.mt6755.modem.rc \
     init.mt6755.usb.rc \
-    init.powermo.rc \
-    init.project.rc \
-    ueventd.mt6755.rc \
-    init.trace.rc \
-    init.trustonic.rc \
-    init.usb.rc \
-    init.vivo.rc \
-    init.volte.rc \
-    meta_init.c2k.rc \
-    meta_init.modem.rc \
-    meta_init.project.rc \
-    meta_init.rc \
-    init.xlog.rc \
-    ueventd.rc)
+    ueventd.mt6755.rc)
+
