@@ -321,6 +321,7 @@ PRODUCT_AAPT_PREBUILT_DPI := xxhdpi xhdpi hdpi
 # SU
 PEPDUCT_PACKAGES += \
     su
+#    init_su
 
 # Telephony
 SIM_COUNT := 2

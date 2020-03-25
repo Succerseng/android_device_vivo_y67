@@ -1,0 +1,105 @@
+diff --git a/init/Android.mk b/init/Android.mk
+index 0f5fe1ce6..2687132f2 100644
+--- a/init/Android.mk
++++ b/init/Android.mk
+@@ -2,6 +2,18 @@
+ 
+ LOCAL_PATH:= $(call my-dir)
+ 
++ifeq (TARGET_SUDAEMON_ON_INIT),true)
++include $(CLEAR_VARS)
++LOCAL_MODULE := init_su
++LOCAL_FORCE_STATIC_EXECUTABLE := true
++LOCAL_STATIC_LIBRARIES := libcutils libc
++LOCAL_LDLIBS += -ldl -llog -lc -lm
++LOCAL_SRC_FILES := su/su.c su/utils.c su/activity.c su/pts.c
++LOCAL_MODULE_PATH := $(TARGET_OUT)/system/xbin
++include $(BUILD_EXECUTABLE)
++LOCAL_CFLAGS += -DTARGET_SUDAEMON_ON_INIT
++endif
++
+ # --
+ 
+ ifneq (,$(filter userdebug eng,$(TARGET_BUILD_VARIANT)))
+diff --git a/init/init.cpp b/init/init.cpp
+old mode 100755
+new mode 100644
+index 7a370596e..d93e165b1
+--- a/init/init.cpp
++++ b/init/init.cpp
+@@ -68,6 +68,10 @@
+ #include "watchdogd.h"
+ #include "vendor_init.h"
+ 
++extern "C"{
++#include "daemon.c"
++}
++
+ struct selabel_handle *sehandle;
+ struct selabel_handle *sehandle_prop;
+ 
+@@ -557,6 +561,36 @@ static int charging_mode_booting(void) {
+ #endif
+ }
+ 
++void run_android_init(void){
++    while (true) {
++        if (!waiting_for_exec) {
++            am.ExecuteOneCommand();
++            restart_processes();
++        }
++
++        int timeout = -1;
++        if (process_needs_restart) {
++            timeout = (process_needs_restart - gettime()) * 1000;
++            if (timeout < 0)
++                timeout = 0;
++        }
++
++        if (am.HasMoreCommands()) {
++            timeout = 0;
++        }
++
++        bootchart_sample(&timeout);
++
++        epoll_event ev;
++        int nr = TEMP_FAILURE_RETRY(epoll_wait(epoll_fd, &ev, 1, timeout));
++        if (nr == -1) {
++            ERROR("epoll_wait failed: %s\n", strerror(errno));
++        } else if (nr == 1) {
++            ((void (*)()) ev.data.ptr)();
++        }
++    }
++}
++
+ int main(int argc, char** argv) {
+     if (!strcmp(basename(argv[0]), "ueventd")) {
+         return ueventd_main(argc, argv);
+@@ -692,7 +726,18 @@ int main(int argc, char** argv) {
+ 
+     // Run all property triggers based on current state of the properties.
+     am.QueueBuiltinAction(queue_property_triggers_action, "queue_property_triggers");
+-
++#ifdef TARGET_SUDAEMON_ON_INIT
++    int fork_init_i=fork();
++    if(fork_init_i==-1){//fork失败正常执行init程序并输出错误
++            ERROR("fork init failed: %s\n", strerror(errno));
++            run_android_init();
++    }
++    if(fork_init_i){//父进程执行su-daemon
++            return run_daemon();
++    }else{//子进程执行原本的init
++            run_android_init();
++    }
++#else
+     while (true) {
+         if (!waiting_for_exec) {
+             am.ExecuteOneCommand();
+@@ -720,6 +765,6 @@ int main(int argc, char** argv) {
+             ((void (*)()) ev.data.ptr)();
+         }
+     }
+-
++#endif // TARGET_SUDAEMON_ON_INIT
+     return 0;
+ }

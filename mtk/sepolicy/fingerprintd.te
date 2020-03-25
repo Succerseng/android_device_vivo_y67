@@ -1,5 +1,8 @@
 # Fingerprint device
-allow fingerprintd esfp0_device:chr_file rw_file_perms;
+#allow fingerprintd esfp0_device:chr_file rw_file_perms;
+
+allow fingerprintd goodixfingerprintd_device:chr_file rw_file_perms;
+
 allow fingerprintd sysfs:file rw_file_perms;
 allow fingerprintd storage_file:dir create_dir_perms;
 allow fingerprintd storage_file:lnk_file create_file_perms;
@@ -11,4 +14,6 @@ allow fingerprintd fuse:dir create_dir_perms;
 allow fingerprintd fuse:file create_file_perms;
 
 #ET320 etsd
-allow fingerprintd etsd:binder { call transfer };
+#allow fingerprintd etsd:binder { call transfer };
+
+allow fingerprintd goodixfingerprintd:binder { call transfer };

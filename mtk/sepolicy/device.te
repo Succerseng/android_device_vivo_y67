@@ -201,4 +201,7 @@ type audio_ipi_device, dev_type;
 type tfa9890_device, dev_type;
 
 # Fingerprint device
-type esfp0_device, dev_type, mlstrustedobject;
+#type esfp0_device, dev_type, mlstrustedobject;
+
+type goodixfingerprintd_device, dev_type;
+type goodix_fp_device, dev_type;
