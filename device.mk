@@ -326,7 +326,7 @@ PRODUCT_AAPT_PREF_CONFIG := xxhdpi
 PRODUCT_AAPT_PREBUILT_DPI := xxhdpi xhdpi hdpi
 
 # SU
-PEPDUCT_PACKAGES += \
+PRODUCT_PACKAGES += \
     su
 #    init_su
 
