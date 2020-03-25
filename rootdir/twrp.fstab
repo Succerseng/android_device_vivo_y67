@@ -27,4 +27,7 @@
 /ppl			emmc	/dev/block/platform/mtk-msdc.0/11230000.msdc0/by-name/ppl		 backup=1;flashimg=1
 
 #无法挂载外置sdcard，官方recovery也不行
-#/sdcard1		        auto	/dev/block/platform/mtk-msdc.0/11240000.msdc1/mmcblk1		 storage;wipeingui;removable;backup=0;flashimg=0
+#/sdcard1		        auto	/dev/block/platform/mtk-msdc.0/11240000.msdc1/mmcblk1		 storage;wipeingui;removable;backup=0;flashimg=
+
+/external_sd    vfat            /dev/block/mmcblk1p1  /dev/block/mmcblk1	 flags=display="Micro SDcard";storage;wipeingui;removable
+/usb-otg        vfat            /dev/block/sda1       /dev/block/sda        flags=display="USB-OTG";storage;wipeingui;removable

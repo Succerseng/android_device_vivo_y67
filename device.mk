@@ -267,6 +267,7 @@ PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/rootdir/ramdisk/sbin/fuelgauged_static:recovery/root/sbin/fuelgauged_static \
     $(LOCAL_PATH)/rootdir/init.recovery.mt6755.rc:recovery/root/init.recovery.mt6755.rc
 
+ifeq ($(PRODUCT_USE_TWRP),true)
 ifeq ($(MCDEVICEDAEMON_PD1612), true)
 PRODUCT_COPY_FILES += \
     $(DEVICE_PATH)/rootdir/ramdisk/system/bin/mcDriverDaemon:recovery/root/sbin/mcDriverDaemon \
@@ -281,6 +282,12 @@ PRODUCT_COPY_FILES += \
     $(DEVICE_PATH)/rootdir/ramdisk/system/app/mcRegistry/05070000000000000000000000000000.drbin:recovery/root/system/app/mcRegistry/05070000000000000000000000000000.drbin
 #PRODUCT_PACKAGE += \
 #    local_updater
+endif
+#用官方的vold解密官方系统加密的data
+ifeq ($(TW_CRYPTO_USE_SYSTEM_VOLD),true)
+PRODUCT_COPY_FILES += \
+    $(DEVICE_PATH)/rootdir/ramdisk/system/bin/vold:recovery/root/system/bin/vold
+endif
 endif
 
 # Root
