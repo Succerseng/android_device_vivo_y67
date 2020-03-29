@@ -8,7 +8,8 @@ LOCAL_SRC_FILES := \
     mtk_omx.cpp \
     mtk_ui.cpp \
     mtk_wvm.cpp \
-    mtk_xlog.cpp
+    mtk_xlog.cpp \
+    camera.cpp
 
 # only for 64bit libraries
 LOCAL_SRC_FILES_64 := mtk_parcel.cpp

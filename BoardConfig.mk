@@ -21,6 +21,7 @@ DEVICE_PATH := device/vivo/y67
 #BLOCK_BASED_OTA := true
 
 TARGET_SPECIFIC_HEADER_PATH := $(DEVICE_PATH)/mtk/include
+TARGET_LDPRELOAD += libmtk_symbols.so
 
 # Architecture
 TARGET_ARCH := arm64
@@ -182,7 +183,7 @@ TW_EXCLUDE_SUPERSU := true
 RECOVERY_GRAPHICS_USE_LINELENGTH := true
 TW_INTERNAL_STORAGE_PATH := "/data/media"
 TW_INTERNAL_STORAGE_MOUNT_POINT := "data"
-PRODUCT_COPY_FILES += $(DEVICE_PATH)/rootdir/twrp.fstab:recovery/root/etc/twrp.fstab
+PRODUCT_COPY_FILES += $(DEVICE_PATH)/rootdir/ramdisk/etc/twrp.fstab:recovery/root/etc/twrp.fstab
 endif
 
 # Wireless

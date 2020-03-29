@@ -97,11 +97,7 @@ PRODUCT_PACKAGES += \
     libfmjni \
     FMRadio
 
-# GPS
-PRODUCT_PACKAGES += \
-    gps.mt6755 \
-    YGPS
-
+# gps
 $(call inherit-product, device/common/gps/gps_us_supl.mk)
 
 PRODUCT_COPY_FILES += \
@@ -114,17 +110,6 @@ MTK_GPU_VERSION := mali midgard r7p0
 # IO Scheduler
 PRODUCT_PROPERTY_OVERRIDES += \
     sys.io.scheduler=bfq
-
-# Include ov8858 s5k2p8
-PRODUCT_COPY_FILES += \
-    $(LOCAL_PATH)/camera/custom_hal/armeabi-v7a/libcam.halsensor.so:system/lib/libcam.halsensor.so \
-    $(LOCAL_PATH)/camera/custom_hal/armeabi-v7a/libcam.metadataprovider.so:system/lib/libcam.metadataprovider.so \
-    $(LOCAL_PATH)/camera/custom_hal/armeabi-v7a/libcam.paramsmgr.so:system/lib/libcam.paramsmgr.so \
-    $(LOCAL_PATH)/camera/custom_hal/armeabi-v7a/libcam.metadata.so:system/lib/libcam.metadata.so \
-    $(LOCAL_PATH)/camera/custom_hal/arm64-v8a/libcam.halsensor.so:system/lib64/libcam.halsensor.so \
-    $(LOCAL_PATH)/camera/custom_hal/arm64-v8a/libcam.metadataprovider.so:system/lib64/libcam.metadataprovider.so \
-    $(LOCAL_PATH)/camera/custom_hal/arm64-v8a/libcam.paramsmgr.so:system/lib64/libcam.paramsmgr.so \
-    $(LOCAL_PATH)/camera/custom_hal/arm64-v8a/libcam.metadata.so:system/lib64/libcam.metadata.so
 
 # Key Layouts
 PRODUCT_COPY_FILES += \
@@ -245,10 +230,6 @@ PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/prebuilt/ril/custom/lib64/librilmtkmd2.so:system/lib64/librilmtkmd2.so \
     $(LOCAL_PATH)/prebuilt/ril/custom/lib64/mtk-ril.so:system/lib64/mtk-ril.so \
     $(LOCAL_PATH)/prebuilt/ril/custom/lib64/mtk-rilmd2.so:system/lib64/mtk-rilmd2.so
-
-# Power
-PRODUCT_PACKAGES += \
-    power.mt6755
 
 # Radio dependencies
 PRODUCT_PACKAGES += \
