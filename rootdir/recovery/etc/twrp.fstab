@@ -1,0 +1,31 @@
+/system			ext4	/dev/block/platform/mtk-msdc.0/11230000.msdc0/by-name/system                     flag=backup=1;flashimg=1
+/data			ext4	/dev/block/platform/mtk-msdc.0/11230000.msdc0/by-name/userdata                 flag=backup=1;flashimg=1
+/cache			ext4	/dev/block/platform/mtk-msdc.0/11230000.msdc0/by-name/cache                   flag=backup=1;wipeingui;wipeduringfactoryreset
+/proinfo                 emmc	/dev/block/platform/mtk-msdc.0/11230000.msdc0/by-name/proinfo		 flag=backup=1
+/nvram			emmc	/dev/block/platform/mtk-msdc.0/11230000.msdc0/by-name/nvram	 	 flag=backup=1;flashimg=1
+/nvdata                  ext4    /dev/block/platform/mtk-msdc.0/11230000.msdc0/by-name/nvdata                flag=wipeingui;removable
+/protect_f		ext4	/dev/block/platform/mtk-msdc.0/11230000.msdc0/by-name/protect1		 flag=backup=1
+/protect_s		ext4	/dev/block/platform/mtk-msdc.0/11230000.msdc0/by-name/protect2		 flag=backup=1
+/lk			emmc	/dev/block/platform/mtk-msdc.0/11230000.msdc0/by-name/lk		        flag=backup=1;flashimg=1
+/lk2			emmc	/dev/block/platform/mtk-msdc.0/11230000.msdc0/by-name/lk2                     flag=backup=1;flashimg=1
+/apps			ext4	/dev/block/platform/mtk-msdc.0/11230000.msdc0/by-name/apps                flag=backup=1;flashimg=1
+/cust			ext4	/dev/block/platform/mtk-msdc.0/11230000.msdc0/by-name/cust                flag=backup=1;flashimg=1
+/boot			emmc	/dev/block/platform/mtk-msdc.0/11230000.msdc0/by-name/boot		           flag=backup=1;flashimg=1
+/recovery		emmc	/dev/block/platform/mtk-msdc.0/11230000.msdc0/by-name/recovery	     	 flag=backup=1;flashimg=1
+/logo			emmc	/dev/block/platform/mtk-msdc.0/11230000.msdc0/by-name/logo		            flag=backup=1;flashimg=1
+/expdb			emmc	/dev/block/platform/mtk-msdc.0/11230000.msdc0/by-name/expdb                  flag=backup=1;flashimg=1
+/seccfg			emmc	/dev/block/platform/mtk-msdc.0/11230000.msdc0/by-name/seccfg                flag=backup=1;flashimg=1
+/oemkeystore		emmc	/dev/block/platform/mtk-msdc.0/11230000.msdc0/by-name/oemkeystore             flag=backup=1;flashimg=1
+/secro			emmc	/dev/block/platform/mtk-msdc.0/11230000.msdc0/by-name/secro   		 flag=backup=1;flashimg=1
+/keystore		emmc	/dev/block/platform/mtk-msdc.0/11230000.msdc0/by-name/keystore                flag=backup=1;flashimg=1
+/tee1			emmc	/dev/block/platform/mtk-msdc.0/11230000.msdc0/by-name/tee1	            	 flag=backup=1;flashimg=1
+/tee2			emmc	/dev/block/platform/mtk-msdc.0/11230000.msdc0/by-name/tee2	            	 flag=backup=1;flashimg=1
+/frp			emmc	/dev/block/platform/mtk-msdc.0/11230000.msdc0/by-name/frp	          	 flag=backup=1;flashimg=1
+/metadata		emmc	/dev/block/platform/mtk-msdc.0/11230000.msdc0/by-name/metadata              flag=backup=1;flashimg=1
+/system_image		emmc	/dev/block/platform/mtk-msdc.0/11230000.msdc0/by-name/system                 flag=backup=1;flashimg=1
+/flashinfo		emmc	/dev/block/platform/mtk-msdc.0/11230000.msdc0/by-name/flashinfo                flag=backup=1;flashimg=1
+/ppl			emmc	/dev/block/platform/mtk-msdc.0/11230000.msdc0/by-name/ppl                    flag=backup=1;flashimg=1
+
+
+/external_sd             vfat   /dev/block/mmcblk1p1  	   flags=display="Micro SDcard";storage;wipeingui;removable
+/usb-otg                 vfat   /dev/block/sda1              flags=display="USB-OTG";storage;wipeingui;removable

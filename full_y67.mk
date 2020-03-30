@@ -18,15 +18,6 @@ $(call inherit-product, $(SRC_TARGET_DIR)/product/full_base_telephony.mk)
 # Inherit from y67
 $(call inherit-product, device/vivo/y67/device.mk)
 
-# Keyhandler package
-PRODUCT_PACKAGES += \
-    com.cyanogenmod.keyhandler
-
-PRODUCT_SYSTEM_SERVER_JARS += com.cyanogenmod.keyhandler
-
-# Never dexopt the keyhandler
-$(call add-product-dex-preopt-module-config,com.cyanogenmod.keyhandler,disable)
-
 PRODUCT_DEVICE := y67
 PRODUCT_NAME := full_y67
 PRODUCT_BRAND := vivo

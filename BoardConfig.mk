@@ -13,15 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-TARGET_BOARD_PLATFORM := mt6755
-
 DEVICE_PATH := device/vivo/y67
-
-#TARGET_SUDAEMON_ON_INIT := true
-#BLOCK_BASED_OTA := true
-
-TARGET_SPECIFIC_HEADER_PATH := $(DEVICE_PATH)/mtk/include
-TARGET_LDPRELOAD += libmtk_symbols.so
 
 # Architecture
 TARGET_ARCH := arm64
@@ -41,7 +33,7 @@ BOARD_FLASH_BLOCK_SIZE := 4096
 # Audio
 USE_CUSTOM_AUDIO_POLICY := 1
 BOARD_USES_MTK_AUDIO := true
-#USE_XML_AUDIO_POLICY_CONF := 1 //使系统使用旧版音频政策格式
+#USE_XML_AUDIO_POLICY_CONF := 1 //使用旧版音频政策格式
 
 # Bootloader
 TARGET_NO_BOOTLOADER := true
@@ -52,15 +44,10 @@ BOARD_BLUETOOTH_BDROID_HCILP_INCLUDED := 0
 BOARD_CONNECTIVITY_MODULE := conn_soc
 BOARD_BLUETOOTH_BDROID_BUILDCFG_INCLUDE_DIR := $(DEVICE_PATH)/bluetooth
 
-# CMHW
-BOARD_USES_CYANOGEN_HARDWARE := true
-BOARD_HARDWARE_CLASS += $(DEVICE_PATH)/cmhw
-
-ifeq ($(HOST_OS),linux)
-  ifeq ($(TARGET_BUILD_VARIANT),user)
-		WITH_DEXPREOPT ?= true
-  endif
-endif
+# Camera and Codecs
+BOARD_GLOBAL_CFLAGS += -DMETADATA_CAMERA_SOURCE
+media.stagefright.legacyencoder=true
+media.stagefright.less-secure=true
 
 # Display
 USE_OPENGL_RENDERER := true
@@ -72,23 +59,8 @@ PRESENT_TIME_OFFSET_FROM_VSYNC_NS := 0
 MTK_HWC_SUPPORT := yes
 MTK_HWC_VERSION := 1.5.0
 
-# FLash
-USE_F2FS_FORMAT_EXT4 := true
-FLASH_VERIFICATION_NAME := $(PRODUCT_DEVICE)
-LOCAL_BINARY_PATH := /sbin/local_updater
-
-MTK_PROJECT_CONFIG ?= $(DEVICE_PATH)/ProjectConfig.mk
-include $(MTK_PROJECT_CONFIG)
-
-MTK_INTERNAL_CDEFS := $(foreach t,$(AUTO_ADD_GLOBAL_DEFINE_BY_NAME),$(if $(filter-out no NO none NONE false FALSE,$($(t))),-D$(t)))
-MTK_INTERNAL_CDEFS += $(foreach t,$(AUTO_ADD_GLOBAL_DEFINE_BY_VALUE),$(if $(filter-out no NO none NONE false FALSE,$($(t))),$(foreach v,$(shell echo $($(t)) | tr '[a-z]' '[A-Z]'),-D$(v))))
-MTK_INTERNAL_CDEFS += $(foreach t,$(AUTO_ADD_GLOBAL_DEFINE_BY_NAME_VALUE),$(if $(filter-out no NO none NONE false FALSE,$($(t))),-D$(t)=\"$($(t))\"))
-BOARD_GLOBAL_CFLAGS += $(MTK_INTERNAL_CDEFS)
-BOARD_GLOBAL_CPPFLAGS += $(MTK_INTERNAL_CDEFS)
-
 # Fingerprint
 MTK_FINGERPRINT_SUPPORT := yes
-#USE_EXTRACT_GOODIX_BLOB := yes
 
 # FSTAB
 TARGET_RECOVERY_FSTAB := $(DEVICE_PATH)/rootdir/fstab.mt6755
@@ -103,8 +75,8 @@ BOARD_KERNEL_CMDLINE := bootopt=64S3,32N2,64N2 enforcing=0 androidboot.selinux=p
 BOARD_MKBOOTIMG_ARGS := --board 1465391499 --ramdisk_offset 0x04f88000 --second_offset 0x00e88000 --tags_offset 0x03f88000
 TARGET_USES_64_BIT_BINDER := true
 TARGET_PREBUILT_KERNEL := $(DEVICE_PATH)/prebuilt/kernel
+
 $(shell mkdir -p $(OUT)/obj/KERNEL_OBJ/usr)
-TARGET_BOOTLOADER_BOARD_NAME := y67
 
 BOARD_BOOTIMAGE_PARTITION_SIZE := 16777216
 BOARD_RECOVERYIMAGE_PARTITION_SIZE := 32777216
@@ -126,11 +98,6 @@ MTK_MEDIA_PROFILES := true
 BOARD_USES_MTK_MEDIA_PROFILES := true
 USE_CAMERA_STUB := true
 
-# Camera and Codecs
-BOARD_GLOBAL_CFLAGS += -DMETADATA_CAMERA_SOURCE
-media.stagefright.legacyencoder=true
-media.stagefright.less-secure=true
-
 # Media
 TARGET_HAS_LEGACY_CAMERA_HAL1 := true
 TARGET_OMX_LEGACY_RESCALING := true
@@ -142,6 +109,23 @@ USE_DEVICE_SPECIFIC_CAMERA := true
 # Misc
 EXTENDED_FONT_FOOTPRINT := true
 
+# MTK Project
+MTK_PROJECT_CONFIG ?= $(DEVICE_PATH)/ProjectConfig.mk
+include $(MTK_PROJECT_CONFIG)
+
+MTK_INTERNAL_CDEFS := $(foreach t,$(AUTO_ADD_GLOBAL_DEFINE_BY_NAME),$(if $(filter-out no NO none NONE false FALSE,$($(t))),-D$(t)))
+MTK_INTERNAL_CDEFS += $(foreach t,$(AUTO_ADD_GLOBAL_DEFINE_BY_VALUE),$(if $(filter-out no NO none NONE false FALSE,$($(t))),$(foreach v,$(shell echo $($(t)) | tr '[a-z]' '[A-Z]'),-D$(v))))
+MTK_INTERNAL_CDEFS += $(foreach t,$(AUTO_ADD_GLOBAL_DEFINE_BY_NAME_VALUE),$(if $(filter-out no NO none NONE false FALSE,$($(t))),-D$(t)=\"$($(t))\"))
+BOARD_GLOBAL_CFLAGS += $(MTK_INTERNAL_CDEFS)
+BOARD_GLOBAL_CPPFLAGS += $(MTK_INTERNAL_CDEFS)
+
+# OTA
+BLOCK_BASED_OTA := false
+
+# Platform
+TARGET_BOARD_PLATFORM := mt6755
+TARGET_BOOTLOADER_BOARD_NAME := y67
+
 # Recovery
 TARGET_USERIMAGES_USE_EXT4 := true
 
@@ -149,18 +133,18 @@ TARGET_USERIMAGES_USE_EXT4 := true
 TARGET_RELEASETOOLS_EXTENSIONS := $(DEVICE_PATH)
 
 # RIL
-BOARD_RIL_CLASS := $(DEVICE_PATH)/mtk/ril
+BOARD_RIL_CLASS := $(DEVICE_PATH)/ril
 
 # Sensors
 TARGET_NEEDS_PLATFORM_TEXT_RELOCATIONS := true
 TARGET_NO_SENSOR_PERMISSION_CHECK := true
 
 # SELinux
-BOARD_SEPOLICY_DIRS += $(DEVICE_PATH)/mtk/sepolicy
+BOARD_SEPOLICY_DIRS += $(DEVICE_PATH)/sepolicy
 POLICYVERS := 29
 
-# Support of MTK NFC
-MTK_NFC_SUPPORT := no
+# Symbols
+TARGET_LDPRELOAD += libmtk_symbols.so
 
 # System
 TARGET_SYSTEM_PROP += $(DEVICE_PATH)/system.prop
@@ -183,7 +167,7 @@ TW_EXCLUDE_SUPERSU := true
 RECOVERY_GRAPHICS_USE_LINELENGTH := true
 TW_INTERNAL_STORAGE_PATH := "/data/media"
 TW_INTERNAL_STORAGE_MOUNT_POINT := "data"
-PRODUCT_COPY_FILES += $(DEVICE_PATH)/rootdir/ramdisk/etc/twrp.fstab:recovery/root/etc/twrp.fstab
+PRODUCT_COPY_FILES += $(DEVICE_PATH)/rootdir/recovery/etc/twrp.fstab:recovery/root/etc/twrp.fstab
 endif
 
 # Wireless
