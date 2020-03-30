@@ -61,6 +61,11 @@ PRODUCT_PACKAGES += \
 PRODUCT_DEFAULT_PROPERTY_OVERRIDES += \
     ro.usb.vid=2970
 
+# Default.prop(ro.hardware.bbk：官方包的验证)
+ADDITIONAL_DEFAULT_PROPERTIES += \
+    persist.sys.timezone=Asia/Shanghai \
+    ro.hardware.bbk=PD1612MD
+
 # Dalvik heap configurations
 $(call inherit-product-if-exists, frameworks/native/build/phone-xxxhdpi-4096-dalvik-heap.mk)
 
@@ -145,34 +150,24 @@ PRODUCT_PACKAGES += \
 PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/configs/spn-conf.xml:system/etc/spn-conf.xml
 
-# Recovery allowed devices
-TARGET_OTA_ASSERT_DEVICE := y67,pd1612
-
 # Recovery Ramdisk
 PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/rootdir/recovery/sbin/fuelgauged_static:root/sbin/fuelgauged_static \
     $(LOCAL_PATH)/rootdir/recovery/sbin/fuelgauged_static:recovery/root/sbin/fuelgauged_static \
     $(LOCAL_PATH)/rootdir/init.recovery.mt6755.rc:recovery/root/init.recovery.mt6755.rc
 
-ifeq ($(PRODUCT_USE_TWRP),true)
-ifeq ($(MCDEVICEDAEMON_PD1612), true)
+ifeq ($(PRODUCT_USE_MCDEVICE),true)
 PRODUCT_COPY_FILES += \
-    $(DEVICE_PATH)/rootdir/recovery/system/bin/mcDriverDaemon:recovery/root/sbin/mcDriverDaemon \
-    $(DEVICE_PATH)/rootdir/recovery/system/lib64/libMcClient.so:recovery/root/system/lib64/libMcClient.so \
-    $(DEVICE_PATH)/rootdir/recovery/system/lib64/hw/keystore.mt6755.so:recovery/root/system/lib64/hw/keystore.mt6755.so \
-    $(DEVICE_PATH)/rootdir/recovery/system/app/mcRegistry/020f0000000000000000000000000000.drbin:recovery/root/system/app/mcRegistry/020f0000000000000000000000000000.drbin \
-    $(DEVICE_PATH)/rootdir/recovery/system/app/mcRegistry/05120000000000000000000000000000.drbin:recovery/root/system/app/mcRegistry/05120000000000000000000000000000.drbin \
-    $(DEVICE_PATH)/rootdir/recovery/system/app/mcRegistry/070b0000000000000000000000000000.drbin:recovery/root/system/app/mcRegistry/070b0000000000000000000000000000.drbin \
-    $(DEVICE_PATH)/rootdir/recovery/system/app/mcRegistry/020b0000000000000000000000000000.drbin:recovery/root/system/app/mcRegistry/020b0000000000000000000000000000.drbin \
-    $(DEVICE_PATH)/rootdir/recovery/system/app/mcRegistry/030b0000000000000000000000000000.drbin:recovery/root/system/app/mcRegistry/030b0000000000000000000000000000.drbin \
-    $(DEVICE_PATH)/rootdir/recovery/system/app/mcRegistry/5a7b770d08d14b8fb00f53de4173145a.drbin:recovery/root/system/app/mcRegistry/5a7b770d08d14b8fb00f53de4173145a.drbin \
-    $(DEVICE_PATH)/rootdir/recovery/system/app/mcRegistry/05070000000000000000000000000000.drbin:recovery/root/system/app/mcRegistry/05070000000000000000000000000000.drbin
-endif
-#用官方的vold解密官方系统加密的data
-ifeq ($(TW_CRYPTO_USE_SYSTEM_VOLD),true)
-PRODUCT_COPY_FILES += \
-    $(DEVICE_PATH)/rootdir/recovery/system/bin/vold:recovery/root/system/bin/vold
-endif
+    $(LOCAL_PATH)/rootdir/recovery/system/bin/mcDriverDaemon:recovery/root/sbin/mcDriverDaemon \
+    $(LOCAL_PATH)/rootdir/recovery/system/lib64/libMcClient.so:recovery/root/system/lib64/libMcClient.so \
+    $(LOCAL_PATH)/rootdir/recovery/system/lib64/hw/keystore.mt6755.so:recovery/root/system/lib64/hw/keystore.mt6755.so \
+    $(LOCAL_PATH)/rootdir/recovery/system/app/mcRegistry/020f0000000000000000000000000000.drbin:recovery/root/system/app/mcRegistry/020f0000000000000000000000000000.drbin \
+    $(LOCAL_PATH)/rootdir/recovery/system/app/mcRegistry/05120000000000000000000000000000.drbin:recovery/root/system/app/mcRegistry/05120000000000000000000000000000.drbin \
+    $(LOCAL_PATH)/rootdir/recovery/system/app/mcRegistry/070b0000000000000000000000000000.drbin:recovery/root/system/app/mcRegistry/070b0000000000000000000000000000.drbin \
+    $(LOCAL_PATH)/rootdir/recovery/system/app/mcRegistry/020b0000000000000000000000000000.drbin:recovery/root/system/app/mcRegistry/020b0000000000000000000000000000.drbin \
+    $(LOCAL_PATH)/rootdir/recovery/system/app/mcRegistry/030b0000000000000000000000000000.drbin:recovery/root/system/app/mcRegistry/030b0000000000000000000000000000.drbin \
+    $(LOCAL_PATH)/rootdir/recovery/system/app/mcRegistry/5a7b770d08d14b8fb00f53de4173145a.drbin:recovery/root/system/app/mcRegistry/5a7b770d08d14b8fb00f53de4173145a.drbin \
+    $(LOCAL_PATH)/rootdir/recovery/system/app/mcRegistry/05070000000000000000000000000000.drbin:recovery/root/system/app/mcRegistry/05070000000000000000000000000000.drbin
 endif
 
 # root

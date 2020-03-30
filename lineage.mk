@@ -16,7 +16,6 @@ $(call inherit-product, device/vivo/y67/full_y67.mk)
 
 $(call inherit-product, vendor/cm/config/common_full_phone.mk)
 
-
 PRODUCT_NAME := lineage_y67
 BOARD_VENDOR := vivo
 PRODUCT_DEVICE := y67

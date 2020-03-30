@@ -120,11 +120,14 @@ BOARD_GLOBAL_CFLAGS += $(MTK_INTERNAL_CDEFS)
 BOARD_GLOBAL_CPPFLAGS += $(MTK_INTERNAL_CDEFS)
 
 # OTA
-BLOCK_BASED_OTA := false
+BLOCK_BASED_OTA := true
 
 # Platform
 TARGET_BOARD_PLATFORM := mt6755
 TARGET_BOOTLOADER_BOARD_NAME := y67
+
+# Recovery allowed devices
+TARGET_OTA_ASSERT_DEVICE := y67,pd1612,PD1612MD,PD1612CMD
 
 # Recovery
 TARGET_USERIMAGES_USE_EXT4 := true
@@ -150,11 +153,9 @@ TARGET_LDPRELOAD += libmtk_symbols.so
 TARGET_SYSTEM_PROP += $(DEVICE_PATH)/system.prop
 
 # Twrp
-PRODUCT_USE_TWRP := true
-MCDEVICEDAEMON_PD1612 := true
-ifeq ($(PRODUCT_USE_TWRP), true)
+ifeq ($(TARGET_RECOVERY_VERSION), twrp)
 TW_INCLUDE_L_CRYPTO := true
-TW_CRYPTO_USE_SYSTEM_VOLD := true
+TW_CRYPTO_USE_SYSTEM_VOLD := false
 TW_DEFAULT_BRIGHTNESS := 30
 TW_EXCLUDE_TWRPAPP := true
 TW_MAX_BRIGHTNESS := 255
@@ -168,6 +169,11 @@ RECOVERY_GRAPHICS_USE_LINELENGTH := true
 TW_INTERNAL_STORAGE_PATH := "/data/media"
 TW_INTERNAL_STORAGE_MOUNT_POINT := "data"
 PRODUCT_COPY_FILES += $(DEVICE_PATH)/rootdir/recovery/etc/twrp.fstab:recovery/root/etc/twrp.fstab
+#用官方的vold解密官方系统加密的data
+ifeq ($(TW_CRYPTO_USE_SYSTEM_VOLD),true)
+PRODUCT_COPY_FILES += \
+    $(LOCAL_PATH)/rootdir/recovery/system/bin/vold:recovery/root/system/bin/vold
+endif
 endif
 
 # Wireless

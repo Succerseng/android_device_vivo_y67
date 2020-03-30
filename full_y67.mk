@@ -15,7 +15,9 @@
 $(call inherit-product, $(SRC_TARGET_DIR)/product/core_64_bit.mk)
 $(call inherit-product, $(SRC_TARGET_DIR)/product/full_base_telephony.mk)
 
-# Inherit from y67
+TARGET_RECOVERY_VERSION := twrp
+PRODUCT_USE_MCDEVICE := true
+
 $(call inherit-product, device/vivo/y67/device.mk)
 
 PRODUCT_DEVICE := y67
