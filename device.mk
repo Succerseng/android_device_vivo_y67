@@ -63,6 +63,9 @@ PRODUCT_DEFAULT_PROPERTY_OVERRIDES += \
 
 # Default.prop(ro.hardware.bbk：官方包的验证)
 ADDITIONAL_DEFAULT_PROPERTIES += \
+    ro.secure=0 \
+    ro.adb.secure=0 \
+    persist.sys.usb.config=mtp,adb \
     persist.sys.timezone=Asia/Shanghai \
     ro.hardware.bbk=PD1612MD
 

@@ -10,6 +10,7 @@ LOCAL_SRC_FILES := \
     mtk_wvm.cpp \
     mtk_xlog.cpp \
     camera.cpp
+#    art.cpp
 
 # only for 64bit libraries
 LOCAL_SRC_FILES_64 := mtk_parcel.cpp
