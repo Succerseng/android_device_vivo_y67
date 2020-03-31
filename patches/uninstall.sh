@@ -7,8 +7,9 @@ cd ../native
 git checkout -- . && git clean -df
 cd ../../bionic
 git checkout -- . && git clean -df
-cd ../core
+cd ../system/core
 git checkout -- . && git clean -df
 cd ../sepolicy
 git checkout -- . && git clean -df
 cd ../..
+echo "Cleaned the patch successfully"

@@ -53,6 +53,12 @@ media.stagefright.less-secure=true
 BOARD_USES_CYANOGEN_HARDWARE := true
 BOARD_HARDWARE_CLASS += $(DEVICE_PATH)/cmhw
 
+ifeq ($(HOST_OS),linux)
+    ifeq ($(TARGET_BUILD_VARIANT),user)
+        WITH_DEXPREOPT ?= true
+    endif
+endif
+
 # Display
 USE_OPENGL_RENDERER := true
 NUM_FRAMEBUFFER_SURFACE_BUFFERS := 3
