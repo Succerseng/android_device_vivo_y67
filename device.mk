@@ -153,11 +153,6 @@ PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/configs/spn-conf.xml:system/etc/spn-conf.xml
 
 # Recovery Ramdisk
-PRODUCT_COPY_FILES += \
-    $(LOCAL_PATH)/rootdir/recovery/sbin/fuelgauged_static:root/sbin/fuelgauged_static \
-    $(LOCAL_PATH)/rootdir/recovery/sbin/fuelgauged_static:recovery/root/sbin/fuelgauged_static \
-    $(LOCAL_PATH)/rootdir/init.recovery.mt6755.rc:recovery/root/init.recovery.mt6755.rc
-
 ifeq ($(PRODUCT_USE_MCDEVICE),true)
 PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/rootdir/recovery/system/bin/mcDriverDaemon:recovery/root/sbin/mcDriverDaemon \
@@ -170,6 +165,12 @@ PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/rootdir/recovery/system/app/mcRegistry/030b0000000000000000000000000000.drbin:recovery/root/system/app/mcRegistry/030b0000000000000000000000000000.drbin \
     $(LOCAL_PATH)/rootdir/recovery/system/app/mcRegistry/5a7b770d08d14b8fb00f53de4173145a.drbin:recovery/root/system/app/mcRegistry/5a7b770d08d14b8fb00f53de4173145a.drbin \
     $(LOCAL_PATH)/rootdir/recovery/system/app/mcRegistry/05070000000000000000000000000000.drbin:recovery/root/system/app/mcRegistry/05070000000000000000000000000000.drbin
+
+PRODUCT_COPY_FILES += \
+    $(LOCAL_PATH)/rootdir/recovery/sbin/fuelgauged_static:recovery/root/sbin/fuelgauged_static
+
+PRODUCT_PACKAGES += \
+    init.recovery.mt6755.rc
 endif
 
 # root
