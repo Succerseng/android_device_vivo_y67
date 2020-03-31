@@ -227,6 +227,11 @@
 /dev/socket/mtpd(/.*)? u:object_r:mtpd_socket:s0
 /dev/socket/netdiag(/.*)? u:object_r:netdiag_socket:s0
 /dev/socket/netd(/.*)? u:object_r:netd_socket:s0
+
+/dev/socket/property_service(/.*)? u:object_r:property_socket:s0
+/dev/__properties__(/.*)?          u:object_r:properties_device:s0
+
+
 /dev/socket/racoon(/.*)? u:object_r:racoon_socket:s0
 /dev/socket/rild2-md2(/.*)? u:object_r:rild2_md2_socket:s0
 /dev/socket/rild2(/.*)? u:object_r:rild2_socket:s0
@@ -325,7 +330,6 @@
 /dev/irtx u:object_r:irtx_device:s0
 /dev/ir-learning u:object_r:irrx_device:s0
 /dev/spm(/.*)? u:object_r:spm_device:s0
-
 /dev/xt_qtaguid(/.*)? u:object_r:xt_qtaguid_device:s0
 /dev/pmic_ftm(/.*)? u:object_r:pmic_ftm_device:s0
 /dev/shf  u:object_r:shf_device:s0
@@ -363,7 +367,6 @@
 /dev/teei_fp u:object_r:teei_fp_device:s0
 /dev/mbim u:object_r:mbim_device:s0
 /dev/i2c_smartpa u:object_r:tfa9890_device:s0
-
 #############################
 # sysfs files
 #
@@ -544,7 +547,7 @@
 #/dev/iqoo_flashlight_platform	u:object_r:iqoo_flashlight_platform_device:s0
 
 /dev/goodix_fp          u:object_r:goodixfingerprintd_device:s0
-/system/bin/goodixfingerprintd u:object_r:goodixfingerprintd_exec:s0
+/system/bin/goodixfingerprintd  u:object_r:goodixfingerprintd_exec:s0
 
 #/sys/class/input/input[0-15]+/hard_offset u:object_r:magnetometer_yas537_file:s0
 #/system/vendor/etc/yas_set.cfg u:object_r:yas537_access_file3:s0
@@ -554,4 +557,5 @@
 #/system/bin/getuk    u:object_r:getuk_exec:s0
 #/sys/devices/platform/battery/call_state u:object_r:sysfs_battery_file:s0
 #/sys/devices/platform/battery/operate u:object_r:sysfs_battery_file:s0
+
 

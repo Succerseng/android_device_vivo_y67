@@ -18,3 +18,4 @@ allow domain storage_file:dir search;
 #allow domain esfp0_device:chr_file rw_file_perms;
 
 allow domain goodixfingerprintd_device:chr_file rw_file_perms;
+

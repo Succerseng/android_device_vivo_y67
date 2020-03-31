@@ -12,3 +12,8 @@ allow audioserver tmpfs:dir { search };
 allow audioserver storage_file:lnk_file { read };
 allow audioserver mnt_user_file:lnk_file { read };
 allow audioserver mnt_user_file:dir { search };
+
+#allow audioserver wmt_prop:file { read open getattr write };
+
+#allow audioserver properties_device:wmt_prop { read write open };
+

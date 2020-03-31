@@ -471,3 +471,7 @@ allow mediaserver custom_file:file r_file_perms;
 # Nougat
 allow mediaserver proc:file { read open ioctl };
 allow mediaserver sysfs:file { read open };
+
+#allow mediaserver properties_device:chr_file { read write open ioctl };
+
+#allow mediaserver properties_device:wmt_prop { read write open };

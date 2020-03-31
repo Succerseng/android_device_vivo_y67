@@ -8,6 +8,11 @@ on early-init
     write /sys/class/leds/lcd-backlight/trigger "backlight"
 
 on init
+    # 创建文件夹 不然vold没法设权限
+    mkdir /data/misc_ce/0
+    mkdir /data/system_ce/0
+    mkdir /data/media/0
+
     # Platform-specific mount points
     mkdir /protect_f 0771 system system
     mkdir /protect_s 0771 system system

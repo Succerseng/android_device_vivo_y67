@@ -476,6 +476,4 @@ allow atcp self:udp_socket connect;
 allow atcp system_server:binder call;
 allow system_server atcp:fd use;
 binder_use(atcp)
-#
-# Ref. netdiag.te (End)
-#
+
