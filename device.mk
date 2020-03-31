@@ -80,6 +80,10 @@ PRODUCT_PACKAGES += \
     libfmjni \
     FMRadio
 
+# Fingerprint(暂时使用预构建)
+#PRODUCT_PACKAGES += \
+    fingerprintd
+
 # gps
 $(call inherit-product, device/common/gps/gps_us_supl.mk)
 

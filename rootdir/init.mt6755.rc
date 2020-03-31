@@ -13,6 +13,10 @@ on init
     mkdir /data/system_ce/0
     mkdir /data/media/0
 
+    # 指纹用的
+    chown system system /dev/goodix_fp
+    chmod 0644 /dev/goodix_fp
+
     # Platform-specific mount points
     mkdir /protect_f 0771 system system
     mkdir /protect_s 0771 system system
@@ -36,26 +40,26 @@ on fs
     mount ext4 /dev/block/platform/mtk-msdc.0/11230000.msdc0/by-name/cust /oem ro
 
 #   这东西加了ccci会wait vold.decrypt...
-#   write /proc/bootprof "start mobicore (on fs)"    
-#    chmod 0600 /dev/mobicore
-#    chown system system /dev/mobicore
-#    chmod 0666 /dev/mobicore-user
-#    chown system system /dev/mobicore-user
-#    # MobiCore Daemon Paths
-#    export MC_AUTH_TOKEN_PATH /efs
-#    start mobicore
-#    write /proc/bootprof "start mobicore end (on fs)"
-#    write /proc/ppm/policy/ut_fix_core_num "4 4"
-#    write /proc/ppm/policy/ut_fix_freq_idx "0 0"
+   write /proc/bootprof "start mobicore (on fs)"    
+    chmod 0600 /dev/mobicore
+    chown system system /dev/mobicore
+    chmod 0666 /dev/mobicore-user
+    chown system system /dev/mobicore-user
+    # MobiCore Daemon Paths
+    export MC_AUTH_TOKEN_PATH /efs
+    start mobicore
+    write /proc/bootprof "start mobicore end (on fs)"
+    write /proc/ppm/policy/ut_fix_core_num "4 4"
+    write /proc/ppm/policy/ut_fix_freq_idx "0 0"
 
-#    chmod 0666 /dev/kmsg
-#    start fuelgauged
+    chmod 0666 /dev/kmsg
+    start fuelgauged
 
     mkdir /dev/usb-ffs 0770 shell shell
     mkdir /dev/usb-ffs/adb 0770 shell shell
     mount functionfs adb /dev/usb-ffs/adb uid=2000,gid=2000
 
-#service mobicore /system/bin/mcDriverDaemon -r /system/app/mcRegistry/020f0000000000000000000000000000.drbin -r /system/app/mcRegistry/05120000000000000000000000000000.drbin -r /system/app/mcRegistry/070b0000000000000000000000000000.drbin -r /system/app/mcRegistry/020b0000000000000000000000000000.drbin -r /system/app/mcRegistry/030b0000000000000000000000000000.drbin -r /system/app/mcRegistry/5a7b770d08d14b8fb00f53de4173145a.drbin  -r /system/app/mcRegistry/05070000000000000000000000000000.drbin
+service mobicore /system/bin/mcDriverDaemon -r /system/app/mcRegistry/020f0000000000000000000000000000.drbin -r /system/app/mcRegistry/05120000000000000000000000000000.drbin -r /system/app/mcRegistry/070b0000000000000000000000000000.drbin -r /system/app/mcRegistry/020b0000000000000000000000000000.drbin -r /system/app/mcRegistry/030b0000000000000000000000000000.drbin -r /system/app/mcRegistry/5a7b770d08d14b8fb00f53de4173145a.drbin  -r /system/app/mcRegistry/05070000000000000000000000000000.drbin
 
 on fs
     mount_all /fstab.mt6755

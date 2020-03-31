@@ -228,10 +228,6 @@
 /dev/socket/netdiag(/.*)? u:object_r:netdiag_socket:s0
 /dev/socket/netd(/.*)? u:object_r:netd_socket:s0
 
-/dev/socket/property_service(/.*)? u:object_r:property_socket:s0
-/dev/__properties__(/.*)?          u:object_r:properties_device:s0
-
-
 /dev/socket/racoon(/.*)? u:object_r:racoon_socket:s0
 /dev/socket/rild2-md2(/.*)? u:object_r:rild2_md2_socket:s0
 /dev/socket/rild2(/.*)? u:object_r:rild2_socket:s0
@@ -557,5 +553,5 @@
 #/system/bin/getuk    u:object_r:getuk_exec:s0
 #/sys/devices/platform/battery/call_state u:object_r:sysfs_battery_file:s0
 #/sys/devices/platform/battery/operate u:object_r:sysfs_battery_file:s0
-
-
+/dev/socket/property_service(/.*)? u:object_r:property_socket:s0
+/dev/__properties__(/.*)?          u:object_r:properties_device:s0

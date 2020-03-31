@@ -20,3 +20,4 @@ allow fingerprintd goodixfingerprintd:binder { call transfer };
 
 allow fingerprintd property_socket:sock_file write;
 
+allow fingerprintd property_socket:unix_stream_socket { connectto };

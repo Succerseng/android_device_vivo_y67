@@ -5,4 +5,7 @@ extern "C"{
         int _ZN12ImgSensorDrv13getResolutionEPP34ACDK_SENSOR_RESOLUTION_INFO_STRUCT(){
             return 0;
         }
+        int app_type(){
+            return 2;
+        }
 }

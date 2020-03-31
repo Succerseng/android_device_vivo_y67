@@ -107,3 +107,7 @@ allow init debugfs:file { write };
 allow init surfaceflinger:process { noatsecure };
 allow init mtk_agpsd:process { noatsecure };
 allow init mediaserver:process { noatsecure };
+
+allow init property_socket:unix_stream_socket connectto;
+
+

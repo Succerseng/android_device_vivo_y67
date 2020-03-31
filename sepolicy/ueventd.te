@@ -25,5 +25,5 @@ allow ueventd fm_device:chr_file { relabelto };
 # goodix
 allow ueventd goodixfingerprintd_data_file:chr_file { create setattr read write ioctl open };
 
-#denied { relabelto } for name="wmtWifi" dev="tmpfs" ino=7445 scontext=u:r:ueventd:s0 tcontext=u:object_r:wmtWifi_device:s0 tclass=chr_file permissive=1
-allow ueventd wmtWifi_device:chr_file { create setattr read write ioctl open };
+# wmtwifi
+allow ueventd wmtWifi_device:chr_file { create setattr read write ioctl open relabelto };
