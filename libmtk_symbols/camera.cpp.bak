@@ -7,7 +7,7 @@ extern "C"{
         }
 
         int app_type(){
-            return 2;//数值瞎猜的
+            return 2;//这数值瞎猜的
         }
 
         int _ZN7android16CameraParameters21KEY_STOP_PREVIEW_FLAGE(){
@@ -122,10 +122,6 @@ extern "C"{
             return 0;
         }
         char _ZN7android16CameraParameters14KEY_HIGHPFOURE(){
-            return 0;
-        }
-
-        char _ZN7android16CameraParameters28FOCUS_MODE_VERIFICATION_PDONE(){
             return 0;
         }
 

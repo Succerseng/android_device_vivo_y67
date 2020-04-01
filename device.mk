@@ -46,6 +46,7 @@ $(call inherit-product-if-exists, frameworks/native/build/phone-xxxhdpi-4096-hwu
 
 # Camera
 PRODUCT_PACKAGES += \
+    camera.default \
     mtkcamera_parameters \
     Gallery2
 
@@ -80,9 +81,9 @@ PRODUCT_PACKAGES += \
     libfmjni \
     FMRadio
 
-# Fingerprint(暂时使用预构建)
-#PRODUCT_PACKAGES += \
-    fingerprintd
+# Fingerprint(fingerprintd暂时使用预构建)
+PRODUCT_PACKAGES += \
+    fingerprint.default
 
 # gps
 $(call inherit-product, device/common/gps/gps_us_supl.mk)
