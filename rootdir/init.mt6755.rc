@@ -89,15 +89,8 @@ on post-fs
 on post-fs-data
     # getekeeper
     # 好像会用到共用体所以不能直接复制只能创建链接（瞎扯的）
-    # 先把上次创建的删掉
-    rm -f /system/lib/hw/gatekeeper.mt6755.so
-    rm -f /system/lib64/hw/gatekeeper.mt6755.so
-    rm -f /system/lib/hw/gatekeeper.bbk6750_66_m.so
-    rm -f /system/lib64/hw/gatekeeper.bbk6750_66_m.so
-    rm -f /system/lib/hw/gatekeeper.y67.so
-    rm -f /system/lib64/hw/gatekeeper.y67.so
-
     # 不知道调用哪一对所以暂时都加（其中必有一对多余）
+    # 挂载system为rw才能操作
     symlink /system/lib/hw/libMcGatekeeper.so /system/lib/hw/gatekeeper.mt6755.so
     symlink /system/lib64/hw/libMcGatekeeper.so /system/lib64/hw/gatekeeper.mt6755.so
 

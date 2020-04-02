@@ -163,4 +163,8 @@ extern "C"{
         char _ZN7android16CameraParameters18KEY_DISABLE_ANR_EEE(){
             return 0;
         }
+        char _ZN7android16CameraParameters26KEY_AUTO_WHITEBAL(){
+            return 0;
+        }
+
 }
