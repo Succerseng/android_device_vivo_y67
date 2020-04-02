@@ -129,4 +129,38 @@ extern "C"{
             return 0;
         }
 
+
+        char _ZN7android16CameraParameters29FOCUS_MODE_VERIFICATION_PDOFFE(){
+            return 0;
+        }
+        char _ZN7android16CameraParameters21KEY_MAX_EXPOSURE_TIMEE(){
+            return 0;
+        }
+        char _ZN7android16CameraParameters11KEY_MAX_ISOE(){
+            return 0;
+        }
+        char _ZN7android16CameraParameters12KEY_MAX_ISOE(){
+            return 0;
+        }
+        char _ZN7android16CameraParameters13KEY_MAX_ISOE(){
+            return 0;
+        }
+        char _ZN7android16CameraParameters14KEY_MAX_ISOE(){
+            return 0;
+        }
+        char _ZN7android16CameraParameters15KEY_MAX_ISOE(){
+            return 0;
+        }
+        char _ZN7android16CameraParameters16KEY_MAX_ISOE(){
+            return 0;
+        }
+        char _ZN7android16CameraParameters27BBK_CAMSHOT_POSTVIEW_ENABLEE(){
+            return 0;
+        }
+        char _ZN7android16CameraParameters24BBK_CAMSHOT_MIRROR_FRONTE(){
+            return 0;
+        }
+        char _ZN7android16CameraParameters18KEY_DISABLE_ANR_EEE(){
+            return 0;
+        }
 }

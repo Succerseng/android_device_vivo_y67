@@ -49,10 +49,6 @@ BOARD_GLOBAL_CFLAGS += -DMETADATA_CAMERA_SOURCE
 media.stagefright.legacyencoder=true
 media.stagefright.less-secure=true
 
-# CMHW
-BOARD_USES_CYANOGEN_HARDWARE := true
-BOARD_HARDWARE_CLASS += $(DEVICE_PATH)/cmhw
-
 ifeq ($(HOST_OS),linux)
     ifeq ($(TARGET_BUILD_VARIANT),user)
         WITH_DEXPREOPT ?= true
