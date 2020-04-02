@@ -89,8 +89,11 @@ on post-fs
 on post-fs-data
     # getekeeper
     # 好像会用到共用体所以不能直接复制只能创建链接（瞎扯的）
-    # 不知道调用哪一对所以暂时都加（其中必有一对多余）
     # 挂载system为rw才能操作
+    wait /dev/block/platform/mtk-msdc.0/11230000.msdc0/by-name/system
+    mount ext4 /dev/block/platform/mtk-msdc.0/11230000.msdc0/by-name/system /system rw
+
+    # 不知道调用哪一对所以暂时都加（其中必有一对多余）
     symlink /system/lib/hw/libMcGatekeeper.so /system/lib/hw/gatekeeper.mt6755.so
     symlink /system/lib64/hw/libMcGatekeeper.so /system/lib64/hw/gatekeeper.mt6755.so
 
@@ -635,8 +638,8 @@ on post-fs-data
     chown system system /proc/secmem0
 
     # mcDriverDaemon
-    #mkdir /data/app/mcRegistry 0775 system system
-    #mkdir /data/app/mcRegistry/TbStorage 0775 system system
+    mkdir /data/app/mcRegistry 0775 system system
+    mkdir /data/app/mcRegistry/TbStorage 0775 system system
 
     # AGPS
     mkdir /data/agps_supl 0771 gps system
@@ -1114,5 +1117,6 @@ service goodixfpd /system/bin/goodixfingerprintd
     group system sdcard_rw
 # vivo yangyanqun add for fingerprint end
 
+# 注册指纹用的
 service mobicore /system/bin/mcDriverDaemon -r /system/app/mcRegistry/020f0000000000000000000000000000.drbin -r /system/app/mcRegistry/05120000000000000000000000000000.drbin -r /system/app/mcRegistry/070b0000000000000000000000000000.drbin -r /system/app/mcRegistry/020b0000000000000000000000000000.drbin -r /system/app/mcRegistry/030b0000000000000000000000000000.drbin -r /system/app/mcRegistry/5a7b770d08d14b8fb00f53de4173145a.drbin  -r /system/app/mcRegistry/05070000000000000000000000000000.drbin
 
