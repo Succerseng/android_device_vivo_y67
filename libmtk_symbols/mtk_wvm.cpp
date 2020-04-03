@@ -20,4 +20,7 @@ extern "C"{
     int _ZN7android16MediaBufferGroupC1Ev(){
         return 0;
     }
+    char _ZN7android16MediaBufferGroup14acquire_bufferEPPNS_11MediaBufferEb(){
+        return 0;
+    }
 }

@@ -59,7 +59,7 @@ PRODUCT_PACKAGES += \
 
 # Charger and USB
 PRODUCT_DEFAULT_PROPERTY_OVERRIDES += \
-    ro.usb.vid=2970
+    ro.usb.vid=0E8D
 
 # Default.prop(ro.hardware.bbk：官方包的验证)
 ADDITIONAL_DEFAULT_PROPERTIES += \

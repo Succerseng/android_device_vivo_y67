@@ -166,5 +166,19 @@ extern "C"{
         char _ZN7android16CameraParameters26KEY_AUTO_WHITEBAL(){
             return 0;
         }
-
+        char _ZN7android16CameraParameters30KEY_BBK_PROFESSION_MODEL_VALUEE(){
+            return 0;
+        }
+        char bbkAdvanceMode(){
+            return 0;
+        }
+        char _ZN7android16CameraParameters23BBK_CAMERA_FLASH_TRIGERE(){
+            return 0;
+        }
+        char _ZN7android16CameraParameters25BBK_CAMERA_FLASH_EXPECTEDE(){
+            return 0;
+        }
+        char _ZN7android16CameraParameters23BBK_CAMERA_LIGHT_SENSORE(){
+            return 0;
+        }
 }
