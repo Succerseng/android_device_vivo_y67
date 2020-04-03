@@ -181,4 +181,13 @@ extern "C"{
         char _ZN7android16CameraParameters23BBK_CAMERA_LIGHT_SENSORE(){
             return 0;
         }
+        char _ZN7android16CameraParameters23BBK_CAMERA_CURRENT_LUMAE(){
+            return 0;
+        }
+        char _ZN7android16CameraParameters22BBK_CAMERA_CURRENT_CCTE(){
+            return 0;
+        }
+        char _ZN7android16CameraParameters24BBK_CAMERA_WB_MANUAL_CCTE(){
+            return 0;
+        }
 }
