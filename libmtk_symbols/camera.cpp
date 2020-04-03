@@ -20,6 +20,8 @@ extern "C"{
 
 
         //所有可能的函数名都加进去
+
+        //libcam.paramsmgr.so
         char _ZN7android16CameraParameters7KEY_LOWE(){
             return 0;
         }
@@ -169,6 +171,8 @@ extern "C"{
         char _ZN7android16CameraParameters30KEY_BBK_PROFESSION_MODEL_VALUEE(){
             return 0;
         }
+
+        //libcam.camadapter.so
         char bbkAdvanceMode(){
             return 0;
         }
@@ -188,6 +192,29 @@ extern "C"{
             return 0;
         }
         char _ZN7android16CameraParameters24BBK_CAMERA_WB_MANUAL_CCTE(){
+            return 0;
+        }
+        char _ZN7android16CameraParameters22BBK_CAMERA_LIGHT_VALUEE(){
+            return 0;
+        }
+
+        //libcam.vivohalext.so
+        char _ZN7android16CameraParameters37KEY_BBK_PROFESSION_MODEL_INFO_AE_TIMEE(){
+            return 0;
+        }
+        char _ZN7android16CameraParameters33KEY_BBK_PROFESSION_MODEL_INFO_ISOE(){
+            return 0;
+        }
+        char _ZN7android16CameraParameters32KEY_BBK_PROFESSION_MODEL_INFO_EVE(){
+            return 0;
+        }
+        char _ZN7android16CameraParameters37KEY_BBK_PROFESSION_MODEL_INFO_WARNINGE(){
+            return 0;
+        }
+        char _ZN7android16CameraParameters22KEY_BBK_MANUAL_AE_TIMEE(){
+            return 0;
+        }
+        char _ZN7android16CameraParameters19BBK_MANUAL_AF_VALUEE(){
             return 0;
         }
 }
