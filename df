@@ -1,0 +1,2415 @@
+diff --git a/goodix/Android.mk b/goodix/Android.mk
+index a9e2d23..6d48870 100644
+--- a/goodix/Android.mk
++++ b/goodix/Android.mk
+@@ -12,24 +12,22 @@
+ # See the License for the specific language governing permissions and
+ # limitations under the License.
+ 
+-ifeq ($(strip $(MTK_FINGERPRINT_SUPPORT)),yes)
+ ifeq ($(strip $(MTK_FINGERPRINT_SELECT)),$(filter $(MTK_FINGERPRINT_SELECT), GF316M GF318M GF3118M GF518M GF5118M GF516M GF3208 GF5216))
++
+ LOCAL_PATH := $(call my-dir)
+ 
+ include $(CLEAR_VARS)
+ LOCAL_MODULE := fingerprint.$(TARGET_BOARD_PLATFORM)
+-#LOCAL_PROPRIETARY_MODULE := true
+-#LOCAL_MODULE_OWNER := mtk
+ LOCAL_MODULE_RELATIVE_PATH := hw
+ 
+ LOCAL_C_INCLUDES := \
+-    $(LOCAL_PATH)/goodix/public \
+-    $(LOCAL_PATH)/goodix/gf_hal/public \
+-    $(LOCAL_PATH)/goodix/goodixfingerprintd
+-
+-LOCAL_SRC_FILES := goodix/fingerprint.cpp
++    $(LOCAL_PATH)/include \
++    $(LOCAL_PATH)/gf_hal \
++    $(LOCAL_PATH)/goodixfingerprintd
++LOCAL_SRC_FILES := fingerprint.cpp
+ 
+ LOCAL_SHARED_LIBRARIES := \
++    libgf_algo \
+     libgf_hal \
+     libgf_ca \
+     liblog \
+@@ -39,10 +37,8 @@ LOCAL_SHARED_LIBRARIES := \
+     libgoodixfingerprintd_binder
+ 
+ LOCAL_MODULE_TAGS := optional
+-#include $(MTK_SHARED_LIBRARY)
+ include $(BUILD_SHARED_LIBRARY)
+ 
+-
+ include $(call all-makefiles-under,$(LOCAL_PATH))
+-endif
++
+ endif
+diff --git a/goodix/goodix/Android.mk b/goodix/goodix/Android.mk
+deleted file mode 100755
+index 1e57dea..0000000
+--- a/goodix/goodix/Android.mk
++++ /dev/null
+@@ -1,5 +0,0 @@
+-
+-LOCAL_PATH := $(call my-dir)
+-
+-include $(call all-makefiles-under,$(LOCAL_PATH))
+-
+diff --git a/goodix/goodix/fingerprint.cpp b/goodix/goodix/fingerprint.cpp
+deleted file mode 100755
+index 87b6d34..0000000
+--- a/goodix/goodix/fingerprint.cpp
++++ /dev/null
+@@ -1,259 +0,0 @@
+-/*
+- * Copyright (C) 2014 The Android Open Source Project
+- *
+- * Licensed under the Apache License, Version 2.0 (the "License");
+- * you may not use this file except in compliance with the License.
+- * You may obtain a copy of the License at
+- *
+- *      http://www.apache.org/licenses/LICENSE-2.0
+- *
+- * Unless required by applicable law or agreed to in writing, software
+- * distributed under the License is distributed on an "AS IS" BASIS,
+- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+- * See the License for the specific language governing permissions and
+- * limitations under the License.
+- */
+-#define LOG_TAG "FingerprintHal"
+-#include <errno.h>
+-#include <malloc.h>
+-#include <string.h>
+-#include <cutils/log.h>
+-#include <hardware/hardware.h>
+-#include <hardware/fingerprint.h>
+-#include <binder/IServiceManager.h>
+-#include <binder/IPCThreadState.h>
+-#include <binder/IInterface.h>
+-
+-#include "GoodixFingerprintDaemonProxy.h"
+-#include "IGoodixFingerprintDaemon.h"
+-#include "IGoodixFingerprintDaemonCallback.h"
+-#include "GoodixFingerprintDaemonCallbackProxy.h"
+-
+-using namespace android;
+-
+-sp<IGoodixFingerprintDaemon> g_service = NULL;
+-
+-fingerprint_device_t *g_device = NULL;
+-
+-sp<IGoodixFingerprintDaemon> getService();
+-
+-class GoodixBinderDiednotify: public IBinder::DeathRecipient {
+-    public:
+-        void binderDied(const wp<IBinder> __unused &who) {
+-            ALOGV("binderDied");
+-            g_service = NULL;
+-
+-            getService();
+-        }
+-};
+-
+-static sp<GoodixBinderDiednotify> gDeathRecipient = new GoodixBinderDiednotify();
+-
+-sp<IGoodixFingerprintDaemon> getService() {
+-
+-    do {
+-        if (g_service == NULL) {
+-            ALOGV("getService g_servie is NULL");
+-
+-            sp<IServiceManager> sm = defaultServiceManager();
+-            sp<IBinder> binder = sm->getService(android::GoodixFingerprintDaemonProxy::descriptor);
+-            if (binder == NULL) {
+-                ALOGE("getService failed");
+-                break;
+-            }
+-            g_service = interface_cast<IGoodixFingerprintDaemon>(binder);
+-            binder->linkToDeath(gDeathRecipient, NULL, 0);
+-
+-            if (g_service != NULL) {
+-                ALOGV("getService succeed");
+-                sp<android::GoodixFingerprintDaemonCallbackProxy> callback =
+-                        new GoodixFingerprintDaemonCallbackProxy();
+-                GoodixFingerprintDaemonCallbackProxy::setDevice(g_device);
+-                g_service->init(callback);
+-
+-                int ret = g_service->openHal();
+-                if (ret != 0) {
+-                    ALOGE("getService openHal failed!");
+-                    g_service = NULL;
+-                }
+-            }
+-        }
+-    } while (0);
+-
+-    return g_service;
+-}
+-
+-static int fingerprint_close(hw_device_t *dev) {
+-    ALOGV("fingerprint_close");
+-    if (dev) {
+-        sp<IGoodixFingerprintDaemon> service = getService();
+-        if (service == NULL) {
+-            return FINGERPRINT_ERROR;
+-        } else {
+-            g_service->closeHal();
+-            free(dev);
+-            g_service = NULL;
+-            return 0;
+-        }
+-    } else {
+-        return FINGERPRINT_ERROR;
+-    }
+-}
+-
+-static uint64_t fingerprint_pre_enroll(struct fingerprint_device __unused *dev) {
+-    ALOGV("fingerprint_pre_enroll");
+-    sp<IGoodixFingerprintDaemon> service = getService();
+-    if(service == NULL) {
+-        return FINGERPRINT_ERROR;
+-    } else {
+-        return service->preEnroll();
+-    }
+-}
+-
+-static int fingerprint_enroll(struct fingerprint_device __unused *dev,
+-                                const hw_auth_token_t *hat,
+-                                uint32_t gid,
+-                                uint32_t timeout_sec) {
+-    ALOGV("fingerprint_enroll");
+-    sp<IGoodixFingerprintDaemon> service = getService();
+-    if(service == NULL) {
+-        return FINGERPRINT_ERROR;
+-    } else {
+-        return service->enroll((const uint8_t*)hat, sizeof(hw_auth_token_t), gid, timeout_sec);
+-    }
+-}
+-
+-static int fingerprint_post_enroll(struct fingerprint_device __unused *dev) {
+-    ALOGV("fingerprint_post_enroll");
+-    sp<IGoodixFingerprintDaemon> service = getService();
+-    if(service == NULL) {
+-        return FINGERPRINT_ERROR;
+-    } else {
+-        return service->postEnroll();
+-    }
+-}
+-
+-static uint64_t fingerprint_get_auth_id(struct fingerprint_device __unused *dev) {
+-    ALOGV("fingerprint_get_auth_id");
+-    sp<IGoodixFingerprintDaemon> service = getService();
+-    if(service == NULL) {
+-        return FINGERPRINT_ERROR;
+-    } else {
+-        return service->getAuthenticatorId();
+-    }
+-}
+-
+-static int fingerprint_cancel(struct fingerprint_device __unused *dev) {
+-    ALOGV("fingerprint_cancel");
+-    sp<IGoodixFingerprintDaemon> service = getService();
+-    if(service == NULL) {
+-        return FINGERPRINT_ERROR;
+-    } else {
+-        return service->stopEnrollment();
+-    }
+-}
+-
+-static int fingerprint_remove(struct fingerprint_device __unused *dev,
+-                                uint32_t gid, uint32_t fid) {
+-    ALOGV("fingerprint_remove");
+-    sp<IGoodixFingerprintDaemon> service = getService();
+-    if(service == NULL) {
+-        return FINGERPRINT_ERROR;
+-    } else {
+-        return service->remove(fid, gid);
+-    }
+-}
+-
+-static int fingerprint_set_active_group(struct fingerprint_device __unused *dev,
+-                                        uint32_t __unused gid, const char __unused *store_path) {
+-    ALOGV("fingerprint_set_active_group");
+-    uint32_t path_len = strlen(store_path);
+-    uint8_t path_name[PATH_MAX] = {0};
+-    memcpy(path_name, store_path, path_len);
+-    sp<IGoodixFingerprintDaemon> service = getService();
+-    if(service == NULL) {
+-        return FINGERPRINT_ERROR;
+-    } else {
+-        return service->setActiveGroup(gid, path_name, path_len);
+-    }
+-}
+-
+-static int fingerprint_authenticate(struct fingerprint_device __unused *dev,
+-                                    uint64_t operation_id, uint32_t gid) {
+-    ALOGV("fingerprint_authenticate");
+-    sp<IGoodixFingerprintDaemon> service = getService();
+-    if(service == NULL) {
+-        return FINGERPRINT_ERROR;
+-    } else {
+-        return service->authenticate(operation_id, gid);
+-    }
+-}
+-
+-static int set_notify_callback(struct fingerprint_device *dev, fingerprint_notify_t notify) {
+-    ALOGV("set_notify_callback");
+-    /* Decorate with locks */
+-    dev->notify = notify;
+-    return 0;
+-}
+-
+-static int fingerprint_open(const hw_module_t* module, const char __unused *id,
+-                            hw_device_t** device)
+-{
+-    ALOGV("fingerprint_open");
+-
+-    if (device == NULL) {
+-        ALOGE("NULL device on open");
+-        return -EINVAL;
+-    }
+-
+-    fingerprint_device_t *dev = (fingerprint_device_t *)malloc(sizeof(fingerprint_device_t));
+-    memset(dev, 0, sizeof(fingerprint_device_t));
+-
+-    dev->common.tag = HARDWARE_DEVICE_TAG;
+-    dev->common.version = FINGERPRINT_MODULE_API_VERSION_2_0;
+-    dev->common.module = (struct hw_module_t*) module;
+-    dev->common.close = fingerprint_close;
+-
+-    dev->pre_enroll = fingerprint_pre_enroll;
+-    dev->enroll = fingerprint_enroll;
+-    dev->post_enroll = fingerprint_post_enroll;
+-    dev->get_authenticator_id = fingerprint_get_auth_id;
+-    dev->cancel = fingerprint_cancel;
+-    dev->remove = fingerprint_remove;
+-    dev->set_active_group = fingerprint_set_active_group;
+-    dev->authenticate = fingerprint_authenticate;
+-    dev->set_notify = set_notify_callback;
+-    dev->notify = NULL;
+-
+-    g_device = dev;
+-    if(g_device == NULL) {
+-        ALOGV("g_device is NULL");
+-    } else {
+-        ALOGV("g_device is not NULL");
+-    }
+-
+-    *device = (hw_device_t*) dev;
+-
+-    if(getService() == NULL) {
+-        return -EINVAL;
+-    }
+-
+-    return 0;
+-}
+-
+-static struct hw_module_methods_t fingerprint_module_methods = {
+-    .open = fingerprint_open,
+-};
+-
+-fingerprint_module_t HAL_MODULE_INFO_SYM = {
+-    .common = {
+-        .tag                = HARDWARE_MODULE_TAG,
+-        .module_api_version = FINGERPRINT_MODULE_API_VERSION_2_0,
+-        .hal_api_version    = HARDWARE_HAL_API_VERSION,
+-        .id                 = FINGERPRINT_HARDWARE_MODULE_ID,
+-        .name               = "Goodix Fingerprint HAL",
+-        .author             = "Goodix",
+-        .methods            = &fingerprint_module_methods,
+-        .dso                = NULL
+-    },
+-};
+diff --git a/goodix/goodix/gf_hal/Android.mk b/goodix/goodix/gf_hal/Android.mk
+deleted file mode 100755
+index f8859e7..0000000
+--- a/goodix/goodix/gf_hal/Android.mk
++++ /dev/null
+@@ -1,44 +0,0 @@
+-# Copyright (C) 2013 The Android Open Source Project
+-#
+-# Licensed under the Apache License, Version 2.0 (the "License");
+-# you may not use this file except in compliance with the License.
+-# You may obtain a copy of the License at
+-#
+-#      http://www.apache.org/licenses/LICENSE-2.0
+-#
+-# Unless required by applicable law or agreed to in writing, software
+-# distributed under the License is distributed on an "AS IS" BASIS,
+-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+-# See the License for the specific language governing permissions and
+-# limitations under the License.
+-
+-LOCAL_PATH := $(call my-dir)
+-
+-include $(CLEAR_VARS)
+-LOCAL_MODULE_TAGS := optional
+-LOCAL_MODULE := libgf_hal
+-#LOCAL_PROPRIETARY_MODULE := true
+-#LOCAL_MODULE_OWNER := mtk
+-LOCAL_SRC_FILES_64 := debug/arm64-v8a/libgf_hal.so
+-LOCAL_SRC_FILES_32 := debug/armeabi-v7a/libgf_hal.so
+-LOCAL_SHARED_LIBRARIES := \
+-    libcutils \
+-    libgf_ca
+-LOCAL_MULTILIB := both
+-LOCAL_MODULE_CLASS := SHARED_LIBRARIES
+-LOCAL_MODULE_SUFFIX := .so
+-include $(BUILD_PREBUILT)
+-
+-include $(CLEAR_VARS)
+-LOCAL_MODULE_TAGS := optional
+-LOCAL_MODULE := libgf_algo
+-#LOCAL_PROPRIETARY_MODULE := true
+-#LOCAL_MODULE_OWNER := mtk
+-LOCAL_SRC_FILES_64 := debug/arm64-v8a/libgf_algo.so
+-LOCAL_SRC_FILES_32 := debug/armeabi-v7a/libgf_algo.so
+-LOCAL_SHARED_LIBRARIES := \
+-    libcutils
+-LOCAL_MULTILIB := both
+-LOCAL_MODULE_CLASS := SHARED_LIBRARIES
+-LOCAL_MODULE_SUFFIX := .so
+-include $(BUILD_PREBUILT)
+diff --git a/goodix/goodix/gf_hal/build_info b/goodix/goodix/gf_hal/build_info
+deleted file mode 100755
+index b74994d..0000000
+--- a/goodix/goodix/gf_hal/build_info
++++ /dev/null
+@@ -1,3 +0,0 @@
+-git branch: mtk_v1.1.01
+-commit id: 2176fea405a4ec912f71695dccdd0415618c6b9a
+-build time: 2016.03.09_17:51:44
+diff --git a/goodix/goodix/gf_hal/debug/arm64-v8a/libgf_algo.so b/goodix/goodix/gf_hal/debug/arm64-v8a/libgf_algo.so
+deleted file mode 100755
+index 0c51e04..0000000
+Binary files a/goodix/goodix/gf_hal/debug/arm64-v8a/libgf_algo.so and /dev/null differ
+diff --git a/goodix/goodix/gf_hal/debug/arm64-v8a/libgf_hal.so b/goodix/goodix/gf_hal/debug/arm64-v8a/libgf_hal.so
+deleted file mode 100755
+index 58e95b9..0000000
+Binary files a/goodix/goodix/gf_hal/debug/arm64-v8a/libgf_hal.so and /dev/null differ
+diff --git a/goodix/goodix/gf_hal/debug/armeabi-v7a/libgf_algo.so b/goodix/goodix/gf_hal/debug/armeabi-v7a/libgf_algo.so
+deleted file mode 100755
+index aee0cbb..0000000
+Binary files a/goodix/goodix/gf_hal/debug/armeabi-v7a/libgf_algo.so and /dev/null differ
+diff --git a/goodix/goodix/gf_hal/debug/armeabi-v7a/libgf_hal.so b/goodix/goodix/gf_hal/debug/armeabi-v7a/libgf_hal.so
+deleted file mode 100755
+index 88bd2a1..0000000
+Binary files a/goodix/goodix/gf_hal/debug/armeabi-v7a/libgf_hal.so and /dev/null differ
+diff --git a/goodix/goodix/gf_hal/public/gf_fingerprint.h b/goodix/goodix/gf_hal/public/gf_fingerprint.h
+deleted file mode 100755
+index d9160bf..0000000
+--- a/goodix/goodix/gf_hal/public/gf_fingerprint.h
++++ /dev/null
+@@ -1,99 +0,0 @@
+-#ifndef GF_FINGERPRINT_H
+-#define GF_FINGERPRINT_H
+-
+-#include <hardware/hw_auth_token.h>
+-
+-typedef enum gf_fingerprint_msg_type {
+-    GF_FINGERPRINT_ERROR = -1,
+-    GF_FINGERPRINT_ACQUIRED = 1,
+-    GF_FINGERPRINT_TEMPLATE_ENROLLING = 3,
+-    GF_FINGERPRINT_TEMPLATE_REMOVED = 4,
+-    GF_FINGERPRINT_AUTHENTICATED = 5,
+-    GF_FINGERPRINT_TEST_CMD = 6,
+-    GF_FINGERPRINT_HBD = 7
+-} gf_fingerprint_msg_type_t;
+-
+-typedef enum gf_fingerprint_error {
+-    GF_FINGERPRINT_ERROR_HW_UNAVAILABLE = 1,
+-    GF_FINGERPRINT_ERROR_UNABLE_TO_PROCESS = 2,
+-    GF_FINGERPRINT_ERROR_TIMEOUT = 3,
+-    GF_FINGERPRINT_ERROR_NO_SPACE = 4,
+-    GF_FINGERPRINT_ERROR_CANCELED = 5,
+-    GF_FINGERPRINT_ERROR_UNABLE_TO_REMOVE = 6,
+-    GF_FINGERPRINT_ERROR_VENDOR_BASE = 1000
+-} gf_fingerprint_error_t;
+-
+-typedef enum gf_fingerprint_acquired_info {
+-    GF_FINGERPRINT_ACQUIRED_GOOD = 0,
+-    GF_FINGERPRINT_ACQUIRED_PARTIAL = 1,
+-    GF_FINGERPRINT_ACQUIRED_INSUFFICIENT = 2,
+-    GF_FINGERPRINT_ACQUIRED_IMAGER_DIRTY = 3,
+-    GF_FINGERPRINT_ACQUIRED_TOO_SLOW = 4,
+-    GF_FINGERPRINT_ACQUIRED_TOO_FAST = 5,
+-    GF_FINGERPRINT_ACQUIRED_VENDOR_BASE = 1000,
+-    GF_FINGERPRINT_ACQUIRED_WAIT_FINGER_INPUT = 1001,
+-    GF_FINGERPRINT_ACQUIRED_FINGER_DOWN = 1002,
+-    GF_FINGERPRINT_ACQUIRED_FINGER_UP = 1003,
+-    GF_FINGERPRINT_ACQUIRED_INPUT_TOO_LONG = 1004,
+-    GF_FINGERPRINT_ACQUIRED_DUPLICATE_AREA = 1005,
+-    GF_FINGERPRINT_ACQUIRED_DUPLICATE_FINGER = 1006
+-} gf_fingerprint_acquired_info_t;
+-
+-
+-typedef struct gf_fingerprint_finger_id {
+-    uint32_t gid;
+-    uint32_t fid;
+-} gf_fingerprint_finger_id_t;
+-
+-typedef struct gf_fingerprint_enroll {
+-    gf_fingerprint_finger_id_t finger;
+-    uint32_t samples_remaining;
+-    uint64_t msg;
+-} gf_fingerprint_enroll_t;
+-
+-typedef struct gf_fingerprint_removed {
+-    gf_fingerprint_finger_id_t finger;
+-} gf_fingerprint_removed_t;
+-
+-typedef struct gf_fingerprint_acquired {
+-    gf_fingerprint_acquired_info_t acquired_info;
+-} gf_fingerprint_acquired_t;
+-
+-typedef struct gf_fingerprint_authenticated {
+-    gf_fingerprint_finger_id_t finger;
+-    hw_auth_token_t hat;
+-} gf_fingerprint_authenticated_t;
+-
+-typedef struct gf_fingerprint_test_cmd {
+-    int32_t cmd_id;
+-    int8_t *result;
+-    int32_t result_len;
+-} gf_fingerprint_test_cmd_t;
+-
+-typedef struct gf_fingerprint_hbd {
+-    int32_t heart_beat_rate;
+-    int32_t status;
+-    int32_t* display_data;
+-    int32_t data_len;
+-} gf_fingerprint_hbd_t;
+-
+-typedef struct gf_fingerprint_msg {
+-    gf_fingerprint_msg_type_t type;
+-    union {
+-        gf_fingerprint_error_t error;
+-        gf_fingerprint_enroll_t enroll;
+-        gf_fingerprint_removed_t removed;
+-        gf_fingerprint_acquired_t acquired;
+-        gf_fingerprint_authenticated_t authenticated;
+-        gf_fingerprint_test_cmd_t test;
+-        gf_fingerprint_hbd_t hbd;
+-    } data;
+-} gf_fingerprint_msg_t;
+-
+-typedef struct gf_fingerprint_device {
+-
+-    void (*notify)(const gf_fingerprint_msg_t *msg);
+-
+-} gf_fingerprint_device_t;
+-
+-#endif
+diff --git a/goodix/goodix/gf_hal/public/gf_hal.h b/goodix/goodix/gf_hal/public/gf_hal.h
+deleted file mode 100755
+index dda9262..0000000
+--- a/goodix/goodix/gf_hal/public/gf_hal.h
++++ /dev/null
+@@ -1,59 +0,0 @@
+-#ifndef __GF_HAL_H__
+-#define __GF_HAL_H__
+-
+-#include "gf_error.h"
+-#include "gf_type_define.h"
+-
+-#ifdef __cplusplus
+-extern "C" {
+-#endif
+-
+-gf_error_t gf_hal_init(void *dev);
+-gf_error_t gf_hal_exit(void *dev);
+-gf_error_t gf_hal_cancel(void *dev);
+-
+-uint64_t gf_hal_pre_enroll(void *dev);
+-gf_error_t gf_hal_enroll(void *dev, const void *hat, uint32_t group_id, uint32_t timeout_sec);
+-gf_error_t gf_hal_post_enroll(void *dev);
+-gf_error_t gf_hal_authenticate(void *dev, uint64_t operation_id, uint32_t group_id);
+-uint64_t gf_hal_get_auth_id(void *dev);
+-gf_error_t gf_hal_remove(void *dev, uint32_t group_id, uint32_t finger_id);
+-gf_error_t gf_hal_set_active_group(void *dev, uint32_t group_id);
+-
+-gf_error_t gf_hal_enumerate(void *dev, void *results, uint32_t *max_size);
+-gf_error_t gf_hal_irq(void);
+-gf_error_t gf_hal_screen_on(void);
+-gf_error_t gf_hal_screen_off(void);
+-gf_error_t gf_hal_esd_check(void);
+-
+-gf_error_t gf_hal_test_cmd(void* dev, uint32_t cmdId, const uint8_t* param, uint32_t param_len);
+-
+-gf_error_t gf_hal_set_safe_class(void *dev, gf_safe_class_t safe_class);
+-gf_error_t gf_hal_set_session_id(void *dev, uint64_t session_id) ;
+-gf_error_t gf_hal_get_session_id(void *dev, uint64_t *session_id);
+-gf_error_t gf_hal_navigate(void *dev, gf_nav_mode_t nav_mode);
+-
+-gf_error_t gf_hal_enable_fingerprint_module(void *dev, uint8_t enable_flag);
+-gf_error_t gf_hal_enable_unlock(void *dev);
+-gf_error_t gf_hal_disable_unlock(void *dev);
+-gf_error_t gf_hal_camera_capture(void *dev);
+-gf_error_t gf_hal_enable_ff_feature(void *dev, uint8_t enable_flag);
+-
+-gf_error_t gf_hal_start_hbd(void* dev);
+-
+-
+-/*
+- * @brief
+- *  user extend command call TA
+- *  @param[in] buffer:command buffer
+- *  @param[in] len:command buffer length
+- *  @return
+- *      error number from TA
+- **/
+-gf_error_t  gf_hal_invoke_command(uint8_t *buffer, int len);
+-
+-#ifdef __cplusplus
+-}
+-#endif
+-
+-#endif //__GF_HAL_H__
+diff --git a/goodix/goodix/gf_hal/release/arm64-v8a/libgf_algo.so b/goodix/goodix/gf_hal/release/arm64-v8a/libgf_algo.so
+deleted file mode 100755
+index 6cddf00..0000000
+Binary files a/goodix/goodix/gf_hal/release/arm64-v8a/libgf_algo.so and /dev/null differ
+diff --git a/goodix/goodix/gf_hal/release/arm64-v8a/libgf_hal.so b/goodix/goodix/gf_hal/release/arm64-v8a/libgf_hal.so
+deleted file mode 100755
+index 6a18a89..0000000
+Binary files a/goodix/goodix/gf_hal/release/arm64-v8a/libgf_hal.so and /dev/null differ
+diff --git a/goodix/goodix/gf_hal/release/armeabi-v7a/libgf_algo.so b/goodix/goodix/gf_hal/release/armeabi-v7a/libgf_algo.so
+deleted file mode 100755
+index 8dfc023..0000000
+Binary files a/goodix/goodix/gf_hal/release/armeabi-v7a/libgf_algo.so and /dev/null differ
+diff --git a/goodix/goodix/gf_hal/release/armeabi-v7a/libgf_hal.so b/goodix/goodix/gf_hal/release/armeabi-v7a/libgf_hal.so
+deleted file mode 100755
+index ad32390..0000000
+Binary files a/goodix/goodix/gf_hal/release/armeabi-v7a/libgf_hal.so and /dev/null differ
+diff --git a/goodix/goodix/goodixfingerprintd/Android.mk b/goodix/goodix/goodixfingerprintd/Android.mk
+deleted file mode 100644
+index 02d7479..0000000
+--- a/goodix/goodix/goodixfingerprintd/Android.mk
++++ /dev/null
+@@ -1,56 +0,0 @@
+-
+-LOCAL_PATH := $(call my-dir)
+-
+-include $(CLEAR_VARS)
+-LOCAL_CFLAGS := -Wall -Wextra -Werror -Wunused
+-
+-LOCAL_MODULE := goodixfingerprintd
+-#LOCAL_PROPRIETARY_MODULE := true
+-#LOCAL_MODULE_OWNER := mtk
+-
+-LOCAL_C_INCLUDES := \
+-    $(LOCAL_PATH)/../public \
+-    $(LOCAL_PATH)/../gf_hal/public
+-
+-LOCAL_SRC_FILES := \
+-    GoodixFingerprintDaemonProxy.cpp \
+-    IGoodixFingerprintDaemon.cpp \
+-    IGoodixFingerprintDaemonCallback.cpp \
+-    goodixfingerprintd.cpp \
+-    GoodixFingerprintDaemonCallbackProxy.cpp
+-
+-LOCAL_SHARED_LIBRARIES := \
+-    libbinder \
+-    liblog \
+-    libhardware \
+-    libutils \
+-    libgf_hal
+-
+-#include $(MTK_EXECUTABLE)
+-include $(BUILD_EXECUTABLE)
+-
+-include $(CLEAR_VARS)
+-
+-LOCAL_MODULE := libgoodixfingerprintd_binder
+-LOCAL_PROPRIETARY_MODULE := true
+-LOCAL_MODULE_OWNER := mtk
+-
+-LOCAL_C_INCLUDES := \
+-    $(LOCAL_PATH)/../public \
+-    $(LOCAL_PATH)/../gf_hal/public
+-
+-LOCAL_SRC_FILES := \
+-    IGoodixFingerprintDaemon.cpp \
+-    IGoodixFingerprintDaemonCallback.cpp \
+-    GoodixFingerprintDaemonCallbackProxy.cpp
+-
+-LOCAL_SHARED_LIBRARIES := \
+-    libbinder \
+-    liblog \
+-    libhardware \
+-    libutils \
+-    libgf_hal
+-
+-LOCAL_MODULE_TAGS := optional
+-#include $(MTK_SHARED_LIBRARY)
+-include $(BUILD_SHARED_LIBRARY)
+diff --git a/goodix/goodix/goodixfingerprintd/GoodixFingerprintDaemonCallbackProxy.cpp b/goodix/goodix/goodixfingerprintd/GoodixFingerprintDaemonCallbackProxy.cpp
+deleted file mode 100755
+index 2d5ec5a..0000000
+--- a/goodix/goodix/goodixfingerprintd/GoodixFingerprintDaemonCallbackProxy.cpp
++++ /dev/null
+@@ -1,122 +0,0 @@
+-
+-#define LOG_TAG "GoodixFingerprintDaemonCallbackProxy"
+-
+-#include <stdlib.h>
+-#include <utils/String16.h>
+-#include <utils/Log.h>
+-#include <hardware/hardware.h>
+-#include <hardware/hw_auth_token.h>
+-#include <hardware/fingerprint.h>
+-#include "IGoodixFingerprintDaemonCallback.h"
+-#include "GoodixFingerprintDaemonCallbackProxy.h"
+-
+-using namespace android;
+-
+-fingerprint_device_t* GoodixFingerprintDaemonCallbackProxy::mDevice = NULL;
+-
+-GoodixFingerprintDaemonCallbackProxy::GoodixFingerprintDaemonCallbackProxy() {
+-}
+-GoodixFingerprintDaemonCallbackProxy::~GoodixFingerprintDaemonCallbackProxy() {
+-}
+-
+-status_t GoodixFingerprintDaemonCallbackProxy::onEnrollResult(int64_t devId, int32_t fpId, int32_t  gpId,
+-        int32_t rem) {
+-    ALOGD("onEnrollResult devId = %ld, fpId = %u, gpId = %u, rem = %u", devId, fpId, gpId, rem);
+-    fingerprint_msg_t message;
+-    message.type = FINGERPRINT_TEMPLATE_ENROLLING;
+-    message.data.enroll.finger.fid = fpId;
+-    message.data.enroll.finger.gid = gpId;
+-    message.data.enroll.samples_remaining = rem;
+-
+-    if(mDevice != NULL) {
+-        mDevice->notify(&message);
+-    } else {
+-        ALOGD("onEnrollResult mDevice is NULL");
+-    }
+-
+-    return 0;
+-}
+-
+-status_t GoodixFingerprintDaemonCallbackProxy::onAcquired(int64_t  devId, int32_t  acquiredInfo) {
+-    ALOGD("onAcquired devId = %ld, acquiredInfo = %u", devId, acquiredInfo);
+-    fingerprint_msg_t message;
+-    message.type = FINGERPRINT_ACQUIRED;
+-    message.data.acquired.acquired_info = (fingerprint_acquired_info_t)acquiredInfo;
+-
+-    if(mDevice != NULL) {
+-        mDevice->notify(&message);
+-    } else {
+-        ALOGD("onAcquired mDevice is NULL");
+-    }
+-
+-    return 0;
+-}
+-
+-status_t GoodixFingerprintDaemonCallbackProxy::onAuthenticated(int64_t  devId, int32_t  fingerId,
+-        int32_t groupId, const uint8_t* hat, int32_t hatSize) {
+-    ALOGD("onAuthenticated devId = %ld, fpId = %u, gpId = %u", devId, fingerId, groupId);
+-    fingerprint_msg_t message;
+-    message.type = FINGERPRINT_AUTHENTICATED;
+-    message.data.authenticated.finger.fid = fingerId;
+-    message.data.authenticated.finger.gid = groupId;
+-    memcpy(&(message.data.authenticated.hat), hat, hatSize);
+-
+-    if(mDevice != NULL) {
+-        mDevice->notify(&message);
+-    } else {
+-        ALOGD("onAuthenticated mDevice is NULL");
+-    }
+-
+-    return 0;
+-}
+-
+-status_t GoodixFingerprintDaemonCallbackProxy::onError(int64_t  devId, int32_t  error) {
+-    ALOGD("onError devId = %ld, error = %u", devId, error);
+-    fingerprint_msg_t message;
+-    message.type = FINGERPRINT_ERROR;
+-    message.data.error = (fingerprint_error_t)error;
+-
+-    if(mDevice != NULL) {
+-        mDevice->notify(&message);
+-    } else {
+-        ALOGD("onError mDevice is NULL");
+-    }
+-
+-    return 0;
+-}
+-
+-status_t GoodixFingerprintDaemonCallbackProxy::onRemoved(int64_t  devId,
+-        int32_t  fingerId, int32_t  groupId) {
+-    ALOGD("onRemoved devId = %ld, fpId = %u, gpId = %u", devId, fingerId, groupId);
+-    fingerprint_msg_t message;
+-    message.type = FINGERPRINT_TEMPLATE_REMOVED;
+-    message.data.removed.finger.fid = fingerId;
+-    message.data.removed.finger.gid = groupId;
+-
+-    if(mDevice != NULL) {
+-        mDevice->notify(&message);
+-    } else {
+-        ALOGD("onRemoved mDevice is NULL");
+-    }
+-
+-    return 0;
+-}
+-
+-status_t GoodixFingerprintDaemonCallbackProxy::onEnumerate(int64_t  devId,
+-        const int32_t  *fpIds, const int32_t  *gpIds, int32_t  sz) {
+-    ALOGD("onEnumerate devId = %ld, fpId = %u, gpId = %u, sz = %u", devId, fpIds[0], gpIds[0], sz);
+-    return 0;
+-}
+-
+-status_t GoodixFingerprintDaemonCallbackProxy::onTestCmd(int64_t  devId,
+-            int32_t  cmdId, const int8_t  *result, int32_t  resultLen) {
+-    ALOGD("onTestCmddevId = %ld, cmdId = %u, result[0] = %u, resultLen = %u", devId, cmdId, result[0], resultLen);
+-    return 0;
+-}
+-
+-status_t GoodixFingerprintDaemonCallbackProxy::onHbdData(int64_t devId, int32_t heartBeatRate,
+-        int32_t status, const int32_t* displayData, int32_t dataLen) {
+-    ALOGD("onHbdData devId = %ld, heartBeatRate = %u, status = %u, displayData = %p , dataLen = %u.",
+-            devId, heartBeatRate, status,displayData,dataLen);
+-    return 0;
+-}
+diff --git a/goodix/goodix/goodixfingerprintd/GoodixFingerprintDaemonCallbackProxy.h b/goodix/goodix/goodixfingerprintd/GoodixFingerprintDaemonCallbackProxy.h
+deleted file mode 100755
+index f0d388e..0000000
+--- a/goodix/goodix/goodixfingerprintd/GoodixFingerprintDaemonCallbackProxy.h
++++ /dev/null
+@@ -1,32 +0,0 @@
+-#ifndef GOODIX_FINGERPRINT_DAEMON_CALLBACK_PROXY_H_
+-#define GOODIX_FINGERPRINT_DAEMON_CALLBACK_PROXY_H_
+-
+-#include <hardware/fingerprint.h>
+-#include "IGoodixFingerprintDaemonCallback.h"
+-
+-namespace android {
+-
+-class GoodixFingerprintDaemonCallbackProxy: public BnGoodixFingerprintDaemonCallback {
+-public:
+-    static void setDevice(fingerprint_device_t *device) {
+-        mDevice = device;
+-    }
+-
+-    virtual status_t onEnrollResult(int64_t devId, int32_t fpId, int32_t gpId, int32_t rem);
+-    virtual status_t onAcquired(int64_t devId, int32_t acquiredInfo);
+-    virtual status_t onAuthenticated(int64_t devId, int32_t fingerId, int32_t groupId, const uint8_t* hat, int32_t hatSize);
+-    virtual status_t onError(int64_t devId, int32_t error);
+-    virtual status_t onRemoved(int64_t devId, int32_t fingerId, int32_t groupId);
+-    virtual status_t onEnumerate(int64_t devId, const int32_t* fpIds, const int32_t* gpIds,
+-            int32_t sz);
+-    virtual status_t onTestCmd(int64_t devId, int32_t cmdId, const int8_t *result, int32_t resultLen);
+-    virtual status_t onHbdData(int64_t devId, int32_t heartBeatRate, int32_t status, const int32_t* displayData, int32_t resultLen);
+-    GoodixFingerprintDaemonCallbackProxy();
+-    virtual ~GoodixFingerprintDaemonCallbackProxy();
+-private:
+-    static fingerprint_device_t *mDevice;
+-};
+-
+-}
+-
+-#endif // GOODIX_FINGERPRINT_DAEMON_CALLBACK_PROXY_H_
+diff --git a/goodix/goodix/goodixfingerprintd/GoodixFingerprintDaemonProxy.cpp b/goodix/goodix/goodixfingerprintd/GoodixFingerprintDaemonProxy.cpp
+deleted file mode 100755
+index ffc41db..0000000
+--- a/goodix/goodix/goodixfingerprintd/GoodixFingerprintDaemonProxy.cpp
++++ /dev/null
+@@ -1,269 +0,0 @@
+-/*
+- * Copyright (C) 2015 The Android Open Source Project
+- *
+- * Licensed under the Apache License, Version 2.0 (the "License");
+- * you may not use this file except in compliance with the License.
+- * You may obtain a copy of the License at
+- *
+- *      http://www.apache.org/licenses/LICENSE-2.0
+- *
+- * Unless required by applicable law or agreed to in writing, software
+- * distributed under the License is distributed on an "AS IS" BASIS,
+- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+- * See the License for the specific language governing permissions and
+- * limitations under the License.
+- */
+-
+-#define LOG_TAG "goodixfingerprintd"
+-
+-#include <binder/IServiceManager.h>
+-#include <hardware/hardware.h>
+-#include <hardware/hw_auth_token.h>
+-#include <utils/Log.h>
+-
+-#include "GoodixFingerprintDaemonProxy.h"
+-#include "gf_hal.h"
+-
+-namespace android {
+-
+-GoodixFingerprintDaemonProxy* GoodixFingerprintDaemonProxy::sInstance = NULL;
+-
+-GoodixFingerprintDaemonProxy::GoodixFingerprintDaemonProxy() : mDevice(NULL), mCallback(NULL), mTestCallback(NULL) {
+-
+-}
+-
+-GoodixFingerprintDaemonProxy::~GoodixFingerprintDaemonProxy() {
+-    closeHal();
+-}
+-
+-void GoodixFingerprintDaemonProxy::hal_notify_callback(const gf_fingerprint_msg_t *msg) {
+-    GoodixFingerprintDaemonProxy* instance = GoodixFingerprintDaemonProxy::getInstance();
+-    const sp<IGoodixFingerprintDaemonCallback> callback = instance->mCallback;
+-    const sp<IGoodixFingerprintDaemonCallback> testCallback = instance->mTestCallback;
+-    if (callback == NULL) {
+-        ALOGE("Invalid callback object");
+-        return;
+-    }
+-    const int64_t device = (int64_t) instance->mDevice;
+-    switch (msg->type) {
+-        case GF_FINGERPRINT_ERROR:
+-            ALOGD("onError(%d)", msg->data.error);
+-            callback->onError(device, msg->data.error);
+-            break;
+-        case GF_FINGERPRINT_ACQUIRED:
+-            ALOGD("onAcquired(%d)", msg->data.acquired.acquired_info);
+-            callback->onAcquired(device, msg->data.acquired.acquired_info);
+-            break;
+-        case GF_FINGERPRINT_AUTHENTICATED:
+-            ALOGD("onAuthenticated(fid=%u, gid=%u)",
+-                    msg->data.authenticated.finger.fid,
+-                    msg->data.authenticated.finger.gid);
+-            callback->onAuthenticated(device,
+-                    msg->data.authenticated.finger.fid,
+-                    msg->data.authenticated.finger.gid,
+-                    reinterpret_cast<const uint8_t *>(&msg->data.authenticated.hat),
+-                    sizeof(hw_auth_token_t));
+-            break;
+-        case GF_FINGERPRINT_TEMPLATE_ENROLLING:
+-            ALOGD("onEnrollResult(fid=%u, gid=%u, rem=%u)",
+-                    msg->data.enroll.finger.fid,
+-                    msg->data.enroll.finger.gid,
+-                    msg->data.enroll.samples_remaining);
+-            callback->onEnrollResult(device,
+-                    msg->data.enroll.finger.fid,
+-                    msg->data.enroll.finger.gid,
+-                    msg->data.enroll.samples_remaining);
+-            break;
+-        case GF_FINGERPRINT_TEMPLATE_REMOVED:
+-            ALOGD("onRemove(fid=%u, gid=%u)",
+-                    msg->data.removed.finger.fid,
+-                    msg->data.removed.finger.gid);
+-            callback->onRemoved(device,
+-                    msg->data.removed.finger.fid,
+-                    msg->data.removed.finger.gid);
+-            break;
+-        case GF_FINGERPRINT_TEST_CMD:
+-            ALOGD("onTestCmd(cmd_id = %u, result = %s, result_len = %u)",
+-                    msg->data.test.cmd_id, msg->data.test.result, msg->data.test.result_len);
+-            if(testCallback == NULL) {
+-                ALOGE("Invalid testCallback object");
+-                return;
+-            }
+-            testCallback->onTestCmd(device, msg->data.test.cmd_id,
+-                    (const int8_t *)(msg->data.test.result),
+-                    msg->data.test.result_len);
+-            break;
+-        case GF_FINGERPRINT_HBD:
+-            ALOGD("onHBD.");
+-            if(testCallback == NULL) {
+-                ALOGE("Invalid testCallback object");
+-                return;
+-            }
+-            testCallback->onHbdData(device, msg->data.hbd.heart_beat_rate, msg->data.hbd.status,
+-                    msg->data.hbd.display_data, msg->data.hbd.data_len);
+-            break;
+-        default:
+-            ALOGE("invalid msg type: %u", msg->type);
+-            return;
+-    }
+-}
+-
+-void GoodixFingerprintDaemonProxy::init(const sp<IGoodixFingerprintDaemonCallback>& callback) {
+-    if (mCallback != NULL && IInterface::asBinder(callback) != IInterface::asBinder(mCallback)) {
+-        IInterface::asBinder(mCallback)->unlinkToDeath(this);
+-    }
+-    IInterface::asBinder(callback)->linkToDeath(this);
+-    mCallback = callback;
+-}
+-
+-int32_t GoodixFingerprintDaemonProxy::enroll(const uint8_t* token, ssize_t tokenSize, int32_t groupId,
+-        int32_t timeout) {
+-    ALOG(LOG_VERBOSE, LOG_TAG, "enroll(gid=%d, timeout=%d)\n", groupId, timeout);
+-    if (tokenSize != sizeof(hw_auth_token_t) ) {
+-        ALOG(LOG_VERBOSE, LOG_TAG, "enroll() : invalid token size %zu\n", tokenSize);
+-        return -1;
+-    }
+-    const hw_auth_token_t* authToken = reinterpret_cast<const hw_auth_token_t*>(token);
+-    return gf_hal_enroll(mDevice, authToken, groupId, timeout);
+-}
+-
+-uint64_t GoodixFingerprintDaemonProxy::preEnroll() {
+-    return gf_hal_pre_enroll(mDevice);
+-}
+-
+-int32_t GoodixFingerprintDaemonProxy::postEnroll() {
+-    return gf_hal_post_enroll(mDevice);
+-}
+-
+-int32_t GoodixFingerprintDaemonProxy::stopEnrollment() {
+-    ALOG(LOG_VERBOSE, LOG_TAG, "stopEnrollment()\n");
+-    return gf_hal_cancel(mDevice);
+-}
+-
+-int32_t GoodixFingerprintDaemonProxy::authenticate(uint64_t sessionId, uint32_t groupId) {
+-    ALOG(LOG_VERBOSE, LOG_TAG, "authenticate(sid=%" PRId64 ", gid=%d)\n", sessionId, groupId);
+-    return gf_hal_authenticate(mDevice, sessionId, groupId);
+-}
+-
+-int32_t GoodixFingerprintDaemonProxy::stopAuthentication() {
+-    ALOG(LOG_VERBOSE, LOG_TAG, "stopAuthentication()\n");
+-    return gf_hal_cancel(mDevice);
+-}
+-
+-int32_t GoodixFingerprintDaemonProxy::remove(int32_t fingerId, int32_t groupId) {
+-    ALOG(LOG_VERBOSE, LOG_TAG, "remove(fid=%d, gid=%d)\n", fingerId, groupId);
+-    return gf_hal_remove(mDevice, groupId, fingerId);
+-}
+-
+-uint64_t GoodixFingerprintDaemonProxy::getAuthenticatorId() {
+-    return gf_hal_get_auth_id(mDevice);
+-}
+-
+-int32_t GoodixFingerprintDaemonProxy::setActiveGroup(int32_t groupId, const uint8_t* path,
+-        ssize_t pathlen) {
+-    if (pathlen >= PATH_MAX || pathlen <= 0) {
+-        ALOGE("Bad path length: %zd", pathlen);
+-        return -1;
+-    }
+-    // Convert to null-terminated string
+-    char path_name[PATH_MAX];
+-    memcpy(path_name, path, pathlen);
+-    path_name[pathlen] = '\0';
+-    ALOG(LOG_VERBOSE, LOG_TAG, "setActiveGroup(%d, %s, %zu)", groupId, path_name, pathlen);
+-    return gf_hal_set_active_group(mDevice, groupId);
+-}
+-
+-int32_t GoodixFingerprintDaemonProxy::setSafeClass(uint32_t safeClass) {
+-    return gf_hal_set_safe_class(mDevice, (gf_safe_class_t)safeClass);
+-}
+-
+-int32_t GoodixFingerprintDaemonProxy::navigate(uint32_t navMode) {
+-    return gf_hal_navigate(mDevice, (gf_nav_mode_t)navMode);
+-}
+-
+-int32_t GoodixFingerprintDaemonProxy::stopNavigation() {
+-    return gf_hal_cancel(mDevice);
+-}
+-
+-int32_t GoodixFingerprintDaemonProxy::enableFingerprintModule(uint8_t enableFlag) {
+-    return gf_hal_enable_fingerprint_module(mDevice, enableFlag);
+-}
+-
+-int32_t GoodixFingerprintDaemonProxy::cameraCapture() {
+-    return gf_hal_camera_capture(mDevice);
+-}
+-
+-int32_t GoodixFingerprintDaemonProxy::stopCameraCapture() {
+-    return gf_hal_cancel(mDevice);
+-}
+-
+-int32_t GoodixFingerprintDaemonProxy::enableFfFeature(uint8_t enableFlag) {
+-    return gf_hal_enable_ff_feature(mDevice, enableFlag);
+-}
+-
+-void GoodixFingerprintDaemonProxy::testInit(const sp<IGoodixFingerprintDaemonCallback>& callback) {
+-    if (mTestCallback != NULL && IInterface::asBinder(callback) != IInterface::asBinder(mTestCallback)) {
+-        IInterface::asBinder(mTestCallback)->unlinkToDeath(this);
+-    }
+-    IInterface::asBinder(callback)->linkToDeath(this);
+-    mTestCallback = callback;
+-}
+-
+-int32_t GoodixFingerprintDaemonProxy::testCmd(uint32_t cmdId, const uint8_t* param, uint32_t paramLen) {
+-    return gf_hal_test_cmd(mDevice, cmdId, param, paramLen);
+-}
+-
+-int32_t GoodixFingerprintDaemonProxy::screenOn() {
+-    return gf_hal_screen_on();
+-}
+-
+-int32_t GoodixFingerprintDaemonProxy::screenOff() {
+-    return gf_hal_screen_off();
+-}
+-
+-int32_t GoodixFingerprintDaemonProxy::startHbd(){
+-    return gf_hal_start_hbd(mDevice);
+-}
+-
+-int64_t GoodixFingerprintDaemonProxy::openHal() {
+-    ALOG(LOG_VERBOSE, LOG_TAG, "nativeOpenHal()\n");
+-    mDevice = (gf_fingerprint_device_t *)malloc(sizeof(gf_fingerprint_device_t));
+-    memset(mDevice, 0, sizeof(gf_fingerprint_device_t));
+-    mDevice->notify = hal_notify_callback;
+-    gf_error_t err = gf_hal_init(mDevice);
+-    if (GF_SUCCESS != err) {
+-        return -EINVAL;
+-    }
+-
+-    return 0;
+-}
+-
+-int32_t GoodixFingerprintDaemonProxy::closeHal() {
+-    ALOG(LOG_VERBOSE, LOG_TAG, "nativeCloseHal()\n");
+-    gf_hal_exit(mDevice);
+-
+-    if(mDevice != NULL) {
+-        free(mDevice);
+-        mDevice = NULL;
+-    }
+-
+-    return 0;
+-}
+-
+-void GoodixFingerprintDaemonProxy::binderDied(const wp<IBinder>& who) {
+-    ALOGD("binder died");
+-    if (IInterface::asBinder(mTestCallback) == who) {
+-        mTestCallback = NULL;
+-        return;
+-    }
+-
+-    int err;
+-    if (0 != (err = closeHal())) {
+-        ALOGE("Can't close fingerprint device, error: %d", err);
+-    }
+-    if (IInterface::asBinder(mCallback) == who) {
+-        mCallback = NULL;
+-    }
+-}
+-
+-}
+diff --git a/goodix/goodix/goodixfingerprintd/GoodixFingerprintDaemonProxy.h b/goodix/goodix/goodixfingerprintd/GoodixFingerprintDaemonProxy.h
+deleted file mode 100755
+index 725aba0..0000000
+--- a/goodix/goodix/goodixfingerprintd/GoodixFingerprintDaemonProxy.h
++++ /dev/null
+@@ -1,75 +0,0 @@
+-/*
+- * Copyright (C) 2015 The Android Open Source Project
+- *
+- * Licensed under the Apache License, Version 2.0 (the "License");
+- * you may not use this file except in compliance with the License.
+- * You may obtain a copy of the License at
+- *
+- *      http://www.apache.org/licenses/LICENSE-2.0
+- *
+- * Unless required by applicable law or agreed to in writing, software
+- * distributed under the License is distributed on an "AS IS" BASIS,
+- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+- * See the License for the specific language governing permissions and
+- * limitations under the License.
+- */
+-
+-#ifndef GOODIX_FINGERPRINT_DAEMON_PROXY_H_
+-#define GOODIX_FINGERPRINT_DAEMON_PROXY_H_
+-
+-#include "IGoodixFingerprintDaemon.h"
+-#include "IGoodixFingerprintDaemonCallback.h"
+-
+-namespace android {
+-
+-class GoodixFingerprintDaemonProxy : public BnGoodixFingerprintDaemon {
+-    public:
+-        static GoodixFingerprintDaemonProxy* getInstance() {
+-            if (sInstance == NULL) {
+-                sInstance = new GoodixFingerprintDaemonProxy();
+-            }
+-            return sInstance;
+-        }
+-
+-        // These reflect binder methods.
+-        virtual void init(const sp<IGoodixFingerprintDaemonCallback>& callback);
+-        virtual int32_t enroll(const uint8_t* token, ssize_t tokenLength, int32_t groupId, int32_t timeout);
+-        virtual uint64_t preEnroll();
+-        virtual int32_t postEnroll();
+-        virtual int32_t stopEnrollment();
+-        virtual int32_t authenticate(uint64_t sessionId, uint32_t groupId);
+-        virtual int32_t stopAuthentication();
+-        virtual int32_t remove(int32_t fingerId, int32_t groupId);
+-        virtual uint64_t getAuthenticatorId();
+-        virtual int32_t setActiveGroup(int32_t groupId, const uint8_t* path, ssize_t pathLen);
+-        virtual int32_t setSafeClass(uint32_t safeClass);
+-        virtual int32_t navigate(uint32_t navMode);
+-        virtual int32_t stopNavigation();
+-        virtual int32_t enableFingerprintModule(uint8_t enableFlag);
+-        virtual int32_t cameraCapture();
+-        virtual int32_t stopCameraCapture();
+-        virtual int32_t enableFfFeature(uint8_t enableFlag);
+-        virtual void testInit(const sp<IGoodixFingerprintDaemonCallback>& callback);
+-        virtual int32_t testCmd(uint32_t cmdId, const uint8_t* param, uint32_t paramLen);
+-        virtual int32_t screenOn();
+-        virtual int32_t screenOff();
+-        virtual int32_t startHbd();
+-
+-        virtual int64_t openHal();
+-        virtual int32_t closeHal();
+-
+-    private:
+-        GoodixFingerprintDaemonProxy();
+-        virtual ~GoodixFingerprintDaemonProxy();
+-        void binderDied(const wp<IBinder>& who);
+-        static void hal_notify_callback(const gf_fingerprint_msg_t *msg);
+-
+-        static GoodixFingerprintDaemonProxy* sInstance;
+-        gf_fingerprint_device_t* mDevice;
+-        sp<IGoodixFingerprintDaemonCallback> mCallback;
+-        sp<IGoodixFingerprintDaemonCallback> mTestCallback;
+-};
+-
+-} // namespace android
+-
+-#endif // GOODIX_FINGERPRINT_DAEMON_PROXY_H_
+diff --git a/goodix/goodix/goodixfingerprintd/IGoodixFingerprintDaemon.cpp b/goodix/goodix/goodixfingerprintd/IGoodixFingerprintDaemon.cpp
+deleted file mode 100755
+index d16e099..0000000
+--- a/goodix/goodix/goodixfingerprintd/IGoodixFingerprintDaemon.cpp
++++ /dev/null
+@@ -1,543 +0,0 @@
+-/*
+- * Copyright 2015, The Android Open Source Project
+- *
+- * Licensed under the Apache License, Version 2.0 (the "License");
+- * you may not use this file except in compliance with the License.
+- * You may obtain a copy of the License at
+- *
+- *     http://www.apache.org/licenses/LICENSE-2.0
+- *
+- * Unless required by applicable law or agreed to in writing, software
+- * distributed under the License is distributed on an "AS IS" BASIS,
+- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+- * See the License for the specific language governing permissions and
+- * limitations under the License.
+-*/
+-
+-#include <inttypes.h>
+-
+-#include <binder/IPCThreadState.h>
+-#include <binder/IServiceManager.h>
+-#include <binder/PermissionCache.h>
+-#include <utils/String16.h>
+-#include <utils/Looper.h>
+-#include <hardware/hardware.h>
+-#include <hardware/hw_auth_token.h>
+-#include <utils/Log.h>
+-#include "IGoodixFingerprintDaemon.h"
+-#include "IGoodixFingerprintDaemonCallback.h"
+-
+-namespace android {
+-
+-static const String16 USE_FINGERPRINT_PERMISSION("android.permission.USE_FINGERPRINT");
+-static const String16 MANAGE_FINGERPRINT_PERMISSION("android.permission.MANAGE_FINGERPRINT");
+-static const String16 HAL_FINGERPRINT_PERMISSION("android.permission.MANAGE_FINGERPRINT"); // TODO
+-static const String16 DUMP_PERMISSION("android.permission.DUMP");
+-
+-status_t BnGoodixFingerprintDaemon::onTransact(uint32_t code, const Parcel& data, Parcel* reply,
+-        uint32_t flags) {
+-    switch(code) {
+-        case AUTHENTICATE: {
+-            CHECK_INTERFACE(IGoodixFingerprintDaemon, data, reply);
+-            if (!checkPermission(HAL_FINGERPRINT_PERMISSION)) {
+-                return PERMISSION_DENIED;
+-            }
+-            const uint64_t sessionId = data.readInt64();
+-            const uint32_t groupId = data.readInt32();
+-            const int32_t ret = authenticate(sessionId, groupId);
+-            reply->writeNoException();
+-            reply->writeInt32(ret);
+-            return NO_ERROR;
+-        }
+-        case CANCEL_AUTHENTICATION: {
+-            CHECK_INTERFACE(IGoodixFingerprintDaemon, data, reply);
+-            if (!checkPermission(HAL_FINGERPRINT_PERMISSION)) {
+-                return PERMISSION_DENIED;
+-            }
+-            const int32_t ret = stopAuthentication();
+-            reply->writeNoException();
+-            reply->writeInt32(ret);
+-            return NO_ERROR;
+-        }
+-        case ENROLL: {
+-            CHECK_INTERFACE(IGoodixFingerprintDaemon, data, reply);
+-            if (!checkPermission(HAL_FINGERPRINT_PERMISSION)) {
+-                return PERMISSION_DENIED;
+-            }
+-            const ssize_t tokenSize = data.readInt32();
+-            const uint8_t* token = static_cast<const uint8_t *>(data.readInplace(tokenSize));
+-            const int32_t groupId = data.readInt32();
+-            const int32_t timeout = data.readInt32();
+-            const int32_t ret = enroll(token, tokenSize, groupId, timeout);
+-            reply->writeNoException();
+-            reply->writeInt32(ret);
+-            return NO_ERROR;
+-        }
+-        case CANCEL_ENROLLMENT: {
+-            CHECK_INTERFACE(IGoodixFingerprintDaemon, data, reply);
+-            if (!checkPermission(HAL_FINGERPRINT_PERMISSION)) {
+-                return PERMISSION_DENIED;
+-            }
+-            const int32_t ret = stopEnrollment();
+-            reply->writeNoException();
+-            reply->writeInt32(ret);
+-            return NO_ERROR;
+-        }
+-        case PRE_ENROLL: {
+-            CHECK_INTERFACE(IGoodixFingerprintDaemon, data, reply);
+-            if (!checkPermission(HAL_FINGERPRINT_PERMISSION)) {
+-                return PERMISSION_DENIED;
+-            }
+-            const uint64_t ret = preEnroll();
+-            reply->writeNoException();
+-            reply->writeInt64(ret);
+-            return NO_ERROR;
+-        }
+-        case POST_ENROLL: {
+-            CHECK_INTERFACE(IGoodixFingerprintDaemon, data, reply);
+-            if (!checkPermission(HAL_FINGERPRINT_PERMISSION)) {
+-                return PERMISSION_DENIED;
+-            }
+-            const int32_t ret = postEnroll();
+-            reply->writeNoException();
+-            reply->writeInt32(ret);
+-            return NO_ERROR;
+-        }
+-        case REMOVE: {
+-            CHECK_INTERFACE(IGoodixFingerprintDaemon, data, reply);
+-            if (!checkPermission(HAL_FINGERPRINT_PERMISSION)) {
+-                return PERMISSION_DENIED;
+-            }
+-            const int32_t fingerId = data.readInt32();
+-            const int32_t groupId = data.readInt32();
+-            const int32_t ret = remove(fingerId, groupId);
+-            reply->writeNoException();
+-            reply->writeInt32(ret);
+-            return NO_ERROR;
+-        }
+-        case GET_AUTHENTICATOR_ID: {
+-            CHECK_INTERFACE(IGoodixFingerprintDaemon, data, reply);
+-            if (!checkPermission(HAL_FINGERPRINT_PERMISSION)) {
+-                return PERMISSION_DENIED;
+-            }
+-            const uint64_t ret = getAuthenticatorId();
+-            reply->writeNoException();
+-            reply->writeInt64(ret);
+-            return NO_ERROR;
+-        }
+-        case SET_ACTIVE_GROUP: {
+-            CHECK_INTERFACE(IGoodixFingerprintDaemon, data, reply);
+-            if (!checkPermission(HAL_FINGERPRINT_PERMISSION)) {
+-                return PERMISSION_DENIED;
+-            }
+-            const int32_t group = data.readInt32();
+-            const ssize_t pathSize = data.readInt32();
+-            const uint8_t* path = static_cast<const uint8_t *>(data.readInplace(pathSize));
+-            const int32_t ret = setActiveGroup(group, path, pathSize);
+-            reply->writeNoException();
+-            reply->writeInt32(ret);
+-            return NO_ERROR;
+-        }
+-        case OPEN_HAL: {
+-            CHECK_INTERFACE(IGoodixFingerprintDaemon, data, reply);
+-            if (!checkPermission(HAL_FINGERPRINT_PERMISSION)) {
+-                return PERMISSION_DENIED;
+-            }
+-            const int64_t ret = openHal();
+-            reply->writeNoException();
+-            reply->writeInt64(ret);
+-            return NO_ERROR;
+-        }
+-        case CLOSE_HAL: {
+-            CHECK_INTERFACE(IGoodixFingerprintDaemon, data, reply);
+-            if (!checkPermission(HAL_FINGERPRINT_PERMISSION)) {
+-                return PERMISSION_DENIED;
+-            }
+-            const int32_t ret = closeHal();
+-            reply->writeNoException();
+-            reply->writeInt32(ret);
+-            return NO_ERROR;
+-        }
+-        case INIT: {
+-            CHECK_INTERFACE(IGoodixFingerprintDaemon, data, reply);
+-            if (!checkPermission(HAL_FINGERPRINT_PERMISSION)) {
+-                return PERMISSION_DENIED;
+-            }
+-            sp<IGoodixFingerprintDaemonCallback> callback =
+-                    interface_cast<IGoodixFingerprintDaemonCallback>(data.readStrongBinder());
+-            init(callback);
+-            reply->writeNoException();
+-            return NO_ERROR;
+-        }
+-        case SET_SAFE_CLASS: {
+-            CHECK_INTERFACE(IGoodixFingerprintDaemon, data, reply);
+-            if (!checkPermission(HAL_FINGERPRINT_PERMISSION)) {
+-                return PERMISSION_DENIED;
+-            }
+-            const int32_t safeClass = data.readInt32();
+-            const int32_t ret = setSafeClass(safeClass);
+-            reply->writeNoException();
+-            reply->writeInt32(ret);
+-            return NO_ERROR;
+-
+-        }
+-        case NAVIGATE: {
+-            CHECK_INTERFACE(IGoodixFingerprintDaemon, data, reply);
+-            if (!checkPermission(HAL_FINGERPRINT_PERMISSION)) {
+-                return PERMISSION_DENIED;
+-            }
+-            const int32_t navMode = data.readInt32();
+-            const int32_t ret = navigate(navMode);
+-            reply->writeNoException();
+-            reply->writeInt32(ret);
+-            return NO_ERROR;
+-
+-        }
+-        case CANCEL_NAVIGATION: {
+-            CHECK_INTERFACE(IGoodixFingerprintDaemon, data, reply);
+-            if (!checkPermission(HAL_FINGERPRINT_PERMISSION)) {
+-                return PERMISSION_DENIED;
+-            }
+-            const int32_t ret = stopNavigation();
+-            reply->writeNoException();
+-            reply->writeInt32(ret);
+-            return NO_ERROR;
+-
+-        }
+-        case ENABLE_FINGERPRINT_MODULE: {
+-            CHECK_INTERFACE(IGoodixFingerprintDaemon, data, reply);
+-            if (!checkPermission(HAL_FINGERPRINT_PERMISSION)) {
+-                return PERMISSION_DENIED;
+-            }
+-            uint8_t enableFlag;
+-            data.read(&enableFlag, 1);
+-            const int32_t ret = enableFingerprintModule(enableFlag);
+-            reply->writeNoException();
+-            reply->writeInt32(ret);
+-            return NO_ERROR;
+-        }
+-        case CAMERA_CAPTURE: {
+-            CHECK_INTERFACE(IGoodixFingerprintDaemon, data, reply);
+-            if (!checkPermission(HAL_FINGERPRINT_PERMISSION)) {
+-                return PERMISSION_DENIED;
+-            }
+-            const int32_t ret = cameraCapture();
+-            reply->writeNoException();
+-            reply->writeInt32(ret);
+-            return NO_ERROR;
+-
+-        }
+-        case CANCEL_CAMERA_CAPTURE: {
+-            CHECK_INTERFACE(IGoodixFingerprintDaemon, data, reply);
+-            if (!checkPermission(HAL_FINGERPRINT_PERMISSION)) {
+-                return PERMISSION_DENIED;
+-            }
+-            const int32_t ret = stopCameraCapture();
+-            reply->writeNoException();
+-            reply->writeInt32(ret);
+-            return NO_ERROR;
+-
+-        }
+-        case ENABLE_FF_FEATURE: {
+-            CHECK_INTERFACE(IGoodixFingerprintDaemon, data, reply);
+-            if (!checkPermission(HAL_FINGERPRINT_PERMISSION)) {
+-                return PERMISSION_DENIED;
+-            }
+-            uint8_t enableFlag;
+-            data.read(&enableFlag, 1);
+-            const int32_t ret = enableFfFeature(enableFlag);
+-            reply->writeNoException();
+-            reply->writeInt32(ret);
+-            return NO_ERROR;
+-        }
+-        case TEST_INIT: {
+-            CHECK_INTERFACE(IGoodixFingerprintDaemon, data, reply);
+-            sp<IGoodixFingerprintDaemonCallback> callback =
+-                    interface_cast<IGoodixFingerprintDaemonCallback>(data.readStrongBinder());
+-            testInit(callback);
+-            reply->writeNoException();
+-            return NO_ERROR;
+-        }
+-        case TEST_CMD: {
+-            CHECK_INTERFACE(IGoodixFingerprintDaemon, data, reply);
+-            int32_t cmdId = data.readInt32();
+-            int32_t paramLen = data.readInt32();
+-            const uint8_t* param = static_cast<const uint8_t *>(data.readInplace(paramLen));
+-            const int32_t ret = testCmd(cmdId, param, paramLen);
+-            reply->writeNoException();
+-            reply->writeInt32(ret);
+-            return NO_ERROR;
+-        }
+-
+-        case START_HBD:{
+-            CHECK_INTERFACE(IGoodixFingerprintDaemon, data, reply);
+-            const int32_t ret = startHbd();
+-            reply->writeNoException();
+-            reply->writeInt32(ret);
+-            return NO_ERROR;
+-        }
+-        case SCREEN_ON: {
+-            CHECK_INTERFACE(IGoodixFingerprintDaemon, data, reply);
+-            if (!checkPermission(HAL_FINGERPRINT_PERMISSION)) {
+-                return PERMISSION_DENIED;
+-            }
+-            const int32_t ret = screenOn();
+-            reply->writeNoException();
+-            reply->writeInt32(ret);
+-            return NO_ERROR;
+-
+-        }
+-        case SCREEN_OFF: {
+-            CHECK_INTERFACE(IGoodixFingerprintDaemon, data, reply);
+-            if (!checkPermission(HAL_FINGERPRINT_PERMISSION)) {
+-                return PERMISSION_DENIED;
+-            }
+-            const int32_t ret = screenOff();
+-            reply->writeNoException();
+-            reply->writeInt32(ret);
+-            return NO_ERROR;
+-        }
+-
+-        default:
+-            return BBinder::onTransact(code, data, reply, flags);
+-    }
+-}
+-
+-bool BnGoodixFingerprintDaemon::checkPermission(const String16& permission) {
+-    const IPCThreadState* ipc = IPCThreadState::self();
+-    const int calling_pid = ipc->getCallingPid();
+-    const int calling_uid = ipc->getCallingUid();
+-    return PermissionCache::checkPermission(permission, calling_pid, calling_uid);
+-}
+-
+-class BpGoodixFingerprintDaemon : public BpInterface<IGoodixFingerprintDaemon> {
+-    public:
+-        BpGoodixFingerprintDaemon(const sp<IBinder> & impl) :
+-                BpInterface<IGoodixFingerprintDaemon>(impl) {
+-        }
+-
+-        virtual void init(const sp<IGoodixFingerprintDaemonCallback>& callback) {
+-            Parcel data, reply;
+-            data.writeInterfaceToken(descriptor);
+-            data.writeStrongBinder(callback->asBinder(callback));
+-            remote()->transact(INIT, data, &reply);
+-            reply.readExceptionCode();
+-            return;
+-        }
+-
+-        virtual int32_t enroll(const uint8_t* token, ssize_t tokenLength, int32_t groupId, int32_t timeout) {
+-            Parcel data, reply;
+-            data.writeInterfaceToken(descriptor);
+-            data.writeInt32(tokenLength);
+-            data.write(token, tokenLength);
+-            data.writeInt32(groupId);
+-            data.writeInt32(timeout);
+-            remote()->transact(ENROLL, data, &reply);
+-            reply.readExceptionCode();
+-            return reply.readInt32();
+-        }
+-
+-        virtual uint64_t preEnroll() {
+-            Parcel data, reply;
+-            data.writeInterfaceToken(descriptor);
+-            remote()->transact(PRE_ENROLL, data, &reply);
+-            reply.readExceptionCode();
+-            return reply.readInt64();
+-        }
+-
+-        virtual int32_t postEnroll() {
+-            Parcel data, reply;
+-            data.writeInterfaceToken(descriptor);
+-            remote()->transact(POST_ENROLL, data, &reply);
+-            reply.readExceptionCode();
+-            return reply.readInt32();
+-        }
+-
+-        virtual int32_t stopEnrollment() {
+-            Parcel data, reply;
+-            data.writeInterfaceToken(descriptor);
+-            remote()->transact(CANCEL_ENROLLMENT, data, &reply);
+-            reply.readExceptionCode();
+-            return reply.readInt32();
+-        }
+-
+-        virtual int32_t authenticate(uint64_t sessionId, uint32_t groupId) {
+-            Parcel data, reply;
+-            data.writeInterfaceToken(descriptor);
+-            data.writeInt64(sessionId);
+-            data.writeInt32(groupId);
+-            remote()->transact(AUTHENTICATE, data, &reply);
+-            reply.readExceptionCode();
+-            return reply.readInt32();
+-        }
+-
+-        virtual int32_t stopAuthentication() {
+-            Parcel data, reply;
+-            data.writeInterfaceToken(descriptor);
+-            remote()->transact(CANCEL_AUTHENTICATION, data, &reply);
+-            reply.readExceptionCode();
+-            return reply.readInt32();
+-        }
+-
+-        virtual int32_t remove(int32_t fingerId, int32_t groupId) {
+-            Parcel data, reply;
+-            data.writeInterfaceToken(descriptor);
+-            data.writeInt32(fingerId);
+-            data.writeInt32(groupId);
+-            remote()->transact(REMOVE, data, &reply);
+-            reply.readExceptionCode();
+-            return reply.readInt32();
+-        }
+-
+-        virtual uint64_t getAuthenticatorId() {
+-            Parcel data, reply;
+-            data.writeInterfaceToken(descriptor);
+-            remote()->transact(GET_AUTHENTICATOR_ID, data, &reply);
+-            reply.readExceptionCode();
+-            return reply.readInt64();
+-        }
+-
+-        virtual int32_t setActiveGroup(int32_t groupId, const uint8_t* path, ssize_t pathLen) {
+-            Parcel data, reply;
+-            data.writeInterfaceToken(descriptor);
+-            data.writeInt32(groupId);
+-            data.writeInt32(pathLen);
+-            data.write(path, pathLen);
+-            remote()->transact(SET_ACTIVE_GROUP, data, &reply);
+-            reply.readExceptionCode();
+-            return reply.readInt32();
+-        }
+-
+-        virtual int32_t setSafeClass(uint32_t safeClass) {
+-            Parcel data, reply;
+-            data.writeInterfaceToken(descriptor);
+-            data.writeInt32(safeClass);
+-            remote()->transact(SET_SAFE_CLASS, data, &reply);
+-            reply.readExceptionCode();
+-            return reply.readInt32();
+-        }
+-
+-       virtual int32_t navigate(uint32_t navMode) {
+-            Parcel data, reply;
+-            data.writeInterfaceToken(descriptor);
+-            data.writeInt32(navMode);
+-            remote()->transact(NAVIGATE, data, &reply);
+-            reply.readExceptionCode();
+-            return reply.readInt32();
+-        }
+-
+-        virtual int32_t stopNavigation() {
+-            Parcel data, reply;
+-            data.writeInterfaceToken(descriptor);
+-            remote()->transact(CANCEL_NAVIGATION, data, &reply);
+-            reply.readExceptionCode();
+-            return reply.readInt32();
+-        }
+-
+-        virtual int32_t enableFingerprintModule(uint8_t enableFlag) {
+-            Parcel data, reply;
+-            data.writeInterfaceToken(descriptor);
+-            data.write(&enableFlag, 1);
+-            remote()->transact(ENABLE_FINGERPRINT_MODULE, data, &reply);
+-            reply.readExceptionCode();
+-            return reply.readInt32();
+-        }
+-
+-        virtual int32_t cameraCapture() {
+-            Parcel data, reply;
+-            data.writeInterfaceToken(descriptor);
+-            remote()->transact(CAMERA_CAPTURE, data, &reply);
+-            reply.readExceptionCode();
+-            return reply.readInt32();
+-        }
+-
+-        virtual int32_t stopCameraCapture() {
+-            Parcel data, reply;
+-            data.writeInterfaceToken(descriptor);
+-            remote()->transact(CANCEL_CAMERA_CAPTURE, data, &reply);
+-            reply.readExceptionCode();
+-            return reply.readInt32();
+-        }
+-
+-        virtual int32_t enableFfFeature(uint8_t enableFlag) {
+-            Parcel data, reply;
+-            data.writeInterfaceToken(descriptor);
+-            data.write(&enableFlag, 1);
+-            remote()->transact(ENABLE_FF_FEATURE, data, &reply);
+-            reply.readExceptionCode();
+-            return reply.readInt32();
+-        }
+-
+-        virtual void testInit(const sp<IGoodixFingerprintDaemonCallback>& callback) {
+-            Parcel data, reply;
+-            data.writeInterfaceToken(descriptor);
+-            data.writeStrongBinder(callback->asBinder(callback));
+-            remote()->transact(TEST_INIT, data, &reply);
+-            reply.readExceptionCode();
+-            return;
+-        }
+-
+-        virtual int32_t testCmd(uint32_t cmdId, const uint8_t* param, uint32_t paramLen) {
+-            Parcel data, reply;
+-            data.writeInterfaceToken(descriptor);
+-            data.writeInt32(cmdId);
+-            data.writeInt32(paramLen);
+-            data.write(param, paramLen);
+-            remote()->transact(TEST_CMD, data, &reply);
+-            reply.readExceptionCode();
+-            return reply.readInt32();
+-        }
+-
+-        virtual int32_t screenOn() {
+-            Parcel data, reply;
+-            data.writeInterfaceToken(descriptor);
+-            remote()->transact(SCREEN_ON, data, &reply);
+-            reply.readExceptionCode();
+-            return reply.readInt32();
+-        }
+-
+-        virtual int32_t screenOff() {
+-            Parcel data, reply;
+-            data.writeInterfaceToken(descriptor);
+-            remote()->transact(SCREEN_OFF, data, &reply);
+-            reply.readExceptionCode();
+-            return reply.readInt32();
+-        }
+-
+-        virtual int32_t startHbd(){
+-            Parcel data, reply;
+-            data.writeInterfaceToken(descriptor);
+-            remote()->transact(START_HBD, data, &reply);
+-            reply.readExceptionCode();
+-            return reply.readInt32();
+-        }
+-
+-        virtual int64_t openHal() {
+-            Parcel data, reply;
+-            data.writeInterfaceToken(descriptor);
+-            remote()->transact(OPEN_HAL, data, &reply);
+-            reply.readExceptionCode();
+-            return reply.readInt64();
+-        }
+-
+-        virtual int32_t closeHal() {
+-            Parcel data, reply;
+-            data.writeInterfaceToken(descriptor);
+-            remote()->transact(CLOSE_HAL, data, &reply);
+-            reply.readExceptionCode();
+-            return reply.readInt32();
+-        }
+-
+-        virtual void binderDied(const wp<IBinder> __unused &who) {
+-            ALOGV("binderDied()");
+-            return;
+-        }
+-
+-        virtual void hal_notify_callback(const gf_fingerprint_msg_t __unused *msg) {
+-            return;
+-        }
+-};
+-
+-IMPLEMENT_META_INTERFACE(GoodixFingerprintDaemon, "android.hardware.fingerprint.IGoodixFingerprintDaemon");
+-
+-}; // namespace android
+diff --git a/goodix/goodix/goodixfingerprintd/IGoodixFingerprintDaemon.h b/goodix/goodix/goodixfingerprintd/IGoodixFingerprintDaemon.h
+deleted file mode 100755
+index 330aa79..0000000
+--- a/goodix/goodix/goodixfingerprintd/IGoodixFingerprintDaemon.h
++++ /dev/null
+@@ -1,109 +0,0 @@
+-/*
+- * Copyright (C) 2015 The Android Open Source Project
+- *
+- * Licensed under the Apache License, Version 2.0 (the "License");
+- * you may not use this file except in compliance with the License.
+- * You may obtain a copy of the License at
+- *
+- *      http://www.apache.org/licenses/LICENSE-2.0
+- *
+- * Unless required by applicable law or agreed to in writing, software
+- * distributed under the License is distributed on an "AS IS" BASIS,
+- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+- * See the License for the specific language governing permissions and
+- * limitations under the License.
+- */
+-
+-#ifndef IGOODIX_FINGERPRINT_DAEMON_H_
+-#define IGOODIX_FINGERPRINT_DAEMON_H_
+-
+-#include <binder/IInterface.h>
+-#include <binder/Parcel.h>
+-
+-#include "gf_fingerprint.h"
+-
+-namespace android {
+-
+-class IGoodixFingerprintDaemonCallback;
+-
+-/*
+-* Abstract base class for native implementation of FingerprintService.
+-*
+-* Note: This must be kept manually in sync with IGoodixFingerprintDaemon.aidl
+-*/
+-class IGoodixFingerprintDaemon : public IInterface, public IBinder::DeathRecipient {
+-    public:
+-        enum {
+-            AUTHENTICATE = IBinder::FIRST_CALL_TRANSACTION + 0,
+-            CANCEL_AUTHENTICATION = IBinder::FIRST_CALL_TRANSACTION + 1,
+-            ENROLL = IBinder::FIRST_CALL_TRANSACTION + 2,
+-            CANCEL_ENROLLMENT = IBinder::FIRST_CALL_TRANSACTION + 3,
+-            PRE_ENROLL = IBinder::FIRST_CALL_TRANSACTION + 4,
+-            REMOVE = IBinder::FIRST_CALL_TRANSACTION + 5,
+-            GET_AUTHENTICATOR_ID = IBinder::FIRST_CALL_TRANSACTION + 6,
+-            SET_ACTIVE_GROUP = IBinder::FIRST_CALL_TRANSACTION + 7,
+-            OPEN_HAL = IBinder::FIRST_CALL_TRANSACTION + 8,
+-            CLOSE_HAL = IBinder::FIRST_CALL_TRANSACTION + 9,
+-            INIT = IBinder::FIRST_CALL_TRANSACTION + 10,
+-            POST_ENROLL = IBinder::FIRST_CALL_TRANSACTION + 11,
+-            SET_SAFE_CLASS = IBinder::FIRST_CALL_TRANSACTION + 12,
+-            NAVIGATE = IBinder::FIRST_CALL_TRANSACTION +13,
+-            CANCEL_NAVIGATION = IBinder::FIRST_CALL_TRANSACTION +14,
+-            ENABLE_FINGERPRINT_MODULE = IBinder::FIRST_CALL_TRANSACTION + 15,
+-            CAMERA_CAPTURE = IBinder::FIRST_CALL_TRANSACTION +16,
+-            CANCEL_CAMERA_CAPTURE = IBinder::FIRST_CALL_TRANSACTION +17,
+-            ENABLE_FF_FEATURE = IBinder::FIRST_CALL_TRANSACTION +18,
+-            TEST_INIT = IBinder::FIRST_CALL_TRANSACTION + 19,
+-            TEST_CMD = IBinder::FIRST_CALL_TRANSACTION + 20,
+-            SCREEN_ON = IBinder::FIRST_CALL_TRANSACTION + 21,
+-            SCREEN_OFF = IBinder::FIRST_CALL_TRANSACTION +22,
+-            START_HBD = IBinder::FIRST_CALL_TRANSACTION + 23,
+-        };
+-
+-        // Binder interface methods
+-        virtual void init(const sp<IGoodixFingerprintDaemonCallback>& callback) = 0;
+-        virtual int32_t enroll(const uint8_t* token, ssize_t tokenLength, int32_t groupId,
+-                int32_t timeout) = 0;
+-        virtual uint64_t preEnroll() = 0;
+-        virtual int32_t postEnroll() = 0;
+-        virtual int32_t stopEnrollment() = 0;
+-        virtual int32_t authenticate(uint64_t sessionId, uint32_t groupId) = 0;
+-        virtual int32_t stopAuthentication() = 0;
+-        virtual int32_t remove(int32_t fingerId, int32_t groupId) = 0;
+-        virtual uint64_t getAuthenticatorId() = 0;
+-        virtual int32_t setActiveGroup(int32_t groupId, const uint8_t* path, ssize_t pathLen) = 0;
+-        virtual int32_t setSafeClass(uint32_t safeClass) = 0;
+-        virtual int32_t navigate(uint32_t navMode) = 0;
+-        virtual int32_t stopNavigation() = 0;
+-        virtual int32_t enableFingerprintModule(uint8_t enableFlag) = 0;
+-        virtual int32_t cameraCapture() = 0;
+-        virtual int32_t stopCameraCapture() = 0;
+-        virtual int32_t enableFfFeature(uint8_t enableFlag) = 0;
+-        virtual void testInit(const sp<IGoodixFingerprintDaemonCallback>& callback) = 0;
+-        virtual int32_t testCmd(uint32_t cmdId, const uint8_t* param, uint32_t paramLen) = 0;
+-        virtual int32_t screenOn() = 0;
+-        virtual int32_t screenOff() = 0;
+-        virtual int32_t startHbd() = 0;
+-
+-        virtual int64_t openHal() = 0;
+-        virtual int32_t closeHal() = 0;
+-
+-        DECLARE_META_INTERFACE(GoodixFingerprintDaemon);
+-
+-        static void hal_notify_callback(const gf_fingerprint_msg_t *msg);
+-};
+-
+-// ----------------------------------------------------------------------------
+-
+-class BnGoodixFingerprintDaemon: public BnInterface<IGoodixFingerprintDaemon> {
+-    public:
+-       virtual status_t onTransact(uint32_t code, const Parcel& data, Parcel* reply,
+-               uint32_t flags = 0);
+-    private:
+-       bool checkPermission(const String16& permission);
+-};
+-
+-} // namespace android
+-
+-#endif // IGOODIX_FINGERPRINT_DAEMON_H_
+-
+diff --git a/goodix/goodix/goodixfingerprintd/IGoodixFingerprintDaemonCallback.cpp b/goodix/goodix/goodixfingerprintd/IGoodixFingerprintDaemonCallback.cpp
+deleted file mode 100755
+index 1ad3c3b..0000000
+--- a/goodix/goodix/goodixfingerprintd/IGoodixFingerprintDaemonCallback.cpp
++++ /dev/null
+@@ -1,197 +0,0 @@
+-/*
+- * Copyright (C) 2015 The Android Open Source Project
+- *
+- * Licensed under the Apache License, Version 2.0 (the "License");
+- * you may not use this file except in compliance with the License.
+- * You may obtain a copy of the License at
+- *
+- *      http://www.apache.org/licenses/LICENSE-2.0
+- *
+- * Unless required by applicable law or agreed to in writing, software
+- * distributed under the License is distributed on an "AS IS" BASIS,
+- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+- * See the License for the specific language governing permissions and
+- * limitations under the License.
+- */
+-
+-#define LOG_TAG "IGoodixFingerprintDaemonCallback"
+-#include <stdint.h>
+-#include <sys/types.h>
+-#include <utils/Log.h>
+-#include <binder/Parcel.h>
+-
+-#include "IGoodixFingerprintDaemonCallback.h"
+-
+-namespace android {
+-
+-status_t BnGoodixFingerprintDaemonCallback::onTransact(uint32_t code, const Parcel& data, Parcel* reply,
+-        uint32_t flags) {
+-    switch (code) {
+-    case ON_ENROLL_RESULT: {
+-        CHECK_INTERFACE(IGoodixFingerprintDaemonCallback, data, reply);
+-        int64_t devId = data.readInt64();
+-        int32_t fpId = data.readInt32();
+-        int32_t gpId = data.readInt32();
+-        int32_t rem = data.readInt32();
+-        onEnrollResult(devId, fpId, gpId, rem);
+-        return NO_ERROR;
+-    }
+-    case ON_ACQUIRED: {
+-        CHECK_INTERFACE(IGoodixFingerprintDaemonCallback, data, reply);
+-        int64_t devId = data.readInt64();
+-        int32_t acquiredInfo = data.readInt32();
+-        onAcquired(devId, acquiredInfo);
+-        return NO_ERROR;
+-    }
+-    case ON_AUTHENTICATED: {
+-        CHECK_INTERFACE(IGoodixFingerprintDaemonCallback, data, reply);
+-        int64_t devId = data.readInt64();
+-        int32_t fpId = data.readInt32();
+-        int32_t gpId = data.readInt32();
+-        int32_t hatSize = data.readInt32();
+-        const uint8_t* hat = static_cast<const uint8_t *>(data.readInplace(hatSize));
+-        onAuthenticated(devId, fpId, gpId, hat, hatSize);
+-        return NO_ERROR;
+-    }
+-    case ON_ERROR: {
+-        CHECK_INTERFACE(IGoodixFingerprintDaemonCallback, data, reply);
+-        int64_t devId = data.readInt64();
+-        int32_t error = data.readInt32();
+-        onError(devId, error);
+-        return NO_ERROR;
+-    }
+-    case ON_REMOVED: {
+-        CHECK_INTERFACE(IGoodixFingerprintDaemonCallback, data, reply);
+-        int64_t devId = data.readInt64();
+-        int32_t fpId = data.readInt32();
+-        int32_t gpId = data.readInt32();
+-        onRemoved(devId, fpId, gpId);
+-        return NO_ERROR;
+-    }
+-    case ON_ENUMERATE: {
+-        CHECK_INTERFACE(IGoodixFingerprintDaemonCallback, data, reply);
+-        int64_t devId = data.readInt64();
+-        int32_t fpIds_size = data.readInt32();
+-        int8_t *fpIds = (int8_t *) malloc(fpIds_size * sizeof(int32_t));
+-        memcpy(fpIds, static_cast<const uint8_t *>(data.readInplace(fpIds_size)), fpIds_size);
+-        int32_t gpIds_size = data.readInt32();
+-        int8_t *gpIds = (int8_t *) malloc(gpIds_size * sizeof(gpIds_size));
+-        memcpy(gpIds, static_cast<const uint8_t *>(data.readInplace(gpIds_size)), gpIds_size);
+-        onEnumerate(devId, (const int32_t*) fpIds, (const int32_t*) gpIds,
+-                gpIds_size);
+-        return NO_ERROR;
+-    }
+-    case ON_TEST_CMD: {
+-        CHECK_INTERFACE(IGoodixFingerprintDaemonCallback, data, reply);
+-        int64_t devId = data.readInt64();
+-        int32_t cmdId = data.readInt32();
+-        int32_t resultLen = data.readInt32();
+-        const int8_t* result = static_cast<const int8_t *>(data.readInplace(resultLen));
+-        onTestCmd(devId, cmdId, result, resultLen);
+-        return NO_ERROR;
+-    }
+-    case ON_HBD: {
+-        CHECK_INTERFACE(IGoodixFingerprintDaemonCallback, data, reply);
+-        int64_t devId = data.readInt64();
+-        int32_t heartBeatRate = data.readInt32();
+-        int32_t status = data.readInt32();
+-        int32_t dataLen =data.readInt32();
+-        const int32_t* displayData = static_cast<const int32_t *>(data.readInplace(dataLen));
+-        onHbdData(devId, heartBeatRate, status, displayData, dataLen);
+-        return NO_ERROR;
+-    }
+-
+-    default:
+-        return BBinder::onTransact(code, data, reply, flags);
+-    }
+-}
+-
+-class BpGoodixFingerprintDaemonCallback : public BpInterface<IGoodixFingerprintDaemonCallback>
+-{
+-public:
+-    BpGoodixFingerprintDaemonCallback(const sp<IBinder>& impl) :
+-            BpInterface<IGoodixFingerprintDaemonCallback>(impl) {
+-    }
+-    virtual status_t onEnrollResult(int64_t devId, int32_t fpId, int32_t gpId, int32_t rem) {
+-        Parcel data, reply;
+-        data.writeInterfaceToken(IGoodixFingerprintDaemonCallback::getInterfaceDescriptor());
+-        data.writeInt64(devId);
+-        data.writeInt32(fpId);
+-        data.writeInt32(gpId);
+-        data.writeInt32(rem);
+-        return remote()->transact(ON_ENROLL_RESULT, data, &reply, IBinder::FLAG_ONEWAY);
+-    }
+-
+-    virtual status_t onAcquired(int64_t devId, int32_t acquiredInfo) {
+-        Parcel data, reply;
+-        data.writeInterfaceToken(IGoodixFingerprintDaemonCallback::getInterfaceDescriptor());
+-        data.writeInt64(devId);
+-        data.writeInt32(acquiredInfo);
+-        return remote()->transact(ON_ACQUIRED, data, &reply, IBinder::FLAG_ONEWAY);
+-    }
+-
+-    virtual status_t onAuthenticated(int64_t devId, int32_t fpId, int32_t gpId,
+-            const uint8_t* hat, int32_t hatSize) {
+-        Parcel data, reply;
+-        data.writeInterfaceToken(IGoodixFingerprintDaemonCallback::getInterfaceDescriptor());
+-        data.writeInt64(devId);
+-        data.writeInt32(fpId);
+-        data.writeInt32(gpId);
+-        data.writeInt32(hatSize);
+-        data.write(hat, hatSize);
+-        return remote()->transact(ON_AUTHENTICATED, data, &reply, IBinder::FLAG_ONEWAY);
+-    }
+-
+-    virtual status_t onError(int64_t devId, int32_t error) {
+-        Parcel data, reply;
+-        data.writeInterfaceToken(IGoodixFingerprintDaemonCallback::getInterfaceDescriptor());
+-        data.writeInt64(devId);
+-        data.writeInt32(error);
+-        return remote()->transact(ON_ERROR, data, &reply, IBinder::FLAG_ONEWAY);
+-    }
+-
+-    virtual status_t onRemoved(int64_t devId, int32_t fpId, int32_t gpId) {
+-        Parcel data, reply;
+-        data.writeInterfaceToken(IGoodixFingerprintDaemonCallback::getInterfaceDescriptor());
+-        data.writeInt64(devId);
+-        data.writeInt32(fpId);
+-        data.writeInt32(gpId);
+-        return remote()->transact(ON_REMOVED, data, &reply, IBinder::FLAG_ONEWAY);
+-    }
+-
+-    virtual status_t onEnumerate(int64_t devId, const int32_t* fpIds, const int32_t* gpIds,
+-            int32_t sz) {
+-        Parcel data, reply;
+-        data.writeInterfaceToken(IGoodixFingerprintDaemonCallback::getInterfaceDescriptor());
+-        data.writeInt64(devId);
+-        data.writeInt32Array(sz, fpIds);
+-        data.writeInt32Array(sz, gpIds);
+-        return remote()->transact(ON_ENUMERATE, data, &reply, IBinder::FLAG_ONEWAY);
+-    }
+-
+-    virtual status_t onTestCmd(int64_t devId, int32_t cmdId, const int8_t *result, int32_t resultLen) {
+-        Parcel data, reply;
+-        data.writeInterfaceToken(IGoodixFingerprintDaemonCallback::getInterfaceDescriptor());
+-        data.writeInt64(devId);
+-        data.writeInt32(cmdId);
+-        data.writeInt32(resultLen);
+-        data.write(result, resultLen);
+-        return remote()->transact(ON_TEST_CMD, data, &reply, IBinder::FLAG_ONEWAY);
+-    }
+-
+-    virtual status_t onHbdData(int64_t devId, int32_t heartBeatRate, int32_t status, const int32_t* displayData, int32_t dataLen){
+-        Parcel data, reply;
+-        data.writeInterfaceToken(IGoodixFingerprintDaemonCallback::getInterfaceDescriptor());
+-        data.writeInt64(devId);
+-        data.writeInt32(heartBeatRate);
+-        data.writeInt32(status);
+-        data.writeInt32(dataLen);
+-        data.write(displayData, dataLen);
+-        return remote()->transact(ON_HBD, data, &reply, IBinder::FLAG_ONEWAY);
+-    }
+-};
+-
+-IMPLEMENT_META_INTERFACE(GoodixFingerprintDaemonCallback,
+-        "android.hardware.fingerprint.IGoodixFingerprintDaemonCallback");
+-
+-}; // namespace android
+diff --git a/goodix/goodix/goodixfingerprintd/IGoodixFingerprintDaemonCallback.h b/goodix/goodix/goodixfingerprintd/IGoodixFingerprintDaemonCallback.h
+deleted file mode 100755
+index 4f18a6f..0000000
+--- a/goodix/goodix/goodixfingerprintd/IGoodixFingerprintDaemonCallback.h
++++ /dev/null
+@@ -1,66 +0,0 @@
+-/*
+- * Copyright (C) 2015 The Android Open Source Project
+- *
+- * Licensed under the Apache License, Version 2.0 (the "License");
+- * you may not use this file except in compliance with the License.
+- * You may obtain a copy of the License at
+- *
+- *      http://www.apache.org/licenses/LICENSE-2.0
+- *
+- * Unless required by applicable law or agreed to in writing, software
+- * distributed under the License is distributed on an "AS IS" BASIS,
+- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+- * See the License for the specific language governing permissions and
+- * limitations under the License.
+- */
+-
+-#ifndef IGOODIX_FINGERPRINT_DAEMON_CALLBACK_H_
+-#define IGOODIX_FINGERPRINT_DAEMON_CALLBACK_H_
+-
+-#include <inttypes.h>
+-#include <utils/Errors.h>
+-#include <binder/IInterface.h>
+-#include <binder/Parcel.h>
+-
+-namespace android {
+-
+-/*
+-* Communication channel back to FingerprintService.java
+-*/
+-class IGoodixFingerprintDaemonCallback : public IInterface {
+-    public:
+-        // must be kept in sync with IFingerprintService.aidl
+-        enum {
+-            ON_ENROLL_RESULT = IBinder::FIRST_CALL_TRANSACTION + 0,
+-            ON_ACQUIRED = IBinder::FIRST_CALL_TRANSACTION + 1,
+-            ON_AUTHENTICATED = IBinder::FIRST_CALL_TRANSACTION + 2,
+-            ON_ERROR = IBinder::FIRST_CALL_TRANSACTION + 3,
+-            ON_REMOVED = IBinder::FIRST_CALL_TRANSACTION + 4,
+-            ON_ENUMERATE = IBinder::FIRST_CALL_TRANSACTION + 5,
+-            ON_TEST_CMD = IBinder::FIRST_CALL_TRANSACTION + 6,
+-            ON_HBD = IBinder::FIRST_CALL_TRANSACTION + 7,
+-        };
+-
+-        virtual status_t onEnrollResult(int64_t devId, int32_t fpId, int32_t gpId, int32_t rem) = 0;
+-        virtual status_t onAcquired(int64_t devId, int32_t acquiredInfo) = 0;
+-        virtual status_t onAuthenticated(int64_t devId, int32_t fingerId, int32_t groupId,
+-                const uint8_t* hat, int32_t hatSize) = 0;
+-        virtual status_t onError(int64_t devId, int32_t error) = 0;
+-        virtual status_t onRemoved(int64_t devId, int32_t fingerId, int32_t groupId) = 0;
+-        virtual status_t onEnumerate(int64_t devId, const int32_t* fpIds, const int32_t* gpIds,
+-                int32_t sz) = 0;
+-        virtual status_t onTestCmd(int64_t devId, int32_t cmdId, const int8_t *result, int32_t resultLen) = 0;
+-        virtual status_t onHbdData(int64_t devId, int32_t heartBeatRate, int32_t status, const int32_t* displayData, int32_t dataLen) = 0;
+-
+-        DECLARE_META_INTERFACE(GoodixFingerprintDaemonCallback);
+-};
+-
+-class BnGoodixFingerprintDaemonCallback: public BnInterface<IGoodixFingerprintDaemonCallback> {
+-    public:
+-        virtual status_t onTransact(uint32_t code, const Parcel& data, Parcel* reply,
+-                uint32_t flags = 0);
+-};
+-
+-}; // namespace android
+-
+-#endif // IGOODIX_FINGERPRINT_DAEMON_CALLBACK_H_
+diff --git a/goodix/goodix/goodixfingerprintd/goodixfingerprintd.cpp b/goodix/goodix/goodixfingerprintd/goodixfingerprintd.cpp
+deleted file mode 100755
+index aa5d191..0000000
+--- a/goodix/goodix/goodixfingerprintd/goodixfingerprintd.cpp
++++ /dev/null
+@@ -1,52 +0,0 @@
+-/*
+- * Copyright (C) 2015 The Android Open Source Project
+- *
+- * Licensed under the Apache License, Version 2.0 (the "License");
+- * you may not use this file except in compliance with the License.
+- * You may obtain a copy of the License at
+- *
+- *      http://www.apache.org/licenses/LICENSE-2.0
+- *
+- * Unless required by applicable law or agreed to in writing, software
+- * distributed under the License is distributed on an "AS IS" BASIS,
+- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+- * See the License for the specific language governing permissions and
+- * limitations under the License.
+- */
+-
+-#define LOG_TAG "goodixfingerprintd"
+-
+-#include <cutils/log.h>
+-#include <utils/Log.h>
+-
+-#include <binder/IPCThreadState.h>
+-#include <binder/IServiceManager.h>
+-#include <binder/PermissionCache.h>
+-#include <utils/String16.h>
+-
+-#include <hardware/hardware.h>
+-#include <hardware/hw_auth_token.h>
+-
+-#include "GoodixFingerprintDaemonProxy.h"
+-#include "gf_fingerprint.h"
+-
+-int main() {
+-    ALOGI("Starting " LOG_TAG);
+-    android::sp<android::IServiceManager> serviceManager = android::defaultServiceManager();
+-    android::sp<android::GoodixFingerprintDaemonProxy> proxy =
+-            android::GoodixFingerprintDaemonProxy::getInstance();
+-    android::status_t ret = serviceManager->addService(
+-            android::GoodixFingerprintDaemonProxy::descriptor, proxy);
+-    if (ret != android::OK) {
+-        ALOGE("Couldn't register " LOG_TAG " binder service!");
+-        return -1;
+-    }
+-
+-    /*
+-     * We're the only thread in existence, so we're just going to process
+-     * Binder transaction as a single-threaded program.
+-     */
+-    android::IPCThreadState::self()->joinThreadPool();
+-    ALOGI("Done");
+-    return 0;
+-}
+diff --git a/goodix/goodix/public/gf_error.h b/goodix/goodix/public/gf_error.h
+deleted file mode 100644
+index e26491c..0000000
+--- a/goodix/goodix/public/gf_error.h
++++ /dev/null
+@@ -1,91 +0,0 @@
+-#ifndef __GF_ERROR_H__
+-#define __GF_ERROR_H__
+-
+-#include <stdint.h>
+-
+-#ifdef __cplusplus
+-extern "C" {
+-#endif
+-
+-typedef enum gf_error {
+-    GF_SUCCESS = 0,
+-
+-    //ta error
+-    GF_ERROR_BASE = 1000,
+-    GF_ERROR_OUT_OF_MEMORY = GF_ERROR_BASE + 1,
+-    GF_ERROR_OPEN_TA_FAILED = GF_ERROR_BASE + 2,
+-    GF_ERROR_BAD_PARAMS = GF_ERROR_BASE + 3,
+-    GF_ERROR_NO_SPACE = GF_ERROR_BASE + 4,
+-    GF_ERROR_REACH_FINGERS_UPLIMIT = GF_ERROR_BASE + 5,
+-    GF_ERROR_NOT_MATCH = GF_ERROR_BASE + 6,
+-    GF_ERROR_CANCELED = GF_ERROR_BASE + 7,
+-    GF_ERROR_TIMEOUT = GF_ERROR_BASE + 8,
+-    GF_ERROR_PREPROCESS_FAILED = GF_ERROR_BASE + 9,
+-    GF_ERROR_GENERIC = GF_ERROR_BASE + 10,
+-    GF_ERROR_ACQUIRED_PARTIAL = GF_ERROR_BASE + 11,
+-    GF_ERROR_ACQUIRED_IMAGER_DIRTY = GF_ERROR_BASE + 12,
+-    GF_ERROR_DUPLICATE_FINGER = GF_ERROR_BASE + 13,
+-    GF_ERROR_OPEN_DEVICE_FAILED = GF_ERROR_BASE + 14,
+-    GF_ERROR_HAL_GENRAL_ERROR = GF_ERROR_BASE + 15,
+-    GF_ERROR_HAL_FILE_DESCRIPTION_NULL = GF_ERROR_BASE + 16,
+-    GF_ERROR_HAL_IOCTL_FAILED = GF_ERROR_BASE + 17,
+-    GF_ERROR_HAL_TIMER_FUNC = GF_ERROR_BASE + 18,
+-    GF_ERROR_CORRUPT_CONTENT = GF_ERROR_BASE + 19,
+-    GF_ERROR_INCORRECT_VERSION = GF_ERROR_BASE + 20,
+-    GF_ERROR_CORRUPT_OBJECT = GF_ERROR_BASE + 21,
+-    GF_ERROR_INVALID_DATA = GF_ERROR_BASE + 22,
+-    GF_ERROR_SPI_TRANSFER_ERROR = GF_ERROR_BASE + 23,
+-    GF_ERROR_SPI_GENERAL_ERROR = GF_ERROR_BASE + 24,
+-    GF_ERROR_SPI_IRQ_HANDLE = GF_ERROR_BASE + 25,
+-    GF_ERROR_SPI_RAW_DATA_CRC_FAILED = GF_ERROR_BASE + 26,
+-    GF_ERROR_SPI_RAW_DATA_BUF_BUSY = GF_ERROR_BASE + 27,
+-    GF_ERROR_SPI_FW_CFG_DATA_ERROR = GF_ERROR_BASE + 28,
+-    GF_ERROR_SPI_FW_DOWNLOAD_FAILED = GF_ERROR_BASE + 29,
+-    GF_ERROR_SPI_CFG_DOWNLOAD_FAILED = GF_ERROR_BASE + 30,
+-    GF_ERROR_SAVE_FP_TEMPLATE = GF_ERROR_BASE + 31,
+-    GF_ERROR_FP_BUSY = GF_ERROR_BASE + 32,
+-    GF_ERROR_OPEN_SECURE_OBJECT_FAILED = GF_ERROR_BASE + 33,
+-    GF_ERROR_READ_SECURE_OBJECT_FAILED = GF_ERROR_BASE + 34,
+-    GF_ERROR_WRITE_SECURE_OBJECT_FAILED = GF_ERROR_BASE + 35,
+-    GF_ERROR_SECURE_OBJECT_NOT_EXIST = GF_ERROR_BASE + 36,
+-    GF_ERROR_WRITE_CONFIG_FAILED = GF_ERROR_BASE + 39,
+-    GF_ERROR_TEST_SENSOR_FAILED = GF_ERROR_BASE + 40,
+-    GF_ERROR_SET_MODE_FAILED = GF_ERROR_BASE + 41,
+-    GF_ERROR_CHIPID_NOT_CORRECT = GF_ERROR_BASE + 42,
+-    GF_ERROR_MAX_NUM = GF_ERROR_BASE + 43,
+-    GF_ERROR_TEST_BAD_POINT_FAILED = GF_ERROR_BASE + 44,
+-    GF_ERROR_TEST_FRR_FAR_ENROLL_DIFFERENT_FINGER = GF_ERROR_BASE + 45,
+-    GF_ERROR_DUPLICATE_AREA = GF_ERROR_BASE + 46,
+-    GF_ERROR_SPI_COMMUNICATION = GF_ERROR_BASE + 47,
+-    GF_ERROR_FINGER_NOT_EXIST = GF_ERROR_BASE + 48,
+-    GF_ERROR_INVALID_PREPROCESS_VERSION = GF_ERROR_BASE + 49, ///< This means the saved preprocess version is
+-    ///< different from the new preprocess version.
+-    ///< Should delete the saved calibration parameters.
+-    GF_ERROR_TA_DEAD = GF_ERROR_BASE + 50,
+-    GF_ERROR_NAV_TOO_FAST = GF_ERROR_BASE + 51,
+-    GF_ERROR_UNSUPPORT_SENSOR = GF_ERROR_BASE + 52,
+-    GF_ERROR_INVALID_FINGER_PRESS = GF_ERROR_BASE + 53, // Means that finger press event is caused by temperature, should update all base
+-    GF_ERROR_TA_GENERATE_RANDOM = GF_ERROR_BASE + 54,
+-    GF_ERROR_BIO_ASSAY_FAIL = GF_ERROR_BASE + 55,
+-    GF_ERROR_INVALID_HAT_VERSION = GF_ERROR_BASE + 56,
+-    GF_ERROR_INVALID_CHALLENGE = GF_ERROR_BASE + 57,
+-    GF_ERROR_UNTRUSTED_ENROLL = GF_ERROR_BASE + 58,
+-    GF_ERROR_INVALID_BASE_FRAME_DATA = GF_ERROR_BASE + 59,
+-
+-    GF_ERROR_SENSOR_BROKEN_CHECK_NEXT_FRAME = GF_ERROR_BASE + 60,
+-    GF_ERROR_SENSOR_BROKEN_CHECK_ALGO_ERROR = GF_ERROR_BASE + 61,
+-    GF_ERROR_SENSOR_IS_BROKEN = GF_ERROR_BASE + 62,
+-
+-    //native service error
+-    GF_ERROR_NATIVE_SERVICE_BASE = 2000,
+-    GF_ERROR_NATIVE_SERVICE_GETSERVICE = GF_ERROR_NATIVE_SERVICE_BASE + 1,
+-    GF_ERROR_NATIVE_SERVICE_INIT_HAL = GF_ERROR_NATIVE_SERVICE_BASE + 2,
+-
+-    GF_ERROR_MAX = 3000,
+-} gf_error_t;
+-
+-#ifdef __cplusplus
+-}
+-#endif
+-
+-#endif // __GF_ERROR_H__
+diff --git a/goodix/goodix/public/gf_type_define.h b/goodix/goodix/public/gf_type_define.h
+deleted file mode 100755
+index c2f8eb0..0000000
+--- a/goodix/goodix/public/gf_type_define.h
++++ /dev/null
+@@ -1,147 +0,0 @@
+-#ifndef __GF_TYPE_DEFINE_H__
+-#define __GF_TYPE_DEFINE_H__
+-
+-#include <stdint.h>
+-
+-#ifdef __cplusplus
+-extern "C" {
+-#endif
+-
+-#define GF_OPERATION_ID 1
+-#define GF_USER_OPERATION_ID 2
+-
+-typedef enum {
+-    GF_SENSOR_FACING_BACK = 0, //
+-    GF_SENSOR_FACING_FRONT,
+-} gf_sensor_facing_t;
+-
+-typedef enum {
+-    GF_SAFE_CLASS_HIGH = 0, //
+-    GF_SAFE_CLASS_MEDIUM,
+-    GF_SAFE_CLASS_LOW,
+-    GF_SAVE_CLASS_MAX, ///< The number of safe class. can't set this value.
+-} gf_safe_class_t;
+-
+-typedef enum {
+-    GF_NAV_MODE_NONE = 0, //
+-    GF_NAV_MODE_ALL_DIRECTIONS = 1, ///<
+-    GF_NAV_MODE_HOR_DIRECTIONS, ///<
+-    GF_NAV_MODE_VER_DIRECTIONS,
+-    GF_NAV_MODE_MAX
+-} gf_nav_mode_t;
+-
+-typedef enum {
+-    GF_SENSOR_316M = 0, //
+-    GF_SENSOR_318M,
+-    GF_SENSOR_3118M,
+-    GF_SENSOR_516M,
+-    GF_SENSOR_518M,
+-    GF_SENSOR_5118M,
+-    GF_SENSOR_816M,
+-    GF_SENSOR_316,
+-    GF_SENSOR_318,
+-    GF_SENSOR_516,
+-    GF_SENSOR_518,
+-    GF_SENSOR_3208, ///< milan-f
+-    GF_SENSOR_5216,
+-} gf_sensor_type_t;
+-
+-typedef enum {
+-    CMD_TEST_ENUMERATE = 0,
+-    CMD_TEST_DRIVER,
+-    CMD_TEST_SENSOR,
+-    CMD_TEST_BAD_POINT,
+-    CMD_TEST_PERFORMANCE,
+-    CMD_TEST_SPI_PERFORMANCE,
+-    CMD_TEST_SPI,
+-    CMD_TEST_GET_VERSION,
+-    CMD_TEST_DUMP_DATA,
+-    CMD_TEST_CANCEL_DUMP_DATA,
+-    CMD_TEST_FRR_FAR_GET_CHIP_TYPE,
+-    CMD_TEST_FRR_FAR_RECORD_BASE_FRAME,
+-    CMD_TEST_FRR_FAR_RECORD_ENROLL,
+-    CMD_TEST_FRR_FAR_RECORD_AUTHENTICATE,
+-    CMD_TEST_FRR_FAR_RECORD_AUTHENTICATE_FINISH,
+-    CMD_TEST_FRR_FAR_PLAY_BASE_FRAME,
+-    CMD_TEST_FRR_FAR_PLAY_ENROLL,
+-    CMD_TEST_FRR_FAR_PLAY_AUTHENTICATE,
+-    CMD_TEST_FRR_FAR_ENROLL_FINISH,
+-    CMD_TEST_CANCEL_FRR_FAR,
+-    CMD_TEST_RESET_PIN,
+-    CMD_TEST_CANCEL,
+-} gf_cmd_test_id_t;
+-
+-enum {
+-    TEST_TOKEN_ERROR_CODE = 100,
+-    TEST_TOKEN_SENSOR_TYPE,
+-    TEST_TOKEN_ALGO_VERSION = 200,
+-    TEST_TOKEN_PREPROCESS_VERSION,
+-    TEST_TOKEN_FW_VERSION,
+-    TEST_TOKEN_TEE_VERSION,
+-    TEST_TOKEN_TA_VERSION,
+-    TEST_TOKEN_CHIP_ID,
+-    TEST_TOKEN_VENDOR_ID,
+-    TEST_TOKEN_SENSOR_ID,
+-    TEST_TOKEN_PRODUCTION_DATE,
+-    TEST_TOKEN_AVG_DIFF_VAL = 300,
+-    TEST_TOKEN_NOISE,
+-    TEST_TOKEN_BAD_PIXEL_NUM,
+-    TEST_TOKEN_LOCAL_BAD_PIXEL_NUM,
+-    TEST_TOKEN_ALL_TILT_ANGLE,
+-    TEST_TOKEN_BLOCK_TILT_ANGLE_MAX,
+-    TEST_TOKEN_LOCAL_WORST,
+-    TEST_TOKEN_SINGULAR,
+-    TEST_TOKEN_IN_CIRCLE,
+-    TEST_TOKEN_BIG_BUBBLE,
+-    TEST_TOKEN_LINE,
+-    TEST_TOKEN_GET_DR_TIMESTAMP_TIME = 400,
+-    TEST_TOKEN_GET_MODE_TIME,
+-    TEST_TOKEN_GET_CHIP_ID_TIME,
+-    TEST_TOKEN_GET_VENDOR_ID_TIME,
+-    TEST_TOKEN_GET_SENSOR_ID_TIME,
+-    TEST_TOKEN_GET_FW_VERSION_TIME,
+-    TEST_TOKEN_GET_IMAGE_TIME,
+-    TEST_TOKEN_RAW_DATA_LEN,
+-    TEST_TOKEN_IMAGE_QUALITY = 500,
+-    TEST_TOKEN_VALID_AREA,
+-    TEST_TOKEN_KEY_POINT_NUM,
+-    TEST_TOKEN_INCREATE_RATE,
+-    TEST_TOKEN_OVERLAY,
+-    TEST_TOKEN_GET_RAW_DATA_TIME,
+-    TEST_TOKEN_PREPROCESS_TIME,
+-    TEST_TOKEN_ALGO_START_TIME,
+-    TEST_TOKEN_GET_FEATURE_TIME,
+-    TEST_TOKEN_ENROLL_TIME,
+-    TEST_TOKEN_AUTHENTICATE_TIME,
+-    TEST_TOKEN_AUTHENTICATE_ID,
+-    TEST_TOKEN_AUTHENTICATE_UPDATE_FLAG,
+-    TEST_TOKEN_AUTHENTICATE_FINGER_COUNT,
+-    TEST_TOKEN_AUTHENTICATE_FINGER_ITME,
+-    TEST_TOKEN_TOTAL_TIME,
+-    TEST_TOKEN_RESET_FLAG = 600,
+-    TEST_TOKEN_RAW_DATA = 700
+-};
+-
+-typedef struct __attribute__((packed)) {
+-    uint8_t version; // Current version is 0
+-    uint64_t challenge;
+-    uint64_t user_id; // secure user ID, not Android user ID
+-    uint64_t authenticator_id; // secure authenticator ID
+-    uint32_t authenticator_type; // hw_authenticator_type_t, in network order
+-    uint64_t timestamp; // in network order
+-    uint8_t hmac[32];
+-} gf_hw_auth_token_t;
+-
+-typedef enum {
+-    GF_HW_AUTH_NONE = 0,
+-    GF_HW_AUTH_PASSWORD = (int)(1 << 0),
+-    GF_HW_AUTH_FINGERPRINT = (int)(1 << 1),
+-    // Additional entries should be powers of 2.
+-    GF_HW_AUTH_ANY = (int)UINT32_MAX,
+-} gf_hw_authenticator_type_t;
+-
+-#ifdef __cplusplus
+-}
+-#endif
+-
+-#endif // __GF_TYPE_DEFINE_H__
