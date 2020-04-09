@@ -81,9 +81,14 @@ PRODUCT_PACKAGES += \
     libfmjni \
     FMRadio
 
-# Fingerprint(fingerprintd暂时使用预构建)
+# Fingerprint
 PRODUCT_PACKAGES += \
-    fingerprint.default
+    fingerprintd \
+    goodixfingerprintd \
+    fingerprint.mt6755
+
+ADDITIONAL_DEFAULT_PROPERTIES += \
+    persist.sys.fptype=goodix_5126m
 
 # gps
 $(call inherit-product, device/common/gps/gps_us_supl.mk)

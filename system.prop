@@ -43,8 +43,6 @@ ro.sys.usb.mtp.whql.enable=0
 # Power off opt in IPO
 sys.ipo.pwrdncap=2
 
-ro.sys.usb.storage.type=mtp,mass_storage
-
 # USB BICR function
 ro.sys.usb.bicr=yes
 

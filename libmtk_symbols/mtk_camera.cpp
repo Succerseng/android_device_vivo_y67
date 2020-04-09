@@ -18,7 +18,8 @@ extern "C"{
             return 0;
         }
 
-
+/* 下面这些然并软 */
+#if 0
         //所有可能的函数名都加进去
 
         //libcam.paramsmgr.so
@@ -217,4 +218,5 @@ extern "C"{
         char _ZN7android16CameraParameters19BBK_MANUAL_AF_VALUEE(){
             return 0;
         }
+#endif
 }
