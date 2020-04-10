@@ -1,25 +1,24 @@
-VIVO Y67- LineageOS 14.0/AOSP7.0
+vivo y67(PD1612)-- LineageOS 14.0
 ==============
 
-### Specifications
+### 规格信息
 
-Component Type | Details
--------:|:-------------------------
+类型     | 细节
+-------:|:---------------------------------------------
 CPU     | 2.0GHz Octa-Core MT6750
 GPU     | Mali-T860
-Memory  | 4GB RAM
-Shipped Android Version | 6.0
-Storage | 32GB
-Battery | 3000 mAh
-Display | 5.5" 1280 x 720 px DPI 320
-Rear Camera | 13MP (s5k2p8), Dual LED Flash, Laser autofocus
-Front Camera | 8MP (ov8858),Dual LED Flash, Laser autofocus
+内置储存  | 4GB RAM
+官方版本 | 6.0
+内部储存 | 32GB
+电池 | 3000 mAh
+屏幕 | 5.5" 1280 x 720 px DPI 320
+前置相机 | 8MP (ov8858),Dual LED Flash, Laser autofocus
+后置相机 | 13MP (s5k2p8), Dual LED Flash, Laser autofocus
+---------------------------------------------------------
 
----
+# 构建信息
 
-# Build Information
-
-### Work:
+### 正常:
  * Wi-Fi
  * GPS
  * Audio
@@ -30,7 +29,7 @@ Front Camera | 8MP (ov8858),Dual LED Flash, Laser autofocus
  * Display
  * Thermal
 
-### No work:
+### 不工作:
  * Camera
  * RIL
  * Goodix fingerprint
