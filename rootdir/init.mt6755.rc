@@ -2,6 +2,7 @@ import init.mt6755.usb.rc
 import init.mt6755.modem.rc
 import init.target.rc
 import init.volte.rc
+import init.trustonic.rc
 
 on early-init
     mount debugfs debugfs /sys/kernel/debug mode=755
@@ -9,7 +10,6 @@ on early-init
     write /sys/class/leds/lcd-backlight/trigger "backlight"
 
 on init
-    # 创建文件夹 不然vold没法设权限
     mkdir /data/misc_ce/0
     mkdir /data/system_ce/0
     mkdir /data/media/0
@@ -39,18 +39,6 @@ on init
 on fs
     wait /dev/block/platform/mtk-msdc.0/11230000.msdc0/by-name/cust
     mount ext4 /dev/block/platform/mtk-msdc.0/11230000.msdc0/by-name/cust /oem ro
-
-   write /proc/bootprof "start mobicore (on fs)"    
-    chmod 0600 /dev/mobicore
-    chown system system /dev/mobicore
-    chmod 0666 /dev/mobicore-user
-    chown system system /dev/mobicore-user
-    # MobiCore Daemon Paths
-    export MC_AUTH_TOKEN_PATH /efs
-    start mobicore
-    write /proc/bootprof "start mobicore end (on fs)"
-    write /proc/ppm/policy/ut_fix_core_num "4 4"
-    write /proc/ppm/policy/ut_fix_freq_idx "0 0"
 
     chmod 0666 /dev/kmsg
     start fuelgauged
@@ -89,12 +77,10 @@ on post-fs
 
 on post-fs-data
     # getekeeper
-    # 好像会用到共用体所以不能直接复制只能创建链接（瞎扯的）
     # 挂载system为rw才能操作
     wait /dev/block/platform/mtk-msdc.0/11230000.msdc0/by-name/system
     mount ext4 /dev/block/platform/mtk-msdc.0/11230000.msdc0/by-name/system /system rw
 
-    # 不知道调用哪一对所以暂时都加（其中必有一对多余）
     symlink /system/lib/hw/libMcGatekeeper.so /system/lib/hw/gatekeeper.mt6755.so
     symlink /system/lib64/hw/libMcGatekeeper.so /system/lib64/hw/gatekeeper.mt6755.so
 
@@ -773,11 +759,6 @@ on charger
     chmod 0666 /dev/kmsg
     start fuelgauged
 
-on property:ro.board.platform=mt6753
-    chown system system /sys/devices/system/cpu/cpufreq/interactive/hispeed_freq
-    chmod 0660 /sys/devices/system/cpu/cpufreq/interactive/hispeed_freq
-    write /sys/devices/system/cpu/cpufreq/interactive/hispeed_freq 1300000
-
 service nvram_daemon /system/bin/nvram_daemon
     class main
     user root
@@ -1105,22 +1086,7 @@ on property:persist.vivo.battery_opt=*
 on property:persist.vivo.calling_state=*
     write /sys/devices/platform/battery/call_state ${persist.vivo.calling_state}
 
-# vivo yangyanqun add for fingerprint begin
-#fingerprint service
-service fingerprintd /system/bin/fingerprintd
-    class late_start
-    user system
-    group system
-
-service goodixfpd /system/bin/goodixfingerprintd
-    class late_start
-    user system
-    group system sdcard_rw
-# vivo yangyanqun add for fingerprint end
-
-# 注册指纹用的
-service mobicore /system/bin/mcDriverDaemon -r /system/app/mcRegistry/020f0000000000000000000000000000.drbin -r /system/app/mcRegistry/05120000000000000000000000000000.drbin -r /system/app/mcRegistry/070b0000000000000000000000000000.drbin -r /system/app/mcRegistry/020b0000000000000000000000000000.drbin -r /system/app/mcRegistry/030b0000000000000000000000000000.drbin -r /system/app/mcRegistry/5a7b770d08d14b8fb00f53de4173145a.drbin  -r /system/app/mcRegistry/05070000000000000000000000000000.drbin
-
+# volte
 service vtservice /system/bin/vtservice
     class main
     socket soc_vt_tcv dgram 660 radio system
@@ -1131,3 +1097,12 @@ service vtservice /system/bin/vtservice
     group system camera graphics inet net_admin net_raw media sdcard_rw radio sdcard_r media_rw
     ioprio rt 4
 
+service fingerprintd /system/bin/fingerprintd
+    class late_start
+    user system
+    group system
+
+service goodixfpd /system/bin/goodixfingerprintd
+    class late_start
+    user system
+    group system sdcard_rw

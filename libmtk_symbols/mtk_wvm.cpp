@@ -26,7 +26,7 @@ extern "C"{
     char EVP_PKEY_new_mac_key(){
         return 0;
     }
-    char _ZN7android12AudioPCMxWay4stopEv(){
-        return 0;
-    }
+    //堆栈炸了 尝试修复
+    char _ZN7android15IsWidevineMediaERKNS_2spINS_10DataSourceEEE(){return 0;}
+    char _ZN7android10FileSource10getDrmInfoERNS_2spINS_13DecryptHandleEEEPPNS_16DrmManagerClientE(){return 0;}
 }

@@ -18,14 +18,10 @@ LOCAL_PATH := $(call my-dir)
 
 include $(CLEAR_VARS)
 LOCAL_MODULE := fingerprint.$(TARGET_BOARD_PLATFORM)
-#LOCAL_PROPRIETARY_MODULE := true
-#LOCAL_MODULE_OWNER := mtk
 LOCAL_MODULE_RELATIVE_PATH := hw
 
 LOCAL_C_INCLUDES := \
-    $(LOCAL_PATH)/public \
-    $(LOCAL_PATH)/gf_hal/public \
-    $(LOCAL_PATH)/goodixfingerprintd
+    $(LOCAL_PATH)/include
 
 LOCAL_SRC_FILES := fingerprint.cpp
 
@@ -35,13 +31,10 @@ LOCAL_SHARED_LIBRARIES := \
     libbinder \
     libhardware \
     libutils \
-    goodixfingerprintd \
     libgoodixfingerprintd_binder
 
 LOCAL_MODULE_TAGS := optional
-#include $(MTK_SHARED_LIBRARY)
 include $(BUILD_SHARED_LIBRARY)
-
 
 include $(call all-makefiles-under,$(LOCAL_PATH))
 endif

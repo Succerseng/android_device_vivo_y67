@@ -87,9 +87,6 @@ PRODUCT_PACKAGES += \
     fingerprint.default \
     fingerprint.$(TARGET_BOARD_PLATFORM)
 
-ADDITIONAL_DEFAULT_PROPERTIES += \
-    persist.sys.fptype=$(MTK_FINGERPRINT_SELECT)
-
 # gps
 $(call inherit-product, device/common/gps/gps_us_supl.mk)
 
@@ -187,6 +184,7 @@ endif
 PRODUCT_PACKAGES += \
     fstab.mt6755 \
     init.volte.rc \
+    init.trustonic.rc \
     init.mt6755.rc \
     init.mt6755.modem.rc \
     init.mt6755.usb.rc \
