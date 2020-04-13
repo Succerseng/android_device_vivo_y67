@@ -186,6 +186,7 @@ endif
 # root
 PRODUCT_PACKAGES += \
     fstab.mt6755 \
+    init.volte.rc \
     init.mt6755.rc \
     init.mt6755.modem.rc \
     init.mt6755.usb.rc \
@@ -205,6 +206,16 @@ SIM_COUNT := 2
 PRODUCT_PROPERTY_OVERRIDES += ro.telephony.sim.count=$(SIM_COUNT)
 PRODUCT_PROPERTY_OVERRIDES += persist.radio.default.sim=0
 PRODUCT_PROPERTY_OVERRIDES += persist.radio.multisim.config=dsds
+
+# Volte
+PRODUCT_COPY_FILES += \
+    $(LOCAL_PATH)/configs/vilte/viLTE_media_profiles.xml:system/etc/vilte/viLTE_media_profiles.xml \
+    $(LOCAL_PATH)/configs/vilte/viLTE_media_profiles_OP117.xml:system/etc/vilte/viLTE_media_profiles_OP117.xml \
+    $(LOCAL_PATH)/configs/vilte/viLTE_media_profiles_OP18.xml:system/etc/vilte/viLTE_media_profiles_OP18.xml \
+    $(LOCAL_PATH)/configs/vilte/viLTE_media_profiles_OP01.xml:system/etc/vilte/viLTE_media_profiles_OP01.xml \
+    $(LOCAL_PATH)/configs/vilte/viLTE_media_profiles_OP12.xml:system/etc/vilte/viLTE_media_profiles_OP12.xml \
+    $(LOCAL_PATH)/configs/vilte/viLTE_media_profiles_OP08.xml:system/etc/vilte/viLTE_media_profiles_OP08.xml \
+    $(LOCAL_PATH)/configs/vilte/viLTE_media_profiles_OP122.xml:system/etc/vilte/viLTE_media_profiles_OP122.xml
 
 # Vendor
 VENDOR_BLOBS ?= vendor/vivo/y67/y67-vendor.mk

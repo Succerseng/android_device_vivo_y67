@@ -12,6 +12,7 @@ endef
 
 $(call add-rootdir-targets, \
     fstab.mt6755 \
+    init.volte.rc \
     init.mt6755.rc \
     init.mt6755.modem.rc \
     init.mt6755.usb.rc \

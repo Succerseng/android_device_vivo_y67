@@ -1,6 +1,7 @@
 import init.mt6755.usb.rc
 import init.mt6755.modem.rc
 import init.target.rc
+import init.volte.rc
 
 on early-init
     mount debugfs debugfs /sys/kernel/debug mode=755
