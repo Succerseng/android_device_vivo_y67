@@ -1,7 +1,9 @@
 #
 # from device/bbk/bbk6750_66_m/system.prop
 #
-#
+
+qemu.hw.mainkeys=0
+
 # system.prop for generic sdk
 #
 

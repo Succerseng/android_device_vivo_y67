@@ -174,8 +174,6 @@ TW_USE_TOOLBOX := true
 RECOVERY_SDCARD_ON_DATA := true
 TW_EXCLUDE_SUPERSU := true
 RECOVERY_GRAPHICS_USE_LINELENGTH := true
-TW_INTERNAL_STORAGE_PATH := "/data/media"
-TW_INTERNAL_STORAGE_MOUNT_POINT := "data"
 PRODUCT_COPY_FILES += $(DEVICE_PATH)/rootdir/recovery/etc/twrp.fstab:recovery/root/etc/twrp.fstab
 #用官方的vold解密官方系统加密的data
 ifeq ($(TW_CRYPTO_USE_SYSTEM_VOLD),true)
