@@ -51,7 +51,7 @@ PRODUCT_PACKAGES += \
     Gallery2
 
 PRODUCT_COPY_FILES += \
-    $(LOCAL_PATH)/camera/camerasize.xml:system/etc/camerasize.xml
+    $(LOCAL_PATH)/configs/camera/camerasize.xml:system/etc/camerasize.xml
 
 # Charger Mode
 PRODUCT_PACKAGES += \
@@ -84,11 +84,11 @@ PRODUCT_PACKAGES += \
 # Fingerprint
 PRODUCT_PACKAGES += \
     fingerprintd \
-    goodixfingerprintd \
-    fingerprint.mt6755
+    fingerprint.default \
+    fingerprint.$(TARGET_BOARD_PLATFORM)
 
 ADDITIONAL_DEFAULT_PROPERTIES += \
-    persist.sys.fptype=goodix_5126m
+    persist.sys.fptype=$(MTK_FINGERPRINT_SELECT)
 
 # gps
 $(call inherit-product, device/common/gps/gps_us_supl.mk)
@@ -116,7 +116,7 @@ PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/configs/media/media_codecs.xml:system/etc/media_codecs.xml \
     $(LOCAL_PATH)/configs/media/media_codecs_mediatek_audio.xml:system/etc/media_codecs_mediatek_audio.xml \
     $(LOCAL_PATH)/configs/media/media_codecs_mediatek_video.xml:system/etc/media_codecs_mediatek_video.xml \
-    $(LOCAL_PATH)/configs/media/mtk_omx_core.cfg:system/etc/mtk_omx_core.cfg
+    $(LOCAL_PATH)/configs/omx/mtk_omx_core.cfg:system/etc/mtk_omx_core.cfg
 
 PRODUCT_COPY_FILES += \
     frameworks/av/media/libstagefright/data/media_codecs_google_audio.xml:system/etc/media_codecs_google_audio.xml \

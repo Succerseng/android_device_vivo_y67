@@ -26,6 +26,7 @@ extern "C"{
     char EVP_PKEY_new_mac_key(){
         return 0;
     }
-    char _ZN7android15IsWidevineMediaERKNS_2spINS_10DataSourceEEE(){
-    return 0;}
+    char _ZN7android12AudioPCMxWay4stopEv(){
+        return 0;
+    }
 }

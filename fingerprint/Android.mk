@@ -23,20 +23,19 @@ LOCAL_MODULE := fingerprint.$(TARGET_BOARD_PLATFORM)
 LOCAL_MODULE_RELATIVE_PATH := hw
 
 LOCAL_C_INCLUDES := \
-    $(LOCAL_PATH)/goodix/public \
-    $(LOCAL_PATH)/goodix/gf_hal/public \
-    $(LOCAL_PATH)/goodix/goodixfingerprintd
+    $(LOCAL_PATH)/public \
+    $(LOCAL_PATH)/gf_hal/public \
+    $(LOCAL_PATH)/goodixfingerprintd
 
-LOCAL_SRC_FILES := goodix/fingerprint.cpp
+LOCAL_SRC_FILES := fingerprint.cpp
 
 LOCAL_SHARED_LIBRARIES := \
-    libgf_algo \
-    libgf_ca \
     libgf_hal \
     liblog \
     libbinder \
     libhardware \
     libutils \
+    goodixfingerprintd \
     libgoodixfingerprintd_binder
 
 LOCAL_MODULE_TAGS := optional
