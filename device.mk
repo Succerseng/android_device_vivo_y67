@@ -32,11 +32,6 @@ PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/configs/audio/audio_em.xml:system/etc/audio_em.xml \
     $(LOCAL_PATH)/configs/audio/audio_policy.conf:system/etc/audio_policy.conf
 
-# Build proprietary bits when available
-ifneq ($(MTKPATH),)
-$(call inherit-product-if-exists, $(MTKPATH)/config/mt6755.mk)
-endif
-
 # Boot animation
 TARGET_SCREEN_HEIGHT := 1280
 TARGET_SCREEN_WIDTH := 720
@@ -47,7 +42,6 @@ $(call inherit-product-if-exists, frameworks/native/build/phone-xxxhdpi-4096-hwu
 # Camera
 PRODUCT_PACKAGES += \
     camera.default \
-    mtkcamera_parameters \
     Gallery2
 
 PRODUCT_COPY_FILES += \
@@ -91,7 +85,7 @@ PRODUCT_PACKAGES += \
 $(call inherit-product, device/common/gps/gps_us_supl.mk)
 
 PRODUCT_COPY_FILES += \
-    $(LOCAL_PATH)/configs/agps_profiles_conf2.xml:system/etc/agps_profiles_conf2.xml \
+    $(LOCAL_PATH)/configs/agps/agps_profiles_conf2.xml:system/etc/agps_profiles_conf2.xml \
     $(LOCAL_PATH)/configs/slp_conf:system/etc/slp_conf
 
 # Graphics
@@ -108,8 +102,6 @@ PRODUCT_COPY_FILES += \
 
 # Media
 PRODUCT_COPY_FILES += \
-    $(LOCAL_PATH)/configs/media/media_codecs_performance.xml:system/etc/media_codecs_performance.xml \
-    $(LOCAL_PATH)/configs/media/media_profiles.xml:system/etc/media_profiles.xml \
     $(LOCAL_PATH)/configs/media/media_codecs.xml:system/etc/media_codecs.xml \
     $(LOCAL_PATH)/configs/media/media_codecs_mediatek_audio.xml:system/etc/media_codecs_mediatek_audio.xml \
     $(LOCAL_PATH)/configs/media/media_codecs_mediatek_video.xml:system/etc/media_codecs_mediatek_video.xml \
@@ -117,7 +109,6 @@ PRODUCT_COPY_FILES += \
 
 PRODUCT_COPY_FILES += \
     frameworks/av/media/libstagefright/data/media_codecs_google_audio.xml:system/etc/media_codecs_google_audio.xml \
-    frameworks/av/media/libstagefright/data/media_codecs_google_telephony.xml:system/etc/media_codecs_google_telephony.xml \
     frameworks/av/media/libstagefright/data/media_codecs_google_video_le.xml:system/etc/media_codecs_google_video_le.xml
 
 # Mediatek platform
@@ -125,7 +116,8 @@ PRODUCT_PACKAGES += \
    libmtk_symbols
 
 # Overlay
-DEVICE_PACKAGE_OVERLAYS += $(LOCAL_PATH)/overlay
+DEVICE_PACKAGE_OVERLAYS += \
+    $(LOCAL_PATH)/overlay
 
 # Permissions
 PRODUCT_COPY_FILES += \
@@ -159,7 +151,7 @@ PRODUCT_PACKAGES += \
 PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/configs/spn-conf.xml:system/etc/spn-conf.xml
 
-# Recovery Ramdisk
+# Recovery Ramdisk(摆设)
 ifeq ($(PRODUCT_USE_MCDEVICE),true)
 PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/rootdir/recovery/system/bin/mcDriverDaemon:recovery/root/sbin/mcDriverDaemon \
@@ -172,13 +164,13 @@ PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/rootdir/recovery/system/app/mcRegistry/030b0000000000000000000000000000.drbin:recovery/root/system/app/mcRegistry/030b0000000000000000000000000000.drbin \
     $(LOCAL_PATH)/rootdir/recovery/system/app/mcRegistry/5a7b770d08d14b8fb00f53de4173145a.drbin:recovery/root/system/app/mcRegistry/5a7b770d08d14b8fb00f53de4173145a.drbin \
     $(LOCAL_PATH)/rootdir/recovery/system/app/mcRegistry/05070000000000000000000000000000.drbin:recovery/root/system/app/mcRegistry/05070000000000000000000000000000.drbin
+endif
 
 PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/rootdir/recovery/sbin/fuelgauged_static:recovery/root/sbin/fuelgauged_static
 
 PRODUCT_PACKAGES += \
     init.recovery.mt6755.rc
-endif
 
 # root
 PRODUCT_PACKAGES += \
