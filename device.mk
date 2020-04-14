@@ -176,6 +176,8 @@ PRODUCT_PACKAGES += \
 PRODUCT_PACKAGES += \
     fstab.mt6755 \
     init.volte.rc \
+    init.c2k.rc \
+    init.project.rc \
     init.trustonic.rc \
     init.mt6755.rc \
     init.mt6755.modem.rc \

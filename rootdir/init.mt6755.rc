@@ -3,6 +3,7 @@ import init.mt6755.modem.rc
 import init.target.rc
 import init.volte.rc
 import init.trustonic.rc
+import init.project.rc
 
 on early-init
     mount debugfs debugfs /sys/kernel/debug mode=755
@@ -97,15 +98,11 @@ on post-fs-data
     symlink /nvdata /data/nvram
     mkdir /nvdata/media 0771 media audio
 
-	#agold shipeilong add for factory ATA test then normal boot fail
-	chown media /data/nvram/media/AUDIO_FUNC_SWITCH_Param
-	chgrp audio /data/nvram/media/AUDIO_FUNC_SWITCH_Param
+    chown media /data/nvram/media/AUDIO_FUNC_SWITCH_Param
+    chgrp audio /data/nvram/media/AUDIO_FUNC_SWITCH_Param
+    chown media /data/nvram/media/CAMERA_VERSION
+    chgrp audio /data/nvram/media/CAMERA_VERSION
 
-	chown media /data/nvram/media/CAMERA_VERSION
-	chgrp audio /data/nvram/media/CAMERA_VERSION
-	#agold shipeilong add end
-
-    # Set SELinux security contexts on upgrade or policy update.
     restorecon_recursive /nvdata
 
     # rfkill
@@ -126,9 +123,6 @@ on post-fs-data
     chown gps gps /sys/class/gpsdrv/gps/status
     chown gps system /data/mpe_mnl
     chmod 0775 /system/xbin/MPED
-
-    # NFC
-    mkdir /data/nfc_socket 0771 nfc radio
 
     # md32 boot
     chown root system /dev/md32
@@ -214,45 +208,34 @@ on post-fs-data
 #[AGOLD][START][WLG]
     chmod 0666 /dev/als_ps
     chmod 0666 /dev/aw2013
-    chmod 0777 /dev/fpc1080
     chmod 0777 /dev/halldev
     chmod 0666 /dev/silead_fp_dev
     chmod 0666 /dev/madev0
-    chmod 0777 /dev/esfp0
-	chmod 0777 /dev/iraf
-	chmod 0777 /dev/sn3191
-	chmod 0666 /sys/agold_laser/laser
+    chmod 0777 /dev/iraf
+    chmod 0777 /dev/sn3191
+   chmod 0666 /sys/agold_laser/laser
 #[AGOLD][END]
 
-#[AGOLD][xiaofulong][20160513]
-	chmod 0777 /sys/bus/i2c/drivers/leds-LM3643/chipinfo
-	chmod 0777 /sys/bus/i2c/drivers/leds-LM3643/led1duty
-	chmod 0777 /sys/bus/i2c/drivers/leds-LM3643/led2duty
-	chmod 0777 /sys/bus/i2c/drivers/leds-LM3643/led1en
-	chmod 0777 /sys/bus/i2c/drivers/leds-LM3643/led2en
-	chmod 0777 /sys/bus/i2c/drivers/leds-LM3643/ledmode
-	chmod 0777 /sys/bus/i2c/drivers/leds-LM3643/reg
-#[AGOLD][xiaofulong][20160513]
-
-#[AGOLD][wangxing][20160201]
-	chmod 0660 /sys/class/misc/m_step_c_misc/step_cactive
-	chmod 0660 /sys/class/misc/m_step_c_misc/step_cdelay
-	chmod 0660 /sys/class/misc/m_step_c_misc/step_cbatch
-	chmod 0660 /sys/class/misc/m_step_c_misc/step_cflush
-	chmod 0660 /sys/class/misc/m_step_c_misc/step_cdevnum
-	chown system system /sys/class/misc/m_step_c_misc/step_cactive
-	chown system system /sys/class/misc/m_step_c_misc/step_cdelay
-	chown system system /sys/class/misc/m_step_c_misc/step_cbatch
-	chown system system /sys/class/misc/m_step_c_misc/step_cflush
-	chown system system /sys/class/misc/m_step_c_misc/step_cdevnum
-#[AGOLD][wangxing][20160201]
-
-#[AGOLD][Fengjun][20121119]
-	chmod 0666 /dev/AGOLD_DRIVER
-	chmod 0666 /sys/class/android_usb/android0/iSerial
-	chmod 0666 /sys/class/android_usb/android0/iProduct
-#[AGOLD]End
-
+    chmod 0777 /sys/bus/i2c/drivers/leds-LM3643/chipinfo
+    chmod 0777 /sys/bus/i2c/drivers/leds-LM3643/led1duty
+    chmod 0777 /sys/bus/i2c/drivers/leds-LM3643/led2duty
+    chmod 0777 /sys/bus/i2c/drivers/leds-LM3643/led1en
+    chmod 0777 /sys/bus/i2c/drivers/leds-LM3643/led2en
+    chmod 0777 /sys/bus/i2c/drivers/leds-LM3643/ledmode
+    chmod 0777 /sys/bus/i2c/drivers/leds-LM3643/reg
+    chmod 0660 /sys/class/misc/m_step_c_misc/step_cactive
+    chmod 0660 /sys/class/misc/m_step_c_misc/step_cdelay
+    chmod 0660 /sys/class/misc/m_step_c_misc/step_cbatch
+    chmod 0660 /sys/class/misc/m_step_c_misc/step_cflush
+    chmod 0660 /sys/class/misc/m_step_c_misc/step_cdevnum
+    chown system system /sys/class/misc/m_step_c_misc/step_cactive
+    chown system system /sys/class/misc/m_step_c_misc/step_cdelay
+    chown system system /sys/class/misc/m_step_c_misc/step_cbatch
+    chown system system /sys/class/misc/m_step_c_misc/step_cflush
+    chown system system /sys/class/misc/m_step_c_misc/step_cdevnum
+    chmod 0666 /dev/AGOLD_DRIVER
+    chmod 0666 /sys/class/android_usb/android0/iSerial
+    chmod 0666 /sys/class/android_usb/android0/iProduct
     chmod 0660 /sys/class/misc/m_acc_misc/accenablenodata
     chmod 0660 /sys/class/misc/m_acc_misc/accactive
     chmod 0660 /sys/class/misc/m_acc_misc/accdelay
@@ -263,7 +246,6 @@ on post-fs-data
     chown system system /sys/class/misc/m_acc_misc/accdelay
     chown system system /sys/class/misc/m_acc_misc/accbatch
     chown system system /sys/class/misc/m_acc_misc/accflush
-
     chmod 0660 /sys/class/misc/m_mag_misc/magactive
     chmod 0660 /sys/class/misc/m_mag_misc/magdelay
     chmod 0660 /sys/class/misc/m_mag_misc/magbatch
@@ -288,7 +270,6 @@ on post-fs-data
     chown system system /sys/class/misc/m_batch_misc/batchdelay
     chown system system /sys/class/misc/m_batch_misc/batchbatch
     chown system system /sys/class/misc/m_batch_misc/batchflush
-
     chmod 0660 /sys/class/misc/m_gyro_misc/gyroenablenodata
     chmod 0660 /sys/class/misc/m_gyro_misc/gyroactive
     chmod 0660 /sys/class/misc/m_gyro_misc/gyrodelay
@@ -299,7 +280,6 @@ on post-fs-data
     chown system system /sys/class/misc/m_gyro_misc/gyrodelay
     chown system system /sys/class/misc/m_gyro_misc/gyrobatch
     chown system system /sys/class/misc/m_gyro_misc/gyroflush
-
     chmod 0660 /sys/class/misc/m_alsps_misc/alsactive
     chmod 0660 /sys/class/misc/m_alsps_misc/alsdelay
     chmod 0660 /sys/class/misc/m_alsps_misc/alsbatch
@@ -316,7 +296,6 @@ on post-fs-data
     chown system system /sys/class/misc/m_alsps_misc/psdelay
     chown system system /sys/class/misc/m_alsps_misc/psbatch
     chown system system /sys/class/misc/m_alsps_misc/psflush
-
     chmod 0660 /sys/class/misc/m_baro_misc/baroenablenodata
     chmod 0660 /sys/class/misc/m_baro_misc/baroactive
     chmod 0660 /sys/class/misc/m_baro_misc/barodelay
@@ -350,10 +329,10 @@ on post-fs-data
     chown system system /sys/bus/platform/drivers/gsensor/fifo_mode
     chown system system /sys/bus/platform/drivers/gsensor/fifo_data_frame
     chown system system /sys/bus/platform/drivers/gsensor/fifo_framecount
-    #add for mag
+
     chmod 0660 /sys/bus/platform/drivers/msensor/rawdata
     chown system system /sys/bus/platform/drivers/msensor/rawdata
-    #add for gyro
+
     chown system system /sys/bus/platform/drivers/gyroscope/rawdata
     chown system system /sys/bus/platform/drivers/gyroscope/datarate
     chown system system /sys/bus/platform/drivers/gyroscope/range
@@ -387,10 +366,10 @@ on post-fs-data
     chmod 0660 /dev/MJC
     chown media system /dev/MJC
 
-    #kpd
+    # kpd
     chown radio radio /sys/devices/platform/mtk-kpd/driver/kpd_call_state
 
-    #Charging Battery
+    # Charging Battery
     chown radio radio /sys/devices/platform/battery/Charging_CallState
 
     # PMIC property
@@ -478,7 +457,7 @@ on post-fs-data
     chmod 0660 /d/dispsys
     chown system graphics /d/dispsys
 
-    #pmu
+    # pmu
     chown root radio /sys/devices/platform/mt-pmic/pmic_access_bank0
     chown root radio /sys/devices/platform/mt-pmic/pmic_access_bank1
     chown root radio /sys/devices/platform/mt6311-user/mt6311_access
@@ -498,11 +477,11 @@ on post-fs-data
     chmod 0664 /proc/cpu_ss/cpu_ss_period
     chmod 0664 /proc/cpu_ss/cpu_ss_period_mode
 
-    #SMB
+    # SMB
     chown system system /proc/smb/ScreenComm
     chmod 0660 /proc/smb/ScreenComm
 
-    #EM eint
+    # EM eint
     chown root diag /sys/bus/platform/drivers/eint/current_eint
 
     # Android SEC related device nodes
@@ -542,7 +521,7 @@ on post-fs-data
     # DISP
     chmod 0444 /dev/mtk_disp
 
-    #Camera
+    # Camera
     chmod 0660 /dev/camera-sysram
     chmod 0660 /dev/camera-isp
     chmod 0660 /dev/camera-fdvt
@@ -607,17 +586,17 @@ on post-fs-data
     chmod 0660 /mtd@misc
     chown root system /mtd@misc
 
-    #mtk_sched
+    # mtk_sched
     chmod 0660 /dev/mtk_sched
     chown system media /dev/mtk_sched
 
-    #BT SCO CVSD, for MT6572 and MT6582 CVSD codec on AP
+    # BT SCO CVSD, for MT6572 and MT6582 CVSD codec on AP
     chmod 0660 /dev/ebc
     chown media media /dev/ebc
 
     chmod 0666 /dev/uio0
 
-    #otp
+    # otp
     chmod 0660 /proc/driver/otp
     chown root system /proc/driver/otp
 
@@ -640,17 +619,13 @@ on post-fs-data
 on boot
     write /proc/sys/vm/dirty_writeback_centisecs 300
     chmod 0660 /sys/power/autosleep
-
     chmod 0664 /sys/class/leds/lcd-backlight/brightness
-
     chown system system /sys/devices/system/cpu/cpufreq/hotplug/cpu_num_base
     chmod 0660 /sys/devices/system/cpu/cpufreq/hotplug/cpu_num_base
     chown root   system /sys/kernel/debug/binder/transaction_log_enable
     chown root   system /sys/kernel/debug/binder/perf_evalue
-
     chown system /sys/module/mlog/parameters/do_mlog
     chown system /sys/module/mlog/parameters/timer_intval
-
     chown root   radio  /sys/class/leds/lcd-backlight/duty
     chown root   radio  /sys/class/leds/lcd-backlight/div
     chown system system /sys/class/leds/lcd-backlight/trigger
@@ -660,18 +635,12 @@ on boot
     chown system system /sys/class/leds/red/trigger
     chown system system /sys/class/leds/green/trigger
     chown system system /sys/class/leds/blue/trigger
-
-    # Permission for hibernation
     chown radio system /sys/power/tuxonice
     chown radio system /sys/power/tuxonice/do_hibernate
     chmod 0770 /sys/power/tuxonice
     chmod 0220 /sys/power/tuxonice/do_hibernate
-
-# Smartbook Handler Framework
     chown system system /sys/power/sb_state
     chmod 0660 /sys/power/sb_state
-
-    # HMP CPU hotplug strategy
     chown system system /proc/hps/num_base_perf_serv
     chmod 0660 /proc/hps/num_base_perf_serv
     chown system system /proc/hps/num_limit_power_serv
@@ -683,7 +652,7 @@ on boot
     chown system system /proc/hps/up_threshold
     chmod 0660 /proc/hps/up_threshold
 
-# PPM
+    # PPM
     chown system system /proc/ppm/mode
     chmod 0660 /proc/ppm/mode
     chown system system /proc/ppm/policy/userlimit_min_cpu_freq
@@ -733,22 +702,14 @@ on boot
     # WMT proc
     chown shell system /proc/driver/wmt_dbg
     chown shell system /proc/driver/wmt_aee
-
-# define device for EMCSMDLOGGER
     chown system radio /dev/ttyGS3
     chmod 0660 /dev/ttyGS3
-
-# Define device for ATCID
     chmod 660 /dev/ttyGS0
     chown system /dev/ttyGS0
     chmod 660 /dev/ttyGS1
     chown system /dev/ttyGS1
-
-# BT relayer mode USB VCOM
     chown bluetooth radio /dev/ttyGS2
     chmod 0660 /dev/ttyGS2
-
-# Char device for BT 3.0 HS
     exec /system/bin/mknod /dev/ampc0 c 151 0
     chown bluetooth bluetooth /dev/ampc0
     chmod 0660 /dev/ampc0
@@ -779,10 +740,6 @@ service p2p_supplicant /system/bin/wpa_supplicant \
     -ip2p0 -Dnl80211 -c/data/misc/wifi/p2p_supplicant.conf -e/data/misc/wifi/entropy.bin \
     -I/system/etc/wifi/p2p_supplicant_overlay.conf \
     -O/data/misc/wifi/sockets -g@android:wpa_wlan0
-    #   we will start as root and wpa_supplicant will switch to user wifi
-    #   after setting up the capabilities required for WEXT
-    #   user wifi
-    #   group wifi inet keystore
     class main
     socket wpa_wlan0 dgram 660 wifi wifi
     disabled
@@ -797,10 +754,6 @@ service wpa_supplicant /system/bin/wpa_supplicant \
     -iwlan0 -Dnl80211 -c/data/misc/wifi/wpa_supplicant.conf -e/data/misc/wifi/entropy.bin \
     -I/system/etc/wifi/wpa_supplicant_overlay.conf \
     -O/data/misc/wifi/sockets -g@android:wpa_wlan0
-    #   we will start as root and wpa_supplicant will switch to user wifi
-    #   after setting up the capabilities required for WEXT
-    #   user wifi
-    #   group wifi inet keystore
     class main
     socket wpa_wlan0 dgram 660 wifi wifi
     disabled
@@ -842,9 +795,9 @@ service msensord /system/bin/msensord
     class main
     oneshot
 
-#AGold Bruce 2015.05.16
+# AGold Bruce 2015.05.16
 service memsicd3524x /system/bin/memsicd3524x
-	 user system
+     user system
     group system
     class main
 #endif
@@ -934,18 +887,18 @@ service geomagneticd /system/bin/geomagneticd
     class main
 
 service memsicp /system/bin/memsicp
-   	user system
+       user system
     group system
     class main
 
 service memsicpf /system/bin/memsicpf
-   	user system
+       user system
     group system
     class main
 
 service qmcX983d /system/bin/qmcX983d
      disabled
-	 user system
+     user system
     group system
     class main
     oneshot
@@ -972,8 +925,6 @@ service conn_launcher /system/bin/6620_launcher -p /system/etc/firmware/
     group system
     class core
 
-# Graphics
-# start ged_srv
 on property:sys.boot_completed=1
     start ged_srv
 
@@ -1017,51 +968,6 @@ on property:sys.boot_completed=1
 # Set preferred IO scheduler after boot
     setprop sys.io.scheduler bfq
 
-service ril-proxy /system/bin/rilproxy -l mtk-rilproxy.so
-    class core
-    socket rild stream 660 root radio
-    socket rild2 stream 660 root radio
-    socket rild3 stream 660 root radio
-    socket rild4 stream 660 root radio
-    socket rilproxy-atci stream 660 root radio
-    socket rilproxy-mal stream 660 radio system
-    socket sap_uim_socket1 stream 660 bluetooth bluetooth
-    socket sap_uim_socket2 stream 660 bluetooth bluetooth
-    socket sap_uim_socket3 stream 660 bluetooth bluetooth
-    socket sap_uim_socket4 stream 660 bluetooth bluetooth
-    user root
-    group radio cache inet misc audio sdcard_r sdcard_rw log system
-    oneshot
-    disabled
-
-service ril-daemon-mtk /system/bin/mtkrild
-    class core
-    socket mrild stream 660 root radio
-    socket mrild2 stream 660 root radio
-    socket mrild3 stream 660 root radio
-    socket mrild4 stream 660 root radio
-    socket rild-ims stream 660 root radio
-    socket rild-debug stream 660 radio system
-    socket rild-oem stream 660 radio system
-    socket rild-mtk-ut stream 660 radio net_bt
-    socket rild-mtk-ut-2 stream 660 radio net_bt
-    socket rild-mtk-modem stream 660 radio system
-    socket rild-atci stream 660 root radio
-    socket rild-mal stream 660 radio system
-    socket rild-mal-at stream 660 radio system
-    socket rild-vsim stream 660 root radio
-    socket msap_uim_socket1 stream 660 radio radio
-    socket msap_uim_socket2 stream 660 radio radio
-    socket msap_uim_socket3 stream 660 radio radio
-    socket msap_uim_socket4 stream 660 radio radio
-    user root
-    group radio cache inet misc audio sdcard_r sdcard_rw log system
-    disabled
-    oneshot
-
-on property:ril.rilproxy=1
-    start ril-proxy
-
 service audio-daemon /system/bin/audiocmdservice_atci
     class main
     socket atci-audio stream 660 root system
@@ -1077,25 +983,6 @@ service yamaha537fusiond /system/bin/yamaha537fusiond
     user system
     group system input
     class main
-
-# @vivo add for battery prop
-on property:persist.vivo.battery_opt=*
-    write /sys/devices/platform/battery/operate ${persist.vivo.battery_opt}
-
-# @vivo add for calling_state prop
-on property:persist.vivo.calling_state=*
-    write /sys/devices/platform/battery/call_state ${persist.vivo.calling_state}
-
-# volte
-service vtservice /system/bin/vtservice
-    class main
-    socket soc_vt_tcv dgram 660 radio system
-    socket soc_vt_stk dgram 660 radio system
-    socket soc_vt_svc dgram 660 radio system
-    socket volte_vt stream 660 root system
-    user system
-    group system camera graphics inet net_admin net_raw media sdcard_rw radio sdcard_r media_rw
-    ioprio rt 4
 
 service fingerprintd /system/bin/fingerprintd
     class late_start

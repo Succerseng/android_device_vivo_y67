@@ -1,17 +1,12 @@
 on init
-    #create mountpoint for persist partition
     mkdir /persist 0771 system system
 
 on post-fs
     chown system system /persist
     chmod 0771 /persist
-
-    # We restorecon /persist to set SEPolicy label.
     restorecon /persist
 
 on post-fs-data
-    # Create /data/key_provisioning dir and get proper encryption policy installed
-    # Key Installation
     mkdir /data/key_provisioning 0771 system system
 
 on fs
@@ -24,7 +19,6 @@ on fs
     chown system system /dev/mobicore-user
     chmod 0666 /dev/t-base-tui
     chown system system /dev/t-base-tui
-    # MobiCore Daemon Paths
     export MC_AUTH_TOKEN_PATH /efs
     start mobicore
     write /proc/bootprof "start mobicore end (on fs)"

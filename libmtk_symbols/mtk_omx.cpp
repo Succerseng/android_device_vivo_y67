@@ -3,6 +3,6 @@ extern "C" {
         time = (long long*)-1;
     }
 
-    //char _ZN10MtkOmxVdec16EnableRRPriorityE8OMX_BOOL(){return 0;}
+    char _ZN10MtkOmxVdec16EnableRRPriorityE8OMX_BOOL(){return 0;}
 
 }

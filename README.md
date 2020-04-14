@@ -1,4 +1,4 @@
-vivo y67(PD1612)-- LineageOS 14.0
+vivo y67(PD1612)
 ==============
 
 ### 规格信息
@@ -12,13 +12,13 @@ GPU     | Mali-T860
 内部储存 | 32GB
 电池 | 3000 mAh
 屏幕 | 5.5" 1280 x 720 px DPI 320
-前置相机 | 8MP (OV13853),Dual LED Flash, Laser autofocus
+前置相机 | 16MP (OV13853),Dual LED Flash, Laser autofocus
 后置相机 | 13MP (S5K3P3SX), Dual LED Flash, Laser autofocus
 ---------------------------------------------------------
 
 # 构建信息
 
-### 正常:
+### 工作:
  * Wi-Fi
  * GPS
  * Audio
@@ -28,9 +28,10 @@ GPU     | Mali-T860
  * MTP
  * Display
  * Thermal
+ * flashlight
+ * OMX
 
 ### 不工作:
  * Camera
  * RIL
  * Goodix fingerprint
- * OMX

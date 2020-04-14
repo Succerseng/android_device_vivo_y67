@@ -1,7 +1,3 @@
-##
-#
-# volte_rcs_ua specific system properties
-#
 on property:ril.volte.stack.rcsuaproxy=1
 		start volte_rcs_ua
 
@@ -36,9 +32,6 @@ service volte_imcb /system/bin/volte_imcb
     oneshot
     disabled
 
-#
-# volte_rcs_ua specific system service and socket information
-#
 service volte_rcs_ua /system/bin/volte_rcs_ua
     class core
     socket rcs_ua_proxy stream 666 root system
@@ -46,7 +39,3 @@ service volte_rcs_ua /system/bin/volte_rcs_ua
     group system log inet radio
     oneshot
     disabled
-
-#
-# VoLTE related services (End)
-#
