@@ -81,6 +81,9 @@ PRODUCT_PACKAGES += \
     fingerprint.default \
     fingerprint.$(TARGET_BOARD_PLATFORM)
 
+ADDITIONAL_DEFAULT_PROPERTIES += \
+    persist.sys.fptype=goodix_5126m
+
 # gps
 $(call inherit-product, device/common/gps/gps_us_supl.mk)
 
@@ -176,6 +179,7 @@ PRODUCT_PACKAGES += \
 PRODUCT_PACKAGES += \
     fstab.mt6755 \
     init.volte.rc \
+    gf5126m.rc \
     init.c2k.rc \
     init.project.rc \
     init.trustonic.rc \

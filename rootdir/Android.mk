@@ -13,6 +13,7 @@ endef
 $(call add-rootdir-targets, \
     fstab.mt6755 \
     init.volte.rc \
+    gf5126m.rc \
     init.c2k.rc \
     init.trustonic.rc \
     init.project.rc \

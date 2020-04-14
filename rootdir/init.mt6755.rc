@@ -4,6 +4,7 @@ import init.target.rc
 import init.volte.rc
 import init.trustonic.rc
 import init.project.rc
+import gf5126m.rc
 
 on early-init
     mount debugfs debugfs /sys/kernel/debug mode=755
@@ -989,7 +990,3 @@ service fingerprintd /system/bin/fingerprintd
     user system
     group system
 
-service goodixfpd /system/bin/goodixfingerprintd
-    class late_start
-    user system
-    group system sdcard_rw

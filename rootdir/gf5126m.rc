@@ -1,0 +1,12 @@
+on fs
+    chown system system /dev/goodix_fp
+
+# goodix fingerprint sevice
+service goodixfpd /system/bin/goodixfingerprintd
+    class late_start
+    user system
+    group system sdcard_rw media_rw
+	disabled
+
+on property:persist.sys.fptype=goodix_5126m
+    start goodixfpd
