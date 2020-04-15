@@ -76,13 +76,28 @@ PRODUCT_PACKAGES += \
     FMRadio
 
 # Fingerprint
-PRODUCT_PACKAGES += \
-    fingerprintd \
-    fingerprint.default \
-    fingerprint.$(TARGET_BOARD_PLATFORM)
+PRODUCT_COPY_FILES += \
+    $(LOCAL_PATH)/fingerprint/bin/fingerprintd:system/bin/fingerprintd \
+    $(LOCAL_PATH)/fingerprint/bin/goodixfingerprintd:system/bin/goodixfingerprintd \
+    $(LOCAL_PATH)/fingerprint/lib/libgf_algo.so:system/lib/libgf_algo.so \
+    $(LOCAL_PATH)/fingerprint/lib/libgf_ca.so:system/lib/libgf_ca.so \
+    $(LOCAL_PATH)/fingerprint/lib/libgf_hal.so:system/lib/libgf_hal.so \
+    $(LOCAL_PATH)/fingerprint/lib/libgoodixfingerprintd_binder:system/lib/libgoodixfingerprintd_binder \
+    $(LOCAL_PATH)/fingerprint/lib/hw/goodix_5126m.default:system/lib/hw/goodix_5126m.default \
+    $(LOCAL_PATH)/fingerprint/lib/hw/goodix_5216c.default:system/lib/hw/goodix_5216c.default \
+    $(LOCAL_PATH)/fingerprint/lib64/libgf_algo.so:system/lib64/libgf_algo.so \
+    $(LOCAL_PATH)/fingerprint/lib64/libgf_ca.so:system/lib64/libgf_ca.so \
+    $(LOCAL_PATH)/fingerprint/lib64/libgf_hal.so:system/lib64/libgf_hal.so \
+    $(LOCAL_PATH)/fingerprint/lib64/libgoodixfingerprintd_binder:system/lib64/libgoodixfingerprintd_binder \
+    $(LOCAL_PATH)/fingerprint/lib64/hw/goodix_5126m.default:system/lib64/hw/goodix_5126m.default \
+    $(LOCAL_PATH)/fingerprint/lib64/hw/goodix_5216c.default:system/lib64/hw/goodix_5216c.default
 
 ADDITIONAL_DEFAULT_PROPERTIES += \
     persist.sys.fptype=goodix_5126m
+
+# /*无法启动指纹暂时开启虚拟按键*/
+ADDITIONAL_DEFAULT_PROPERTIES += \
+    qemu.hw.mainkeys=0
 
 # gps
 $(call inherit-product, device/common/gps/gps_us_supl.mk)

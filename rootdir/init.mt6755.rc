@@ -78,21 +78,6 @@ on post-fs
     restorecon_recursive /nvdata/
 
 on post-fs-data
-    # getekeeper
-    # 挂载system为rw才能操作
-    wait /dev/block/platform/mtk-msdc.0/11230000.msdc0/by-name/system
-    mount ext4 /dev/block/platform/mtk-msdc.0/11230000.msdc0/by-name/system /system rw
-
-    symlink /system/lib/hw/libMcGatekeeper.so /system/lib/hw/gatekeeper.mt6755.so
-    symlink /system/lib64/hw/libMcGatekeeper.so /system/lib64/hw/gatekeeper.mt6755.so
-
-    symlink /system/lib/hw/libMcGatekeeper.so /system/lib/hw/gatekeeper.bbk6750_66_m.so
-    symlink /system/lib64/hw/libMcGatekeeper.so /system/lib64/hw/gatekeeper.bbk6750_66_m.so
-
-    symlink /system/lib/hw/libMcGatekeeper.so /system/lib/hw/gatekeeper.y67.so
-    symlink /system/lib64/hw/libMcGatekeeper.so /system/lib64/hw/gatekeeper.y67.so
-    # getekeeper END
-
     # Should create dependent /data folders here
     chown root system /nvdata
     chmod 0771 /nvdata
@@ -903,6 +888,11 @@ service qmcX983d /system/bin/qmcX983d
     group system
     class main
     oneshot
+
+service md_monitor /system/bin/md_monitor
+    class main
+    user system
+    group system radio sdcard_rw inet sdcard_r media_rw
 
 # Thermal
 service thermal_manager /system/bin/thermal_manager
