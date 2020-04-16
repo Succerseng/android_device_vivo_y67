@@ -59,8 +59,6 @@ PRODUCT_DEFAULT_PROPERTY_OVERRIDES += \
 ADDITIONAL_DEFAULT_PROPERTIES += \
     ro.secure=0 \
     ro.adb.secure=0 \
-    persist.sys.usb.config=mtp,adb \
-    persist.sys.timezone=Asia/Shanghai \
     ro.hardware.bbk=PD1612MD
 
 # Dalvik heap configurations
@@ -69,6 +67,9 @@ $(call inherit-product-if-exists, frameworks/native/build/phone-xxxhdpi-4096-dal
 # Display
 PRODUCT_PACKAGES += \
     libion
+
+ADDITIONAL_DEFAULT_PROPERTIES += \
+    ro.sf.lcd_density=480
 
 # FM
 PRODUCT_PACKAGES += \
@@ -82,15 +83,15 @@ PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/fingerprint/lib/libgf_algo.so:system/lib/libgf_algo.so \
     $(LOCAL_PATH)/fingerprint/lib/libgf_ca.so:system/lib/libgf_ca.so \
     $(LOCAL_PATH)/fingerprint/lib/libgf_hal.so:system/lib/libgf_hal.so \
-    $(LOCAL_PATH)/fingerprint/lib/libgoodixfingerprintd_binder:system/lib/libgoodixfingerprintd_binder \
-    $(LOCAL_PATH)/fingerprint/lib/hw/goodix_5126m.default:system/lib/hw/goodix_5126m.default \
-    $(LOCAL_PATH)/fingerprint/lib/hw/goodix_5216c.default:system/lib/hw/goodix_5216c.default \
+    $(LOCAL_PATH)/fingerprint/lib/libgoodixfingerprintd_binder.so:system/lib/libgoodixfingerprintd_binder.so \
+    $(LOCAL_PATH)/fingerprint/lib/hw/goodix_5126m.default.so:system/lib/hw/goodix_5126m.default.so \
+    $(LOCAL_PATH)/fingerprint/lib/hw/goodix_5216c.default.so:system/lib/hw/goodix_5216c.default.so \
     $(LOCAL_PATH)/fingerprint/lib64/libgf_algo.so:system/lib64/libgf_algo.so \
     $(LOCAL_PATH)/fingerprint/lib64/libgf_ca.so:system/lib64/libgf_ca.so \
     $(LOCAL_PATH)/fingerprint/lib64/libgf_hal.so:system/lib64/libgf_hal.so \
-    $(LOCAL_PATH)/fingerprint/lib64/libgoodixfingerprintd_binder:system/lib64/libgoodixfingerprintd_binder \
-    $(LOCAL_PATH)/fingerprint/lib64/hw/goodix_5126m.default:system/lib64/hw/goodix_5126m.default \
-    $(LOCAL_PATH)/fingerprint/lib64/hw/goodix_5216c.default:system/lib64/hw/goodix_5216c.default
+    $(LOCAL_PATH)/fingerprint/lib64/libgoodixfingerprintd_binder.so:system/lib64/libgoodixfingerprintd_binder.so \
+    $(LOCAL_PATH)/fingerprint/lib64/hw/goodix_5126m.default.so:system/lib64/hw/goodix_5126m.default.so \
+    $(LOCAL_PATH)/fingerprint/lib64/hw/goodix_5216c.default.so:system/lib64/hw/goodix_5216c.default.so
 
 ADDITIONAL_DEFAULT_PROPERTIES += \
     persist.sys.fptype=goodix_5126m
