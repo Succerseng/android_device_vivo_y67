@@ -188,12 +188,17 @@ PRODUCT_COPY_FILES += \
 PRODUCT_PACKAGES += \
     init.recovery.mt6755.rc
 
+# Ril
+PRODUCT_PACKAGES += \
+    libccci_util
+
 # root
 PRODUCT_PACKAGES += \
     fstab.mt6755 \
     init.volte.rc \
     gf5126m.rc \
     init.c2k.rc \
+    init.mal.rc \
     init.project.rc \
     init.trustonic.rc \
     init.mt6755.rc \

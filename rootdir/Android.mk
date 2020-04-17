@@ -15,6 +15,7 @@ $(call add-rootdir-targets, \
     init.volte.rc \
     gf5126m.rc \
     init.c2k.rc \
+    init.mal.rc \
     init.trustonic.rc \
     init.project.rc \
     init.mt6755.rc \
