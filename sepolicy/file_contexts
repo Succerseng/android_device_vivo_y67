@@ -18,7 +18,6 @@
 /data/agps_supl(/.*)?    u:object_r:agpsd_data_file:s0
 /data/misc/gps(/.*)?   u:object_r:gps_data_file:s0
 /data/anr/SF_RTT(/.*)? u:object_r:sf_rtt_file:s0
-/data/app/mcRegistry(/.*)? u:object_r:mobicore_data_file:s0
 /data/ccci_cfg(/.*)? u:object_r:ccci_cfg_file:s0
 /data/flashless(/.*)? u:object_r:c2k_file:s0
 /data/core(/.*)? u:object_r:aee_core_data_file:s0
@@ -148,9 +147,6 @@
 /dev/MJC(/.*)? u:object_r:MJC_device:s0
 /dev/m_mag_misc(/.*)? u:object_r:m_mag_misc_device:s0
 /dev/mmp(/.*)? u:object_r:mmp_device:s0
-/dev/mobicore u:object_r:mobicore_admin_device:s0
-/dev/mobicore-user u:object_r:mobicore_user_device:s0
-/dev/t-base-tui u:object_r:mobicore_tui_device:s0
 /dev/msensor(/.*)? u:object_r:msensor_device:s0
 /dev/MT6516_H264_DEC(/.*)? u:object_r:MT6516_H264_DEC_device:s0
 /dev/mt6516-IDP(/.*)? u:object_r:mt6516_IDP_device:s0
@@ -384,7 +380,6 @@
 #############################
 # System files
 #
-/system/app/mcRegistry(/.*)? u:object_r:mobicore_data_file:s0
 /system/bin/6620_launcher u:object_r:mtk_6620_launcher_exec:s0
 /system/bin/stp_dump3 u:object_r:stp_dump3_exec:s0
 /system/bin/aal u:object_r:aal_exec:s0
@@ -435,7 +430,6 @@
 /system/bin/launchpppoe u:object_r:launchpppoe_exec:s0
 /system/bin/matv u:object_r:matv_exec:s0
 /system/bin/mc6420d u:object_r:mc6420d_exec:s0
-/system/bin/mcDriverDaemon u:object_r:mobicore_exec:s0
 /system/bin/mdlogger u:object_r:mdlogger_exec:s0
 /system/bin/memsicd3416x u:object_r:memsicd3416x_exec:s0
 /system/bin/memsicd u:object_r:memsicd_exec:s0
@@ -533,25 +527,45 @@
 #smart audio pa 
 /system/bin/smart_audio.sh  u:object_r:smart_audio_exec:s0
 
-# Fingerprint device
-#/dev/esfp0(/.*)? u:object_r:esfp0_device:s0
+# Mobicore
+/data/app/mcRegistry(/.*)? u:object_r:mobicore_data_file:s0
+/data/misc/mcRegistry(/.*)? u:object_r:mobicore_data_file:s0
+/dev/mobicore u:object_r:mobicore_admin_device:s0
+/dev/mobicore-user u:object_r:mobicore_user_device:s0
+/dev/t-base-tui u:object_r:mobicore_tui_device:s0
+/(system\/vendor|vendor)/bin/mcDriverDaemon u:object_r:mobicore_exec:s0
+/(system\/vendor|vendor)/app/mcRegistry(/.*)? u:object_r:mobicore_data_file:s0
 
-# aka.jiang add for fingerprint ET3XX 20160308
-#/system/bin/etsd  u:object_r:etsd_exec:s0
-#/dev/esfp0       u:object_r:etsd_data_file:s0
+# Device files
+/dev/goodix_fp                 u:object_r:goodixfingerprintd_device:s0
+# Goodix librarires
+/system/lib64/libMcClient.so  u:object_r:mobicore_lib_file:s0
+/system/lib/libMcClient.so  u:object_r:mobicore_lib_file:s0
+/system/lib64/libMcRegistry.so  u:object_r:mobicore_lib_file:s0
+/system/lib/libMcRegistry.so  u:object_r:mobicore_lib_file:s0
+/system/lib/hw/libMcGatekeeper.so u:object_r:mobicore_lib_file:s0
+/system/lib64/hw/libMcGatekeeper.so u:object_r:mobicore_lib_file:s0
+/system/lib64/libgf_hal.so u:object_r:goodixfingerprintd_lib_file:s0
+/system/lib64/libgf_ca.so  u:object_r:goodixfingerprintd_lib_file:s0
+/system/lib/libgf_ca.so  u:object_r:goodixfingerprintd_lib_file:s0
+/system/lib64/libgf_algo.so  u:object_r:goodixfingerprintd_lib_file:s0
+/system/lib/libgf_algo.so  u:object_r:goodixfingerprintd_lib_file:s0
+/system/lib/libgf_hal.so   u:object_r:goodixfingerprintd_lib_file:s0
+/system/lib64/libgoodixfingerprintd_binder.so  u:object_r:goodixfingerprintd_lib_file:s0
+/system/lib/libgoodixfingerprintd_binder.so  u:object_r:goodixfingerprintd_lib_file:s0
 
-#/dev/iqoo_flashlight_platform	u:object_r:iqoo_flashlight_platform_device:s0
+/data/system/fingerprint(/.*)?    u:object_r:goodixfingerprintd_data_file:s0
+/persist/data/gxfp(/.*)?		  u:object_r:goodixfingerprintd_data_file:s0
 
-/dev/goodix_fp          u:object_r:goodixfingerprintd_device:s0
-/system/bin/goodixfingerprintd  u:object_r:goodixfingerprintd_exec:s0
+# Executable binary of goodix
+/system/bin/goodixfingerprintd u:object_r:goodixfingerprintd_exec:s0
 
-#/sys/class/input/input[0-15]+/hard_offset u:object_r:magnetometer_yas537_file:s0
-#/system/vendor/etc/yas_set.cfg u:object_r:yas537_access_file3:s0
-#/data/system/yas_lib.cfg u:object_r:yas537_access_file4:s0
-#/data/system/yas_lib.cfg.tmp u:object_r:yas537_access_file5:s0
-#/system/bin/yamaha537fusiond u:object_r:yamaha537fusiond_exec:s0
-#/system/bin/getuk    u:object_r:getuk_exec:s0
-#/sys/devices/platform/battery/call_state u:object_r:sysfs_battery_file:s0
-#/sys/devices/platform/battery/operate u:object_r:sysfs_battery_file:s0
+# Fingerprint
+# /data/system/users/[0-9]+/fpdata(/.*)? u:object_r:fingerprintd_data_file:s0
+# /data/system/fingerprint(/.*)?  u:object_r:_data_file:s0 
+# /dev/gf66xx-spi u:object_r:goodixfingerprintd_device:s0 
+# /dev/goodix_fp* u:object_r:goodixfingerprintd_device:s0 
+/dev/ttyACM[0-9]* u:object_r:goodixfingerprintd_device:s0 
+
 /dev/socket/property_service(/.*)? u:object_r:property_socket:s0
 /dev/__properties__(/.*)?          u:object_r:properties_device:s0

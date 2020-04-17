@@ -190,11 +190,6 @@ type md_block_device, dev_type;
 type dsp_block_device, dev_type;
 type ppl_block_device, dev_type;
 type nvcfg_block_device, dev_type;
-type teei_fp_device, dev_type;
-type teei_client_device, dev_type;
-type teei_config_device, dev_type;
-type teei_vfs_device, dev_type;
-type teei_rpmb_device, dev_type;
 type ancservice_device, dev_type;
 type mbim_device, dev_type;
 type audio_ipi_device, dev_type;
@@ -202,11 +197,17 @@ type tfa9890_device, dev_type;
 
 #type properties_device, dev_type;
 
-# Fingerprint device
-#type esfp0_device, dev_type, mlstrustedobject;
+# Fingerprint and TEE
+type fingerprint_device, dev_type;
+type teei_rpmb_device, dev_type;
+type teei_fp_device, dev_type;
+type teei_client_device, dev_type;
+type teei_config_device, dev_type;
+type teei_vfs_device, dev_type;
 
-type goodixfingerprintd_device, dev_type;
+type goodixfingerprintd_device, dev_type, mlstrustedobject;
 type goodix_fp_device, dev_type;
 
-
-
+type mobicore_device, dev_type;
+type mobicore-user_device, dev_type;
+type McDriverDaemon_device, dev_type;

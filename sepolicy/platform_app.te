@@ -281,21 +281,3 @@ allow platform_app md_monitor:unix_stream_socket connectto;
 # Purpose : subtitle feature need to w/r /mnt/subt/.
 allow platform_app subtitle_data_file:dir { open read write search create add_name };
 allow platform_app subtitle_data_file:file { open read write create };
-
-# Date : 2015/12/9
-# Operation : Migration
-# Purpose : Added by xiehaifei for Fingerprint ET320 esfp0 device
-# Package: com.android.systemui
-#allow platform_app esfp0_device:chr_file rw_file_perms;
-#allow platform_app self:netlink_kobject_uevent_socket { create_socket_perms };
-#allow platform_app esfp0_device:chr_file rw_file_perms;
-#allow platform_app etsd_service:service_manager find;
-#allow platform_app etsd:binder { call transfer };
-
-# Date : 2020/03/25
-# Operation : merge
-# Purpose : Added by babq for goodix fingerprint device
-allow platform_app goodix_fp_device:chr_file rw_file_perms;
-allow platform_app goodix_fp_device:chr_file rw_file_perms;
-allow platform_app goodixfingerprintd_service:service_manager find;
-allow platform_app goodixfingerprintd:binder { call transfer };

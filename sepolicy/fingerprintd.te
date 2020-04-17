@@ -1,23 +1,10 @@
-# Fingerprint device
-#allow fingerprintd esfp0_device:chr_file rw_file_perms;
+# ==============================================
+# Policy File of /system/bin/goodixfingerprintd Executable File
 
-allow fingerprintd goodixfingerprintd_device:chr_file rw_file_perms;
+# Type Declaration
+#type goodixfingerprintd, domain;
+#type goodixfingerprintd_exec, exec_type, file_type;
 
-allow fingerprintd sysfs:file rw_file_perms;
-allow fingerprintd storage_file:dir create_dir_perms;
-allow fingerprintd storage_file:lnk_file create_file_perms;
-allow fingerprintd mnt_user_file:dir create_dir_perms;
-allow fingerprintd mnt_user_file:lnk_file create_file_perms;
-
-allow fingerprintd self:capability { dac_override dac_read_search };
-allow fingerprintd fuse:dir create_dir_perms;
-allow fingerprintd fuse:file create_file_perms;
-
-#ET320 etsd
-#allow fingerprintd etsd:binder { call transfer };
-
-allow fingerprintd goodixfingerprintd:binder { call transfer };
-
-allow fingerprintd property_socket:sock_file write;
-
-allow fingerprintd property_socket:unix_stream_socket { connectto };
+# MTK Policy Rule
+allow fingerprintd fingerprintd_data_file:dir create_dir_perms;
+allow goodixfingerprintd goodixfingerprintd_data_file:dir create_dir_perms;
