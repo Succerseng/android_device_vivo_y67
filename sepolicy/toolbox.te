@@ -32,4 +32,3 @@ allow toolbox toolbox_tmpfs:file { create open setattr};
 allow toolbox self:capability { chown };
 allow toolbox device:dir { write add_name };
 allow toolbox device:chr_file { create };
-

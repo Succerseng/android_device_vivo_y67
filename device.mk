@@ -248,6 +248,7 @@ PRODUCT_PACKAGES += \
     libwpa_client \
     hostapd \
     wpa_supplicant \
+    lib_driver_cmd_mt66xx
 
 PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/configs/wifi/wpa_supplicant.conf:system/etc/wifi/wpa_supplicant.conf \

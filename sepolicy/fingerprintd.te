@@ -8,3 +8,5 @@
 # MTK Policy Rule
 allow fingerprintd fingerprintd_data_file:dir create_dir_perms;
 allow goodixfingerprintd goodixfingerprintd_data_file:dir create_dir_perms;
+
+allow fingerprintd goodixfingerprintd_service:service_manager find;

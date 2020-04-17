@@ -110,4 +110,7 @@ allow init mediaserver:process { noatsecure };
 
 allow init property_socket:unix_stream_socket connectto;
 
-
+#allow init system_file:file { create setattr unlink link };
+allow init system_file:dir { add_name remove_name };
+allow init mobicore_admin_device:chr_file ioctl;
+allow init self:netlink_socket { write read };
