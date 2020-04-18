@@ -42,7 +42,8 @@ $(call inherit-product-if-exists, frameworks/native/build/phone-xxxhdpi-4096-hwu
 # Camera
 PRODUCT_PACKAGES += \
     camera.default \
-    Gallery2
+    Gallery2 \
+    mtkcamera_parameters
 
 PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/configs/camera/camerasize.xml:system/etc/camerasize.xml
@@ -94,7 +95,7 @@ ADDITIONAL_DEFAULT_PROPERTIES += \
     persist.sys.fptype=goodix_5126m
 
 # /*无法启动指纹暂时开启虚拟按键*/
-ADDITIONAL_DEFAULT_PROPERTIES += \
+PRODUCT_PROPERTY_OVERRIDES += \
     qemu.hw.mainkeys=0
 
 # gps
@@ -121,7 +122,8 @@ PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/configs/media/media_codecs.xml:system/etc/media_codecs.xml \
     $(LOCAL_PATH)/configs/media/media_codecs_mediatek_audio.xml:system/etc/media_codecs_mediatek_audio.xml \
     $(LOCAL_PATH)/configs/media/media_codecs_mediatek_video.xml:system/etc/media_codecs_mediatek_video.xml \
-    $(LOCAL_PATH)/configs/omx/mtk_omx_core.cfg:system/etc/mtk_omx_core.cfg
+    $(LOCAL_PATH)/configs/omx/mtk_omx_core.cfg:system/etc/mtk_omx_core.cfg \
+    $(LOCAL_PATH)/configs/omx/mtk_omx_core.cfg:system/vendor/etc/mtk_omx_core.cfg
 
 PRODUCT_COPY_FILES += \
     frameworks/av/media/libstagefright/data/media_codecs_google_audio.xml:system/etc/media_codecs_google_audio.xml \
@@ -188,9 +190,10 @@ PRODUCT_COPY_FILES += \
 PRODUCT_PACKAGES += \
     init.recovery.mt6755.rc
 
-# Ril
-PRODUCT_PACKAGES += \
-    libccci_util
+# Ril(开日志)
+PRODUCT_PROPERTY_OVERRIDES += \
+    persist.ril.log=0 \
+    ro.disable.xlog=0
 
 # root
 PRODUCT_PACKAGES += \
@@ -212,7 +215,7 @@ PRODUCT_AAPT_PREF_CONFIG := xxhdpi
 PRODUCT_AAPT_PREBUILT_DPI := xxhdpi xhdpi hdpi
 
 # SU
-PRODUCT_PACKAGES += \
+#PRODUCT_PACKAGES += \
     su
 
 # Telephony

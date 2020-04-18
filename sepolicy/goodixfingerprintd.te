@@ -163,3 +163,4 @@ allow goodixfingerprintd mobicore_data_file:dir ra_dir_perms;
 allow goodixfingerprintd mobicore_data_file:chr_file { open read ioctl write };
 
 allow goodixfingerprintd mobicore_lib_file:file { read open getattr };
+allow goodixfingerprintd goodixfingerprintd_service:service_manager { add };
