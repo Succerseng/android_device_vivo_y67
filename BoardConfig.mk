@@ -43,7 +43,7 @@ TARGET_NO_BOOTLOADER := true
 BOARD_HAVE_BLUETOOTH := true
 BOARD_BLUETOOTH_BDROID_HCILP_INCLUDED := 0
 BOARD_CONNECTIVITY_MODULE := conn_soc
-BOARD_BLUETOOTH_BDROID_BUILDCFG_INCLUDE_DIR := $(DEVICE_PATH)/include/bluetooth
+BOARD_BLUETOOTH_BDROID_BUILDCFG_INCLUDE_DIR := $(DEVICE_PATH)/bluetooth
 
 # Camera and Codecs
 BOARD_GLOBAL_CFLAGS += -DMETADATA_CAMERA_SOURCE
@@ -54,13 +54,6 @@ TARGET_PROVIDES_CAMERA_HAL := true
 USE_DEVICE_SPECIFIC_CAMERA := true
 USE_CAMERA_STUB := true
 TARGET_CAMERASERVICE_CLOSES_NATIVE_HANDLES := true
-
-# Dexpreopt
-ifeq ($(HOST_OS),linux)
-    ifeq ($(TARGET_BUILD_VARIANT),user)
-        WITH_DEXPREOPT ?= true
-    endif
-endif
 
 # Display
 USE_OPENGL_RENDERER := true
@@ -110,7 +103,6 @@ TARGET_USERIMAGES_USE_F2FS := true
 
 # Mediatek support
 BOARD_HAS_MTK_HARDWARE := true
-BOARD_USES_MTK_HARDWARE := true
 MTK_MEDIA_PROFILES := true
 BOARD_USES_MTK_MEDIA_PROFILES := true
 
@@ -163,7 +155,7 @@ TARGET_SYSTEM_PROP += $(DEVICE_PATH)/system.prop
 
 # Twrp
 ifeq ($(TARGET_RECOVERY_VERSION), twrp)
-TW_INCLUDE_L_CRYPTO := false
+TW_INCLUDE_L_CRYPTO := true
 TW_CRYPTO_USE_SYSTEM_VOLD := false
 TW_DEFAULT_BRIGHTNESS := 30
 TW_EXCLUDE_TWRPAPP := true
@@ -176,11 +168,6 @@ RECOVERY_SDCARD_ON_DATA := true
 TW_EXCLUDE_SUPERSU := true
 RECOVERY_GRAPHICS_USE_LINELENGTH := true
 PRODUCT_COPY_FILES += $(DEVICE_PATH)/rootdir/recovery/etc/twrp.fstab:recovery/root/etc/twrp.fstab
-#用官方的vold解密官方系统加密的data
-ifeq ($(TW_CRYPTO_USE_SYSTEM_VOLD),true)
-PRODUCT_COPY_FILES += \
-    $(LOCAL_PATH)/rootdir/recovery/system/bin/vold:recovery/root/system/bin/vold
-endif
 endif
 
 # Wireless

@@ -16,6 +16,9 @@ $(call inherit-product, device/vivo/y67/full_y67.mk)
 
 $(call inherit-product, vendor/cm/config/common_full_phone.mk)
 
+# 系统更新地址
+UPDATER_RUL := "https://succerseng.top/updater/pd1612.json"
+
 PRODUCT_RELEASE_NAME := VIVO Y67
 
 PRODUCT_NAME := lineage_y67
@@ -38,6 +41,9 @@ TARGET_VENDOR_DEVICE_NAME := y67
 
 PRODUCT_DEFAULT_PROPERTY_OVERRIDES += \
     persist.sys.timezone=Asia/Shanghai
+
+PRODUCT_PROPERTY_OVERRIDES += \
+    cm.updater.uri=$(UPDATER_RUL)
 
 PRODUCT_BUILD_PROP_OVERRIDES += \
    PRODUCT_NAME=VIVO-Y67 \

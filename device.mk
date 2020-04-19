@@ -15,6 +15,12 @@
 
 LOCAL_PATH := device/vivo/y67
 
+# Apps
+PRODUCT_PACKAGES += \
+    Gallery2 \
+    FMRadio \
+    Snap
+
 # Audio
 PRODUCT_PACKAGES += \
     audio.a2dp.default \
@@ -41,8 +47,6 @@ $(call inherit-product-if-exists, frameworks/native/build/phone-xxxhdpi-4096-hwu
 
 # Camera
 PRODUCT_PACKAGES += \
-    camera.default \
-    Gallery2 \
     mtkcamera_parameters
 
 PRODUCT_COPY_FILES += \
@@ -71,8 +75,7 @@ PRODUCT_PACKAGES += \
 
 # FM
 PRODUCT_PACKAGES += \
-    libfmjni \
-    FMRadio
+    libfmjni
 
 # Fingerprint
 PRODUCT_COPY_FILES += \
@@ -169,23 +172,15 @@ PRODUCT_PACKAGES += \
 PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/configs/spn-conf.xml:system/etc/spn-conf.xml
 
-# Recovery Ramdisk(摆设)
-ifeq ($(PRODUCT_USE_MCDEVICE),true)
+# Recovery的Tee环境(摆设)
+ifeq ($(TARGET_RECOVERY_VERSION),twrp)
 PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/rootdir/recovery/system/bin/mcDriverDaemon:recovery/root/sbin/mcDriverDaemon \
     $(LOCAL_PATH)/rootdir/recovery/system/lib64/libMcClient.so:recovery/root/system/lib64/libMcClient.so \
-    $(LOCAL_PATH)/rootdir/recovery/system/lib64/hw/keystore.mt6755.so:recovery/root/system/lib64/hw/keystore.mt6755.so \
-    $(LOCAL_PATH)/rootdir/recovery/system/app/mcRegistry/020f0000000000000000000000000000.drbin:recovery/root/system/app/mcRegistry/020f0000000000000000000000000000.drbin \
-    $(LOCAL_PATH)/rootdir/recovery/system/app/mcRegistry/05120000000000000000000000000000.drbin:recovery/root/system/app/mcRegistry/05120000000000000000000000000000.drbin \
-    $(LOCAL_PATH)/rootdir/recovery/system/app/mcRegistry/070b0000000000000000000000000000.drbin:recovery/root/system/app/mcRegistry/070b0000000000000000000000000000.drbin \
-    $(LOCAL_PATH)/rootdir/recovery/system/app/mcRegistry/020b0000000000000000000000000000.drbin:recovery/root/system/app/mcRegistry/020b0000000000000000000000000000.drbin \
-    $(LOCAL_PATH)/rootdir/recovery/system/app/mcRegistry/030b0000000000000000000000000000.drbin:recovery/root/system/app/mcRegistry/030b0000000000000000000000000000.drbin \
-    $(LOCAL_PATH)/rootdir/recovery/system/app/mcRegistry/5a7b770d08d14b8fb00f53de4173145a.drbin:recovery/root/system/app/mcRegistry/5a7b770d08d14b8fb00f53de4173145a.drbin \
-    $(LOCAL_PATH)/rootdir/recovery/system/app/mcRegistry/05070000000000000000000000000000.drbin:recovery/root/system/app/mcRegistry/05070000000000000000000000000000.drbin
-endif
+    $(LOCAL_PATH)/rootdir/recovery/system/lib64/hw/keystore.mt6755.so:recovery/root/system/lib64/hw/keystore.mt6755.so
 
-PRODUCT_COPY_FILES += \
-    $(LOCAL_PATH)/rootdir/recovery/sbin/fuelgauged_static:recovery/root/sbin/fuelgauged_static
+PRODUCT_COPY_FILES += $(call find-copy-subdir-files,*,$(LOCAL_PATH)/rootdir/recovery/system/app/mcRegistry,recovery/root/system/app/mcRegistry)
+endif
 
 PRODUCT_PACKAGES += \
     init.recovery.mt6755.rc
