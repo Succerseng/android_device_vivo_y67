@@ -11,16 +11,17 @@ $(foreach target,$(1), \
 endef
 
 $(call add-rootdir-targets, \
-    fstab.mt6755 \
-    init.volte.rc \
-    gf5126m.rc \
+    enableswap.sh \
+    goodix.rc \
     init.c2k.rc \
     init.mal.rc \
-    init.trustonic.rc \
-    init.project.rc \
     init.mt6755.rc \
     init.mt6755.modem.rc \
     init.mt6755.usb.rc \
+    init.project.rc \
+    init.recovery.mt6755.rc \
+    init.trustonic.rc \
+    init.volte.rc \
     ueventd.mt6755.rc \
-    init.recovery.mt6755.rc)
+)
 

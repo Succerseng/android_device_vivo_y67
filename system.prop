@@ -67,8 +67,6 @@ persist.mal.mode=0
 
 mtk.vcodec.mpeg2.timeout=500
 
-ro.sf.lcd_density=399
-
 #
 # from generic sdk end
 #

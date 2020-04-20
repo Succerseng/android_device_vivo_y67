@@ -1,10 +1,10 @@
+import goodix.rc
 import init.mt6755.usb.rc
 import init.mt6755.modem.rc
 import init.target.rc
 import init.volte.rc
 import init.trustonic.rc
 import init.project.rc
-import gf5126m.rc
 import init.mal.rc
 
 on early-init
@@ -981,3 +981,7 @@ service fingerprintd /system/bin/fingerprintd
     user system
     group system
 
+service enableswap /system/bin/sh /enableswap.sh
+    class late_start
+    oneshot
+    seclabel u:r:enableswap:s0

@@ -73,6 +73,9 @@ $(call inherit-product-if-exists, frameworks/native/build/phone-xxxhdpi-4096-dal
 PRODUCT_PACKAGES += \
     libion
 
+PRODUCT_PROPERTY_OVERRIDES += \
+    ro.sf.lcd_density=399
+
 # FM
 PRODUCT_PACKAGES += \
     libfmjni
@@ -192,17 +195,19 @@ PRODUCT_PROPERTY_OVERRIDES += \
 
 # root
 PRODUCT_PACKAGES += \
-    fstab.mt6755 \
-    init.volte.rc \
-    gf5126m.rc \
+    enableswap.sh \
+    goodix.rc \
     init.c2k.rc \
     init.mal.rc \
-    init.project.rc \
-    init.trustonic.rc \
     init.mt6755.rc \
     init.mt6755.modem.rc \
     init.mt6755.usb.rc \
+    init.project.rc \
+    init.trustonic.rc \
+    init.volte.rc \
     ueventd.mt6755.rc
+
+PRODUCT_COPY_FILES += $(LOCAL_PATH)/rootdir/fstab.mt6755:root/fstab.mt6755
 
 # Screen density
 PRODUCT_AAPT_CONFIG := normal
