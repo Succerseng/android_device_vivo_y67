@@ -1,0 +1,4257 @@
+From 96ac27ab03b1f7233c3417a39a2e930b98bcfed6 Mon Sep 17 00:00:00 2001
+From: babq <succerseng@gmail.com>
+Date: Mon, 20 Apr 2020 13:34:43 +0800
+Subject: [PATCH] =?UTF-8?q?improvement(updater):=20=E5=8A=A0=E5=85=A5?=
+ =?UTF-8?q?=E4=BD=BF=E7=94=A8=E6=9C=AC=E5=9C=B0updater=20blob=E6=9B=B4?=
+ =?UTF-8?q?=E6=96=B0=E7=B3=BB=E7=BB=9F?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+*尝试解决vivo刷机挂载分区错误
+
+Signed-off-by: babq <succerseng@gmail.com>
+---
+ Android.mk                 |    5 +
+ install.cpp                |   51 +-
+ install.h                  |    3 +
+ local_updater/Android.mk   |  119 +++
+ local_updater/blockimg.cpp | 1918 ++++++++++++++++++++++++++++++++++++
+ local_updater/blockimg.h   |   22 +
+ local_updater/install.cpp  | 1710 ++++++++++++++++++++++++++++++++
+ local_updater/install.h    |   27 +
+ local_updater/updater.cpp  |  231 +++++
+ local_updater/updater.h    |   37 +
+ 10 files changed, 4119 insertions(+), 4 deletions(-)
+ create mode 100644 local_updater/Android.mk
+ create mode 100644 local_updater/blockimg.cpp
+ create mode 100644 local_updater/blockimg.h
+ create mode 100644 local_updater/install.cpp
+ create mode 100644 local_updater/install.h
+ create mode 100644 local_updater/updater.cpp
+ create mode 100644 local_updater/updater.h
+
+diff --git a/Android.mk b/Android.mk
+index 85cdd325..8fab4429 100644
+--- a/Android.mk
++++ b/Android.mk
+@@ -14,6 +14,10 @@
+ 
+ LOCAL_PATH := $(call my-dir)
+ 
++ifeq ($(TW_CUSTOM_UPDATE_BLOB),true)
++    LOCAL_CFLAGS += -DUPDATER_CUSTOM_MOUNT
++endif
++
+ ifdef project-path-for
+     ifeq ($(LOCAL_PATH),$(call project-path-for,recovery))
+         PROJECT_PATH_AGREES := true
+@@ -639,6 +643,7 @@ include $(LOCAL_PATH)/tests/Android.mk \
+     $(LOCAL_PATH)/otafault/Android.mk \
+     $(LOCAL_PATH)/bootloader_message/Android.mk \
+     $(LOCAL_PATH)/updater/Android.mk \
++    $(LOCAL_PATH)/local_updater/Android.mk \
+     $(LOCAL_PATH)/update_verifier/Android.mk \
+     $(LOCAL_PATH)/applypatch/Android.mk
+ 
+diff --git a/install.cpp b/install.cpp
+index e144d9b2..da56fe8c 100644
+--- a/install.cpp
++++ b/install.cpp
+@@ -36,6 +36,8 @@
+ #include <android-base/strings.h>
+ #include <cutils/properties.h>
+ 
++#include <io.h>
++
+ #include "common.h"
+ #include "error_code.h"
+ #include "install.h"
+@@ -259,6 +261,26 @@ update_binary_command(const char* path, ZipArchive* zip, int retry_count,
+ 
+ #else  // !AB_OTA_UPDATER
+ 
++#ifdef UPDATER_CUSTOM_MOUNT
++/*
++    判断使用哪个binary
++    1.LOCAL_BINARY_PATH不存在则使用/tmp下的
++    2.tmp下的为#!开头则使用tmp下的(因为是脚本)
++ */
++static char binary_judgment(void){
++    if(access(LOCAL_BINARY_PATH,F_OK)==0){
++        int fd = fopen("/tmp/update_binary",r);
++        if(fd==EOF)return 1;
++        char res[2];
++        fread(&res,sizeof("#!"),1,fd);
++        fclose(fd);
++        if(memcmp(res,"#!",sizeof("#!")) == 0)return 1;
++        return 0;
++    }
++    return 1;
++}
++#endif
++
+ static int
+ update_binary_command(const char* path, ZipArchive* zip, int retry_count,
+                       int status_fd, std::vector<std::string>* cmd)
+@@ -285,12 +307,33 @@ update_binary_command(const char* path, ZipArchive* zip, int retry_count,
+         return INSTALL_ERROR;
+     }
+ 
++#ifdef UPDATER_CUSTOM_MOUNT
++    const char* local_binary = LOCAL_BINARY_PATH;
++    char costom_binary = binary_judgment();    // 判断是否使用自带binary
++    if (costom_binary==0){
++        *cmd = {
++            local_binary,
++            EXPAND(RECOVERY_API_VERSION),   // defined in Android.mk
++            std::to_string(status_fd),
++            path,
++        };
++    }else{
++        *cmd = {
++            binary,
++            EXPAND(RECOVERY_API_VERSION),
++            std::to_string(status_fd),
++            path,
++        };
++    }
++#else
+     *cmd = {
+-        binary,
+-        EXPAND(RECOVERY_API_VERSION),   // defined in Android.mk
+-        std::to_string(status_fd),
+-        path,
++       binary,
++       EXPAND(RECOVERY_API_VERSION),
++       std::to_string(status_fd),
++       path,
+     };
++#endif
++
+     if (retry_count > 0)
+         cmd->push_back("retry");
+     return 0;
+diff --git a/install.h b/install.h
+index 14de2255..99fed9d9 100644
+--- a/install.h
++++ b/install.h
+@@ -22,6 +22,9 @@
+ #include "common.h"
+ #include "minzip/Zip.h"
+ 
++// 自定义updater(update_binary)路径
++#define LOCAL_BINARY_PATH "/sbin/local_updater"
++
+ enum { INSTALL_SUCCESS, INSTALL_ERROR, INSTALL_CORRUPT, INSTALL_NONE, INSTALL_SKIPPED,
+         INSTALL_RETRY };
+ // Install the package specified by root_path.  If INSTALL_SUCCESS is
+diff --git a/local_updater/Android.mk b/local_updater/Android.mk
+new file mode 100644
+index 00000000..8b481c7f
+--- /dev/null
++++ b/local_updater/Android.mk
+@@ -0,0 +1,119 @@
++# Copyright 2009 The Android Open Source Project
++#
++# Licensed under the Apache License, Version 2.0 (the "License");
++# you may not use this file except in compliance with the License.
++# You may obtain a copy of the License at
++#
++#      http://www.apache.org/licenses/LICENSE-2.0
++#
++# Unless required by applicable law or agreed to in writing, software
++# distributed under the License is distributed on an "AS IS" BASIS,
++# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++# See the License for the specific language governing permissions and
++# limitations under the License.
++
++LOCAL_PATH := $(call my-dir)
++
++updater_src_files := \
++	install.cpp \
++	blockimg.cpp \
++	updater.cpp
++
++#
++# Build a statically-linked binary to include in OTA packages
++#
++include $(CLEAR_VARS)
++
++# Build only in eng, so we don't end up with a copy of this in /system
++# on user builds.  (TODO: find a better way to build device binaries
++# needed only for OTA packages.)
++LOCAL_MODULE_TAGS := eng
++
++LOCAL_CLANG := true
++
++LOCAL_SRC_FILES := $(updater_src_files)
++
++LOCAL_STATIC_LIBRARIES += libfec libfec_rs libsquashfs_utils libcrypto_static
++
++ifeq ($(TARGET_USERIMAGES_USE_EXT4), true)
++LOCAL_CFLAGS += -DUSE_EXT4
++LOCAL_CFLAGS += -Wno-unused-parameter
++LOCAL_C_INCLUDES += system/extras/ext4_utils
++LOCAL_STATIC_LIBRARIES += libext4_utils_static libsparse_static
++ifneq ($(wildcard external/lz4/Android.mk),)
++    LOCAL_STATIC_LIBRARIES += liblz4
++endif
++endif
++
++ifeq ($(WITH_CRYPTO_UTILS), true)
++    LOCAL_STATIC_LIBRARIES += libcrypto_utils_static
++endif
++
++LOCAL_STATIC_LIBRARIES += $(TARGET_RECOVERY_UPDATER_LIBS) $(TARGET_RECOVERY_UPDATER_EXTRA_LIBS)
++LOCAL_STATIC_LIBRARIES += libapplypatch libbase libotafault libedify libmtdutils libminzip libz
++LOCAL_STATIC_LIBRARIES += libflashutils libmmcutils libbmlutils
++LOCAL_STATIC_LIBRARIES += libbz
++LOCAL_STATIC_LIBRARIES += libcutils liblog libc
++LOCAL_STATIC_LIBRARIES += libselinux
++
++LOCAL_STATIC_LIBRARIES += libselinux
++tune2fs_static_libraries := \
++ libext2_com_err \
++ libext2_blkid \
++ libext2_quota \
++ libext2_uuid_static \
++ libext2_e2p \
++ libext2fs
++ifneq ($(wildcard external/e2fsprogs/misc/tune2fs.h),)
++    LOCAL_STATIC_LIBRARIES += libtune2fs $(tune2fs_static_libraries)
++    LOCAL_CFLAGS += -DHAVE_LIBTUNE2FS
++endif
++
++LOCAL_C_INCLUDES += external/e2fsprogs/misc
++LOCAL_C_INCLUDES += $(LOCAL_PATH)/..
++
++# Each library in TARGET_RECOVERY_UPDATER_LIBS should have a function
++# named "Register_<libname>()".  Here we emit a little C function that
++# gets #included by updater.c.  It calls all those registration
++# functions.
++
++# Devices can also add libraries to TARGET_RECOVERY_UPDATER_EXTRA_LIBS.
++# These libs are also linked in with updater, but we don't try to call
++# any sort of registration function for these.  Use this variable for
++# any subsidiary static libraries required for your registered
++# extension libs.
++
++inc := $(call intermediates-dir-for,PACKAGING,updater_extensions)/register.inc
++
++# Encode the value of TARGET_RECOVERY_UPDATER_LIBS into the filename of the dependency.
++# So if TARGET_RECOVERY_UPDATER_LIBS is changed, a new dependency file will be generated.
++# Note that we have to remove any existing depency files before creating new one,
++# so no obsolete dependecy file gets used if you switch back to an old value.
++inc_dep_file := $(inc).dep.$(subst $(space),-,$(sort $(TARGET_RECOVERY_UPDATER_LIBS)))
++$(inc_dep_file): stem := $(inc).dep
++$(inc_dep_file) :
++	$(hide) mkdir -p $(dir $@)
++	$(hide) rm -f $(stem).*
++	$(hide) touch $@
++
++$(inc) : libs := $(TARGET_RECOVERY_UPDATER_LIBS)
++$(inc) : $(inc_dep_file)
++	$(hide) mkdir -p $(dir $@)
++	$(hide) echo "" > $@
++	$(hide) $(foreach lib,$(libs),echo "extern void Register_$(lib)(void);" >> $@;)
++	$(hide) echo "void RegisterDeviceExtensions() {" >> $@
++	$(hide) $(foreach lib,$(libs),echo "  Register_$(lib)();" >> $@;)
++	$(hide) echo "}" >> $@
++
++$(call intermediates-dir-for,EXECUTABLES,updater,,,$(TARGET_PREFER_32_BIT))/updater.o : $(inc)
++LOCAL_C_INCLUDES += $(dir $(inc))
++
++inc :=
++inc_dep_file :=
++
++LOCAL_MODULE := local_updater
++LOCAL_MODULE_PATH := $(TARGET_RECOVERY_ROOT_OUT)/sbin
++
++LOCAL_FORCE_STATIC_EXECUTABLE := true
++
++include $(BUILD_EXECUTABLE)
+diff --git a/local_updater/blockimg.cpp b/local_updater/blockimg.cpp
+new file mode 100644
+index 00000000..a80180a9
+--- /dev/null
++++ b/local_updater/blockimg.cpp
+@@ -0,0 +1,1918 @@
++/*
++ * Copyright (C) 2014 The Android Open Source Project
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *      http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++
++#include <ctype.h>
++#include <errno.h>
++#include <dirent.h>
++#include <fcntl.h>
++#include <inttypes.h>
++#include <linux/fs.h>
++#include <pthread.h>
++#include <stdarg.h>
++#include <stdio.h>
++#include <stdlib.h>
++#include <string.h>
++#include <sys/stat.h>
++#include <sys/types.h>
++#include <sys/wait.h>
++#include <sys/ioctl.h>
++#include <time.h>
++#include <unistd.h>
++#include <fec/io.h>
++
++#include <map>
++#include <memory>
++#include <string>
++#include <vector>
++
++#include <android-base/parseint.h>
++#include <android-base/strings.h>
++
++#include "applypatch/applypatch.h"
++#include "edify/expr.h"
++#include "error_code.h"
++#include "install.h"
++#include "openssl/sha.h"
++#include "minzip/Hash.h"
++#include "ota_io.h"
++#include "print_sha1.h"
++#include "unique_fd.h"
++#include "updater.h"
++
++#define BLOCKSIZE 4096
++
++// Set this to 0 to interpret 'erase' transfers to mean do a
++// BLKDISCARD ioctl (the normal behavior).  Set to 1 to interpret
++// erase to mean fill the region with zeroes.
++#define DEBUG_ERASE  0
++
++#define STASH_DIRECTORY_BASE "/cache/recovery"
++#define STASH_DIRECTORY_MODE 0700
++#define STASH_FILE_MODE 0600
++
++struct RangeSet {
++    size_t count;             // Limit is INT_MAX.
++    size_t size;
++    std::vector<size_t> pos;  // Actual limit is INT_MAX.
++};
++
++static CauseCode failure_type = kNoCause;
++static bool is_retry = false;
++static std::map<std::string, RangeSet> stash_map;
++
++static void parse_range(const std::string& range_text, RangeSet& rs) {
++
++    std::vector<std::string> pieces = android::base::Split(range_text, ",");
++    if (pieces.size() < 3) {
++        goto err;
++    }
++
++    size_t num;
++    if (!android::base::ParseUint(pieces[0].c_str(), &num, static_cast<size_t>(INT_MAX))) {
++        goto err;
++    }
++
++    if (num == 0 || num % 2) {
++        goto err; // must be even
++    } else if (num != pieces.size() - 1) {
++        goto err;
++    }
++
++    rs.pos.resize(num);
++    rs.count = num / 2;
++    rs.size = 0;
++
++    for (size_t i = 0; i < num; i += 2) {
++        if (!android::base::ParseUint(pieces[i+1].c_str(), &rs.pos[i],
++                                      static_cast<size_t>(INT_MAX))) {
++            goto err;
++        }
++
++        if (!android::base::ParseUint(pieces[i+2].c_str(), &rs.pos[i+1],
++                                      static_cast<size_t>(INT_MAX))) {
++            goto err;
++        }
++
++        if (rs.pos[i] >= rs.pos[i+1]) {
++            goto err; // empty or negative range
++        }
++
++        size_t sz = rs.pos[i+1] - rs.pos[i];
++        if (rs.size > SIZE_MAX - sz) {
++            goto err; // overflow
++        }
++
++        rs.size += sz;
++    }
++
++    return;
++
++err:
++    fprintf(stderr, "failed to parse range '%s'\n", range_text.c_str());
++    exit(1);
++}
++
++static bool range_overlaps(const RangeSet& r1, const RangeSet& r2) {
++    for (size_t i = 0; i < r1.count; ++i) {
++        size_t r1_0 = r1.pos[i * 2];
++        size_t r1_1 = r1.pos[i * 2 + 1];
++
++        for (size_t j = 0; j < r2.count; ++j) {
++            size_t r2_0 = r2.pos[j * 2];
++            size_t r2_1 = r2.pos[j * 2 + 1];
++
++            if (!(r2_0 >= r1_1 || r1_0 >= r2_1)) {
++                return true;
++            }
++        }
++    }
++
++    return false;
++}
++
++static int read_all(int fd, uint8_t* data, size_t size) {
++    size_t so_far = 0;
++    while (so_far < size) {
++        ssize_t r = TEMP_FAILURE_RETRY(ota_read(fd, data+so_far, size-so_far));
++        if (r == -1) {
++            failure_type = kFreadFailure;
++            fprintf(stderr, "read failed: %s\n", strerror(errno));
++            return -1;
++        }
++        so_far += r;
++    }
++    return 0;
++}
++
++static int read_all(int fd, std::vector<uint8_t>& buffer, size_t size) {
++    return read_all(fd, buffer.data(), size);
++}
++
++static int write_all(int fd, const uint8_t* data, size_t size) {
++    size_t written = 0;
++    while (written < size) {
++        ssize_t w = TEMP_FAILURE_RETRY(ota_write(fd, data+written, size-written));
++        if (w == -1) {
++            failure_type = kFwriteFailure;
++            fprintf(stderr, "write failed: %s\n", strerror(errno));
++            return -1;
++        }
++        written += w;
++    }
++
++    return 0;
++}
++
++static int write_all(int fd, const std::vector<uint8_t>& buffer, size_t size) {
++    return write_all(fd, buffer.data(), size);
++}
++
++static bool discard_blocks(int fd, off64_t offset, uint64_t size) {
++    // Don't discard blocks unless the update is a retry run.
++    if (!is_retry) {
++        return true;
++    }
++
++    uint64_t args[2] = {static_cast<uint64_t>(offset), size};
++    int status = ioctl(fd, BLKDISCARD, &args);
++    if (status == -1) {
++        fprintf(stderr, "BLKDISCARD ioctl failed: %s\n", strerror(errno));
++        return false;
++    }
++    return true;
++}
++
++static bool check_lseek(int fd, off64_t offset, int whence) {
++    off64_t rc = TEMP_FAILURE_RETRY(lseek64(fd, offset, whence));
++    if (rc == -1) {
++        failure_type = kLseekFailure;
++        fprintf(stderr, "lseek64 failed: %s\n", strerror(errno));
++        return false;
++    }
++    return true;
++}
++
++static void allocate(size_t size, std::vector<uint8_t>& buffer) {
++    // if the buffer's big enough, reuse it.
++    if (size <= buffer.size()) return;
++
++    buffer.resize(size);
++}
++
++struct RangeSinkState {
++    RangeSinkState(RangeSet& rs) : tgt(rs) { };
++
++    int fd;
++    const RangeSet& tgt;
++    size_t p_block;
++    size_t p_remain;
++};
++
++static ssize_t RangeSinkWrite(const uint8_t* data, ssize_t size, void* token) {
++    RangeSinkState* rss = reinterpret_cast<RangeSinkState*>(token);
++
++    if (rss->p_remain == 0) {
++        fprintf(stderr, "range sink write overrun");
++        return 0;
++    }
++
++    ssize_t written = 0;
++    while (size > 0) {
++        size_t write_now = size;
++
++        if (rss->p_remain < write_now) {
++            write_now = rss->p_remain;
++        }
++
++        if (write_all(rss->fd, data, write_now) == -1) {
++            break;
++        }
++
++        data += write_now;
++        size -= write_now;
++
++        rss->p_remain -= write_now;
++        written += write_now;
++
++        if (rss->p_remain == 0) {
++            // move to the next block
++            ++rss->p_block;
++            if (rss->p_block < rss->tgt.count) {
++                rss->p_remain = (rss->tgt.pos[rss->p_block * 2 + 1] -
++                                 rss->tgt.pos[rss->p_block * 2]) * BLOCKSIZE;
++
++                off64_t offset = static_cast<off64_t>(rss->tgt.pos[rss->p_block*2]) * BLOCKSIZE;
++                if (!discard_blocks(rss->fd, offset, rss->p_remain)) {
++                    break;
++                }
++
++                if (!check_lseek(rss->fd, offset, SEEK_SET)) {
++                    break;
++                }
++
++            } else {
++                // we can't write any more; return how many bytes have
++                // been written so far.
++                break;
++            }
++        }
++    }
++
++    return written;
++}
++
++// All of the data for all the 'new' transfers is contained in one
++// file in the update package, concatenated together in the order in
++// which transfers.list will need it.  We want to stream it out of the
++// archive (it's compressed) without writing it to a temp file, but we
++// can't write each section until it's that transfer's turn to go.
++//
++// To achieve this, we expand the new data from the archive in a
++// background thread, and block that threads 'receive uncompressed
++// data' function until the main thread has reached a point where we
++// want some new data to be written.  We signal the background thread
++// with the destination for the data and block the main thread,
++// waiting for the background thread to complete writing that section.
++// Then it signals the main thread to wake up and goes back to
++// blocking waiting for a transfer.
++//
++// NewThreadInfo is the struct used to pass information back and forth
++// between the two threads.  When the main thread wants some data
++// written, it sets rss to the destination location and signals the
++// condition.  When the background thread is done writing, it clears
++// rss and signals the condition again.
++
++struct NewThreadInfo {
++    ZipArchive* za;
++    const ZipEntry* entry;
++
++    RangeSinkState* rss;
++
++    pthread_mutex_t mu;
++    pthread_cond_t cv;
++};
++
++static bool receive_new_data(const unsigned char* data, int size, void* cookie) {
++    NewThreadInfo* nti = reinterpret_cast<NewThreadInfo*>(cookie);
++
++    while (size > 0) {
++        // Wait for nti->rss to be non-null, indicating some of this
++        // data is wanted.
++        pthread_mutex_lock(&nti->mu);
++        while (nti->rss == nullptr) {
++            pthread_cond_wait(&nti->cv, &nti->mu);
++        }
++        pthread_mutex_unlock(&nti->mu);
++
++        // At this point nti->rss is set, and we own it.  The main
++        // thread is waiting for it to disappear from nti.
++        ssize_t written = RangeSinkWrite(data, size, nti->rss);
++        data += written;
++        size -= written;
++
++        if (nti->rss->p_block == nti->rss->tgt.count) {
++            // we have written all the bytes desired by this rss.
++
++            pthread_mutex_lock(&nti->mu);
++            nti->rss = nullptr;
++            pthread_cond_broadcast(&nti->cv);
++            pthread_mutex_unlock(&nti->mu);
++        }
++    }
++
++    return true;
++}
++
++static void* unzip_new_data(void* cookie) {
++    NewThreadInfo* nti = (NewThreadInfo*) cookie;
++    mzProcessZipEntryContents(nti->za, nti->entry, receive_new_data, nti);
++    return nullptr;
++}
++
++static int ReadBlocks(const RangeSet& src, std::vector<uint8_t>& buffer, int fd) {
++    size_t p = 0;
++    uint8_t* data = buffer.data();
++
++    for (size_t i = 0; i < src.count; ++i) {
++        if (!check_lseek(fd, (off64_t) src.pos[i * 2] * BLOCKSIZE, SEEK_SET)) {
++            return -1;
++        }
++
++        size_t size = (src.pos[i * 2 + 1] - src.pos[i * 2]) * BLOCKSIZE;
++
++        if (read_all(fd, data + p, size) == -1) {
++            return -1;
++        }
++
++        p += size;
++    }
++
++    return 0;
++}
++
++static int WriteBlocks(const RangeSet& tgt, const std::vector<uint8_t>& buffer, int fd) {
++    const uint8_t* data = buffer.data();
++
++    size_t p = 0;
++    for (size_t i = 0; i < tgt.count; ++i) {
++        off64_t offset = static_cast<off64_t>(tgt.pos[i * 2]) * BLOCKSIZE;
++        size_t size = (tgt.pos[i * 2 + 1] - tgt.pos[i * 2]) * BLOCKSIZE;
++        if (!discard_blocks(fd, offset, size)) {
++            return -1;
++        }
++
++        if (!check_lseek(fd, offset, SEEK_SET)) {
++            return -1;
++        }
++
++        if (write_all(fd, data + p, size) == -1) {
++            return -1;
++        }
++
++        p += size;
++    }
++
++    return 0;
++}
++
++// Parameters for transfer list command functions
++struct CommandParameters {
++    std::vector<std::string> tokens;
++    size_t cpos;
++    const char* cmdname;
++    const char* cmdline;
++    std::string freestash;
++    std::string stashbase;
++    bool canwrite;
++    int createdstash;
++    int fd;
++    bool foundwrites;
++    bool isunresumable;
++    int version;
++    size_t written;
++    size_t stashed;
++    NewThreadInfo nti;
++    pthread_t thread;
++    std::vector<uint8_t> buffer;
++    uint8_t* patch_start;
++};
++
++// Do a source/target load for move/bsdiff/imgdiff in version 1.
++// We expect to parse the remainder of the parameter tokens as:
++//
++//    <src_range> <tgt_range>
++//
++// The source range is loaded into the provided buffer, reallocating
++// it to make it larger if necessary.
++
++static int LoadSrcTgtVersion1(CommandParameters& params, RangeSet& tgt, size_t& src_blocks,
++        std::vector<uint8_t>& buffer, int fd) {
++
++    if (params.cpos + 1 >= params.tokens.size()) {
++        fprintf(stderr, "invalid parameters\n");
++        return -1;
++    }
++
++    // <src_range>
++    RangeSet src;
++    parse_range(params.tokens[params.cpos++], src);
++
++    // <tgt_range>
++    parse_range(params.tokens[params.cpos++], tgt);
++
++    allocate(src.size * BLOCKSIZE, buffer);
++    int rc = ReadBlocks(src, buffer, fd);
++    src_blocks = src.size;
++
++    return rc;
++}
++
++static int VerifyBlocks(const std::string& expected, const std::vector<uint8_t>& buffer,
++        const size_t blocks, bool printerror) {
++    uint8_t digest[SHA_DIGEST_LENGTH];
++    const uint8_t* data = buffer.data();
++
++    SHA1(data, blocks * BLOCKSIZE, digest);
++
++    std::string hexdigest = print_sha1(digest);
++
++    if (hexdigest != expected) {
++        if (printerror) {
++            fprintf(stderr, "failed to verify blocks (expected %s, read %s)\n",
++                    expected.c_str(), hexdigest.c_str());
++        }
++        return -1;
++    }
++
++    return 0;
++}
++
++static std::string GetStashFileName(const std::string& base, const std::string& id,
++        const std::string& postfix) {
++    if (base.empty()) {
++        return "";
++    }
++
++    std::string fn(STASH_DIRECTORY_BASE);
++    fn += "/" + base + "/" + id + postfix;
++
++    return fn;
++}
++
++typedef void (*StashCallback)(const std::string&, void*);
++
++// Does a best effort enumeration of stash files. Ignores possible non-file
++// items in the stash directory and continues despite of errors. Calls the
++// 'callback' function for each file and passes 'data' to the function as a
++// parameter.
++
++static void EnumerateStash(const std::string& dirname, StashCallback callback, void* data) {
++    if (dirname.empty() || callback == nullptr) {
++        return;
++    }
++
++    std::unique_ptr<DIR, int(*)(DIR*)> directory(opendir(dirname.c_str()), closedir);
++
++    if (directory == nullptr) {
++        if (errno != ENOENT) {
++            fprintf(stderr, "opendir \"%s\" failed: %s\n", dirname.c_str(), strerror(errno));
++        }
++        return;
++    }
++
++    struct dirent* item;
++    while ((item = readdir(directory.get())) != nullptr) {
++        if (item->d_type != DT_REG) {
++            continue;
++        }
++
++        std::string fn = dirname + "/" + std::string(item->d_name);
++        callback(fn, data);
++    }
++}
++
++static void UpdateFileSize(const std::string& fn, void* data) {
++    if (fn.empty() || !data) {
++        return;
++    }
++
++    struct stat sb;
++    if (stat(fn.c_str(), &sb) == -1) {
++        fprintf(stderr, "stat \"%s\" failed: %s\n", fn.c_str(), strerror(errno));
++        return;
++    }
++
++    int* size = reinterpret_cast<int*>(data);
++    *size += sb.st_size;
++}
++
++// Deletes the stash directory and all files in it. Assumes that it only
++// contains files. There is nothing we can do about unlikely, but possible
++// errors, so they are merely logged.
++
++static void DeleteFile(const std::string& fn, void* /* data */) {
++    if (!fn.empty()) {
++        fprintf(stderr, "deleting %s\n", fn.c_str());
++
++        if (unlink(fn.c_str()) == -1 && errno != ENOENT) {
++            fprintf(stderr, "unlink \"%s\" failed: %s\n", fn.c_str(), strerror(errno));
++        }
++    }
++}
++
++static void DeletePartial(const std::string& fn, void* data) {
++    if (android::base::EndsWith(fn, ".partial")) {
++        DeleteFile(fn, data);
++    }
++}
++
++static void DeleteStash(const std::string& base) {
++    if (base.empty()) {
++        return;
++    }
++
++    fprintf(stderr, "deleting stash %s\n", base.c_str());
++
++    std::string dirname = GetStashFileName(base, "", "");
++    EnumerateStash(dirname, DeleteFile, nullptr);
++
++    if (rmdir(dirname.c_str()) == -1) {
++        if (errno != ENOENT && errno != ENOTDIR) {
++            fprintf(stderr, "rmdir \"%s\" failed: %s\n", dirname.c_str(), strerror(errno));
++        }
++    }
++}
++
++static int LoadStash(CommandParameters& params, const std::string& base, const std::string& id,
++        bool verify, size_t* blocks, std::vector<uint8_t>& buffer, bool printnoent) {
++    // In verify mode, if source range_set was saved for the given hash,
++    // check contents in the source blocks first. If the check fails,
++    // search for the stashed files on /cache as usual.
++    if (!params.canwrite) {
++        if (stash_map.find(id) != stash_map.end()) {
++            const RangeSet& src = stash_map[id];
++            allocate(src.size * BLOCKSIZE, buffer);
++
++            if (ReadBlocks(src, buffer, params.fd) == -1) {
++                fprintf(stderr, "failed to read source blocks in stash map.\n");
++                return -1;
++            }
++            if (VerifyBlocks(id, buffer, src.size, true) != 0) {
++                fprintf(stderr, "failed to verify loaded source blocks in stash map.\n");
++                return -1;
++            }
++            return 0;
++        }
++    }
++
++    if (base.empty()) {
++        return -1;
++    }
++
++    size_t blockcount = 0;
++
++    if (!blocks) {
++        blocks = &blockcount;
++    }
++
++    std::string fn = GetStashFileName(base, id, "");
++
++    struct stat sb;
++    int res = stat(fn.c_str(), &sb);
++
++    if (res == -1) {
++        if (errno != ENOENT || printnoent) {
++            fprintf(stderr, "stat \"%s\" failed: %s\n", fn.c_str(), strerror(errno));
++        }
++        return -1;
++    }
++
++    fprintf(stderr, " loading %s\n", fn.c_str());
++
++    if ((sb.st_size % BLOCKSIZE) != 0) {
++        fprintf(stderr, "%s size %" PRId64 " not multiple of block size %d",
++                fn.c_str(), static_cast<int64_t>(sb.st_size), BLOCKSIZE);
++        return -1;
++    }
++
++    int fd = TEMP_FAILURE_RETRY(open(fn.c_str(), O_RDONLY));
++    unique_fd fd_holder(fd);
++
++    if (fd == -1) {
++        fprintf(stderr, "open \"%s\" failed: %s\n", fn.c_str(), strerror(errno));
++        return -1;
++    }
++
++    allocate(sb.st_size, buffer);
++
++    if (read_all(fd, buffer, sb.st_size) == -1) {
++        return -1;
++    }
++
++    *blocks = sb.st_size / BLOCKSIZE;
++
++    if (verify && VerifyBlocks(id, buffer, *blocks, true) != 0) {
++        fprintf(stderr, "unexpected contents in %s\n", fn.c_str());
++        DeleteFile(fn, nullptr);
++        return -1;
++    }
++
++    return 0;
++}
++
++static int WriteStash(const std::string& base, const std::string& id, int blocks,
++        std::vector<uint8_t>& buffer, bool checkspace, bool *exists) {
++    if (base.empty()) {
++        return -1;
++    }
++
++    if (checkspace && CacheSizeCheck(blocks * BLOCKSIZE) != 0) {
++        fprintf(stderr, "not enough space to write stash\n");
++        return -1;
++    }
++
++    std::string fn = GetStashFileName(base, id, ".partial");
++    std::string cn = GetStashFileName(base, id, "");
++
++    if (exists) {
++        struct stat sb;
++        int res = stat(cn.c_str(), &sb);
++
++        if (res == 0) {
++            // The file already exists and since the name is the hash of the contents,
++            // it's safe to assume the contents are identical (accidental hash collisions
++            // are unlikely)
++            fprintf(stderr, " skipping %d existing blocks in %s\n", blocks, cn.c_str());
++            *exists = true;
++            return 0;
++        }
++
++        *exists = false;
++    }
++
++    fprintf(stderr, " writing %d blocks to %s\n", blocks, cn.c_str());
++
++    int fd = TEMP_FAILURE_RETRY(open(fn.c_str(), O_WRONLY | O_CREAT | O_TRUNC, STASH_FILE_MODE));
++    unique_fd fd_holder(fd);
++
++    if (fd == -1) {
++        fprintf(stderr, "failed to create \"%s\": %s\n", fn.c_str(), strerror(errno));
++        return -1;
++    }
++
++    if (write_all(fd, buffer, blocks * BLOCKSIZE) == -1) {
++        return -1;
++    }
++
++    if (ota_fsync(fd) == -1) {
++        failure_type = kFsyncFailure;
++        fprintf(stderr, "fsync \"%s\" failed: %s\n", fn.c_str(), strerror(errno));
++        return -1;
++    }
++
++    if (rename(fn.c_str(), cn.c_str()) == -1) {
++        fprintf(stderr, "rename(\"%s\", \"%s\") failed: %s\n", fn.c_str(), cn.c_str(),
++                strerror(errno));
++        return -1;
++    }
++
++    std::string dname = GetStashFileName(base, "", "");
++    int dfd = TEMP_FAILURE_RETRY(open(dname.c_str(), O_RDONLY | O_DIRECTORY));
++    unique_fd dfd_holder(dfd);
++
++    if (dfd == -1) {
++        failure_type = kFileOpenFailure;
++        fprintf(stderr, "failed to open \"%s\" failed: %s\n", dname.c_str(), strerror(errno));
++        return -1;
++    }
++
++    if (ota_fsync(dfd) == -1) {
++        failure_type = kFsyncFailure;
++        fprintf(stderr, "fsync \"%s\" failed: %s\n", dname.c_str(), strerror(errno));
++        return -1;
++    }
++
++    return 0;
++}
++
++// Creates a directory for storing stash files and checks if the /cache partition
++// hash enough space for the expected amount of blocks we need to store. Returns
++// >0 if we created the directory, zero if it existed already, and <0 of failure.
++
++static int CreateStash(State* state, int maxblocks, const char* blockdev, std::string& base) {
++    if (blockdev == nullptr) {
++        return -1;
++    }
++
++    // Stash directory should be different for each partition to avoid conflicts
++    // when updating multiple partitions at the same time, so we use the hash of
++    // the block device name as the base directory
++    uint8_t digest[SHA_DIGEST_LENGTH];
++    SHA1(reinterpret_cast<const uint8_t*>(blockdev), strlen(blockdev), digest);
++    base = print_sha1(digest);
++
++    std::string dirname = GetStashFileName(base, "", "");
++    struct stat sb;
++    int res = stat(dirname.c_str(), &sb);
++
++    if (res == -1 && errno != ENOENT) {
++        ErrorAbort(state, kStashCreationFailure, "stat \"%s\" failed: %s\n",
++                   dirname.c_str(), strerror(errno));
++        return -1;
++    } else if (res != 0) {
++        fprintf(stderr, "creating stash %s\n", dirname.c_str());
++        res = mkdir(dirname.c_str(), STASH_DIRECTORY_MODE);
++
++        if (res != 0) {
++            ErrorAbort(state, kStashCreationFailure, "mkdir \"%s\" failed: %s\n",
++                       dirname.c_str(), strerror(errno));
++            return -1;
++        }
++
++        if (CacheSizeCheck(maxblocks * BLOCKSIZE) != 0) {
++            ErrorAbort(state, kStashCreationFailure, "not enough space for stash\n");
++            return -1;
++        }
++
++        return 1;  // Created directory
++    }
++
++    fprintf(stderr, "using existing stash %s\n", dirname.c_str());
++
++    // If the directory already exists, calculate the space already allocated to
++    // stash files and check if there's enough for all required blocks. Delete any
++    // partially completed stash files first.
++
++    EnumerateStash(dirname, DeletePartial, nullptr);
++    int size = 0;
++    EnumerateStash(dirname, UpdateFileSize, &size);
++
++    size = maxblocks * BLOCKSIZE - size;
++
++    if (size > 0 && CacheSizeCheck(size) != 0) {
++        ErrorAbort(state, kStashCreationFailure, "not enough space for stash (%d more needed)\n",
++                   size);
++        return -1;
++    }
++
++    return 0; // Using existing directory
++}
++
++static int SaveStash(CommandParameters& params, const std::string& base,
++        std::vector<uint8_t>& buffer, int fd, bool usehash) {
++
++    // <stash_id> <src_range>
++    if (params.cpos + 1 >= params.tokens.size()) {
++        fprintf(stderr, "missing id and/or src range fields in stash command\n");
++        return -1;
++    }
++    const std::string& id = params.tokens[params.cpos++];
++
++    size_t blocks = 0;
++    if (usehash && LoadStash(params, base, id, true, &blocks, buffer, false) == 0) {
++        // Stash file already exists and has expected contents. Do not
++        // read from source again, as the source may have been already
++        // overwritten during a previous attempt.
++        return 0;
++    }
++
++    RangeSet src;
++    parse_range(params.tokens[params.cpos++], src);
++
++    allocate(src.size * BLOCKSIZE, buffer);
++    if (ReadBlocks(src, buffer, fd) == -1) {
++        return -1;
++    }
++    blocks = src.size;
++
++    if (usehash && VerifyBlocks(id, buffer, blocks, true) != 0) {
++        // Source blocks have unexpected contents. If we actually need this
++        // data later, this is an unrecoverable error. However, the command
++        // that uses the data may have already completed previously, so the
++        // possible failure will occur during source block verification.
++        fprintf(stderr, "failed to load source blocks for stash %s\n", id.c_str());
++        return 0;
++    }
++
++    // In verify mode, save source range_set instead of stashing blocks.
++    if (!params.canwrite && usehash) {
++        stash_map[id] = src;
++        return 0;
++    }
++
++    fprintf(stderr, "stashing %zu blocks to %s\n", blocks, id.c_str());
++    params.stashed += blocks;
++    return WriteStash(base, id, blocks, buffer, false, nullptr);
++}
++
++static int FreeStash(const std::string& base, const std::string& id) {
++    if (base.empty() || id.empty()) {
++        return -1;
++    }
++
++    std::string fn = GetStashFileName(base, id, "");
++    DeleteFile(fn, nullptr);
++
++    return 0;
++}
++
++static void MoveRange(std::vector<uint8_t>& dest, const RangeSet& locs,
++        const std::vector<uint8_t>& source) {
++    // source contains packed data, which we want to move to the
++    // locations given in locs in the dest buffer.  source and dest
++    // may be the same buffer.
++
++    const uint8_t* from = source.data();
++    uint8_t* to = dest.data();
++    size_t start = locs.size;
++    for (int i = locs.count-1; i >= 0; --i) {
++        size_t blocks = locs.pos[i*2+1] - locs.pos[i*2];
++        start -= blocks;
++        memmove(to + (locs.pos[i*2] * BLOCKSIZE), from + (start * BLOCKSIZE),
++                blocks * BLOCKSIZE);
++    }
++}
++
++// Do a source/target load for move/bsdiff/imgdiff in version 2.
++// We expect to parse the remainder of the parameter tokens as one of:
++//
++//    <tgt_range> <src_block_count> <src_range>
++//        (loads data from source image only)
++//
++//    <tgt_range> <src_block_count> - <[stash_id:stash_range] ...>
++//        (loads data from stashes only)
++//
++//    <tgt_range> <src_block_count> <src_range> <src_loc> <[stash_id:stash_range] ...>
++//        (loads data from both source image and stashes)
++//
++// On return, buffer is filled with the loaded source data (rearranged
++// and combined with stashed data as necessary).  buffer may be
++// reallocated if needed to accommodate the source data.  *tgt is the
++// target RangeSet.  Any stashes required are loaded using LoadStash.
++
++static int LoadSrcTgtVersion2(CommandParameters& params, RangeSet& tgt, size_t& src_blocks,
++        std::vector<uint8_t>& buffer, int fd, const std::string& stashbase, bool* overlap) {
++
++    // At least it needs to provide three parameters: <tgt_range>,
++    // <src_block_count> and "-"/<src_range>.
++    if (params.cpos + 2 >= params.tokens.size()) {
++        fprintf(stderr, "invalid parameters\n");
++        return -1;
++    }
++
++    // <tgt_range>
++    parse_range(params.tokens[params.cpos++], tgt);
++
++    // <src_block_count>
++    const std::string& token = params.tokens[params.cpos++];
++    if (!android::base::ParseUint(token.c_str(), &src_blocks)) {
++        fprintf(stderr, "invalid src_block_count \"%s\"\n", token.c_str());
++        return -1;
++    }
++
++    allocate(src_blocks * BLOCKSIZE, buffer);
++
++    // "-" or <src_range> [<src_loc>]
++    if (params.tokens[params.cpos] == "-") {
++        // no source ranges, only stashes
++        params.cpos++;
++    } else {
++        RangeSet src;
++        parse_range(params.tokens[params.cpos++], src);
++        int res = ReadBlocks(src, buffer, fd);
++
++        if (overlap) {
++            *overlap = range_overlaps(src, tgt);
++        }
++
++        if (res == -1) {
++            return -1;
++        }
++
++        if (params.cpos >= params.tokens.size()) {
++            // no stashes, only source range
++            return 0;
++        }
++
++        RangeSet locs;
++        parse_range(params.tokens[params.cpos++], locs);
++        MoveRange(buffer, locs, buffer);
++    }
++
++    // <[stash_id:stash_range]>
++    while (params.cpos < params.tokens.size()) {
++        // Each word is a an index into the stash table, a colon, and
++        // then a rangeset describing where in the source block that
++        // stashed data should go.
++        std::vector<std::string> tokens = android::base::Split(params.tokens[params.cpos++], ":");
++        if (tokens.size() != 2) {
++            fprintf(stderr, "invalid parameter\n");
++            return -1;
++        }
++
++        std::vector<uint8_t> stash;
++        int res = LoadStash(params, stashbase, tokens[0], false, nullptr, stash, true);
++
++        if (res == -1) {
++            // These source blocks will fail verification if used later, but we
++            // will let the caller decide if this is a fatal failure
++            fprintf(stderr, "failed to load stash %s\n", tokens[0].c_str());
++            continue;
++        }
++
++        RangeSet locs;
++        parse_range(tokens[1], locs);
++
++        MoveRange(buffer, locs, stash);
++    }
++
++    return 0;
++}
++
++// Do a source/target load for move/bsdiff/imgdiff in version 3.
++//
++// Parameters are the same as for LoadSrcTgtVersion2, except for 'onehash', which
++// tells the function whether to expect separate source and targe block hashes, or
++// if they are both the same and only one hash should be expected, and
++// 'isunresumable', which receives a non-zero value if block verification fails in
++// a way that the update cannot be resumed anymore.
++//
++// If the function is unable to load the necessary blocks or their contents don't
++// match the hashes, the return value is -1 and the command should be aborted.
++//
++// If the return value is 1, the command has already been completed according to
++// the contents of the target blocks, and should not be performed again.
++//
++// If the return value is 0, source blocks have expected content and the command
++// can be performed.
++
++static int LoadSrcTgtVersion3(CommandParameters& params, RangeSet& tgt, size_t& src_blocks,
++        bool onehash, bool& overlap) {
++
++    if (params.cpos >= params.tokens.size()) {
++        fprintf(stderr, "missing source hash\n");
++        return -1;
++    }
++
++    std::string srchash = params.tokens[params.cpos++];
++    std::string tgthash;
++
++    if (onehash) {
++        tgthash = srchash;
++    } else {
++        if (params.cpos >= params.tokens.size()) {
++            fprintf(stderr, "missing target hash\n");
++            return -1;
++        }
++        tgthash = params.tokens[params.cpos++];
++    }
++
++    if (LoadSrcTgtVersion2(params, tgt, src_blocks, params.buffer, params.fd, params.stashbase,
++            &overlap) == -1) {
++        return -1;
++    }
++
++    std::vector<uint8_t> tgtbuffer(tgt.size * BLOCKSIZE);
++
++    if (ReadBlocks(tgt, tgtbuffer, params.fd) == -1) {
++        return -1;
++    }
++
++    if (VerifyBlocks(tgthash, tgtbuffer, tgt.size, false) == 0) {
++        // Target blocks already have expected content, command should be skipped
++        return 1;
++    }
++
++    if (VerifyBlocks(srchash, params.buffer, src_blocks, true) == 0) {
++        // If source and target blocks overlap, stash the source blocks so we can
++        // resume from possible write errors. In verify mode, we can skip stashing
++        // because the source blocks won't be overwritten.
++        if (overlap && params.canwrite) {
++            fprintf(stderr, "stashing %zu overlapping blocks to %s\n", src_blocks,
++                    srchash.c_str());
++
++            bool stash_exists = false;
++            if (WriteStash(params.stashbase, srchash, src_blocks, params.buffer, true,
++                           &stash_exists) != 0) {
++                fprintf(stderr, "failed to stash overlapping source blocks\n");
++                return -1;
++            }
++
++            params.stashed += src_blocks;
++            // Can be deleted when the write has completed
++            if (!stash_exists) {
++                params.freestash = srchash;
++            }
++        }
++
++        // Source blocks have expected content, command can proceed
++        return 0;
++    }
++
++    if (overlap && LoadStash(params, params.stashbase, srchash, true, nullptr, params.buffer,
++                             true) == 0) {
++        // Overlapping source blocks were previously stashed, command can proceed.
++        // We are recovering from an interrupted command, so we don't know if the
++        // stash can safely be deleted after this command.
++        return 0;
++    }
++
++    // Valid source data not available, update cannot be resumed
++    fprintf(stderr, "partition has unexpected contents\n");
++    params.isunresumable = true;
++
++    return -1;
++}
++
++static int PerformCommandMove(CommandParameters& params) {
++    size_t blocks = 0;
++    bool overlap = false;
++    int status = 0;
++    RangeSet tgt;
++
++    if (params.version == 1) {
++        status = LoadSrcTgtVersion1(params, tgt, blocks, params.buffer, params.fd);
++    } else if (params.version == 2) {
++        status = LoadSrcTgtVersion2(params, tgt, blocks, params.buffer, params.fd,
++                params.stashbase, nullptr);
++    } else if (params.version >= 3) {
++        status = LoadSrcTgtVersion3(params, tgt, blocks, true, overlap);
++    }
++
++    if (status == -1) {
++        fprintf(stderr, "failed to read blocks for move\n");
++        return -1;
++    }
++
++    if (status == 0) {
++        params.foundwrites = true;
++    } else if (params.foundwrites) {
++        fprintf(stderr, "warning: commands executed out of order [%s]\n", params.cmdname);
++    }
++
++    if (params.canwrite) {
++        if (status == 0) {
++            fprintf(stderr, "  moving %zu blocks\n", blocks);
++
++            if (WriteBlocks(tgt, params.buffer, params.fd) == -1) {
++                return -1;
++            }
++        } else {
++            fprintf(stderr, "skipping %zu already moved blocks\n", blocks);
++        }
++
++    }
++
++    if (!params.freestash.empty()) {
++        FreeStash(params.stashbase, params.freestash);
++        params.freestash.clear();
++    }
++
++    params.written += tgt.size;
++
++    return 0;
++}
++
++static int PerformCommandStash(CommandParameters& params) {
++    return SaveStash(params, params.stashbase, params.buffer, params.fd,
++            (params.version >= 3));
++}
++
++static int PerformCommandFree(CommandParameters& params) {
++    // <stash_id>
++    if (params.cpos >= params.tokens.size()) {
++        fprintf(stderr, "missing stash id in free command\n");
++        return -1;
++    }
++
++    const std::string& id = params.tokens[params.cpos++];
++
++    if (!params.canwrite && stash_map.find(id) != stash_map.end()) {
++        stash_map.erase(id);
++        return 0;
++    }
++
++    if (params.createdstash || params.canwrite) {
++        return FreeStash(params.stashbase, id);
++    }
++
++    return 0;
++}
++
++static int PerformCommandZero(CommandParameters& params) {
++
++    if (params.cpos >= params.tokens.size()) {
++        fprintf(stderr, "missing target blocks for zero\n");
++        return -1;
++    }
++
++    RangeSet tgt;
++    parse_range(params.tokens[params.cpos++], tgt);
++
++    fprintf(stderr, "  zeroing %zu blocks\n", tgt.size);
++
++    allocate(BLOCKSIZE, params.buffer);
++    memset(params.buffer.data(), 0, BLOCKSIZE);
++
++    if (params.canwrite) {
++        for (size_t i = 0; i < tgt.count; ++i) {
++            off64_t offset = static_cast<off64_t>(tgt.pos[i * 2]) * BLOCKSIZE;
++            size_t size = (tgt.pos[i * 2 + 1] - tgt.pos[i * 2]) * BLOCKSIZE;
++            if (!discard_blocks(params.fd, offset, size)) {
++                return -1;
++            }
++
++            if (!check_lseek(params.fd, offset, SEEK_SET)) {
++                return -1;
++            }
++
++            for (size_t j = tgt.pos[i * 2]; j < tgt.pos[i * 2 + 1]; ++j) {
++                if (write_all(params.fd, params.buffer, BLOCKSIZE) == -1) {
++                    return -1;
++                }
++            }
++        }
++    }
++
++    if (params.cmdname[0] == 'z') {
++        // Update only for the zero command, as the erase command will call
++        // this if DEBUG_ERASE is defined.
++        params.written += tgt.size;
++    }
++
++    return 0;
++}
++
++static int PerformCommandNew(CommandParameters& params) {
++
++    if (params.cpos >= params.tokens.size()) {
++        fprintf(stderr, "missing target blocks for new\n");
++        return -1;
++    }
++
++    RangeSet tgt;
++    parse_range(params.tokens[params.cpos++], tgt);
++
++    if (params.canwrite) {
++        fprintf(stderr, " writing %zu blocks of new data\n", tgt.size);
++
++        RangeSinkState rss(tgt);
++        rss.fd = params.fd;
++        rss.p_block = 0;
++        rss.p_remain = (tgt.pos[1] - tgt.pos[0]) * BLOCKSIZE;
++
++        off64_t offset = static_cast<off64_t>(tgt.pos[0]) * BLOCKSIZE;
++        if (!discard_blocks(params.fd, offset, tgt.size * BLOCKSIZE)) {
++            return -1;
++        }
++
++        if (!check_lseek(params.fd, offset, SEEK_SET)) {
++            return -1;
++        }
++
++        pthread_mutex_lock(&params.nti.mu);
++        params.nti.rss = &rss;
++        pthread_cond_broadcast(&params.nti.cv);
++
++        while (params.nti.rss) {
++            pthread_cond_wait(&params.nti.cv, &params.nti.mu);
++        }
++
++        pthread_mutex_unlock(&params.nti.mu);
++    }
++
++    params.written += tgt.size;
++
++    return 0;
++}
++
++static int PerformCommandDiff(CommandParameters& params) {
++
++    // <offset> <length>
++    if (params.cpos + 1 >= params.tokens.size()) {
++        fprintf(stderr, "missing patch offset or length for %s\n", params.cmdname);
++        return -1;
++    }
++
++    size_t offset;
++    if (!android::base::ParseUint(params.tokens[params.cpos++].c_str(), &offset)) {
++        fprintf(stderr, "invalid patch offset\n");
++        return -1;
++    }
++
++    size_t len;
++    if (!android::base::ParseUint(params.tokens[params.cpos++].c_str(), &len)) {
++        fprintf(stderr, "invalid patch offset\n");
++        return -1;
++    }
++
++    RangeSet tgt;
++    size_t blocks = 0;
++    bool overlap = false;
++    int status = 0;
++    if (params.version == 1) {
++        status = LoadSrcTgtVersion1(params, tgt, blocks, params.buffer, params.fd);
++    } else if (params.version == 2) {
++        status = LoadSrcTgtVersion2(params, tgt, blocks, params.buffer, params.fd,
++                params.stashbase, nullptr);
++    } else if (params.version >= 3) {
++        status = LoadSrcTgtVersion3(params, tgt, blocks, false, overlap);
++    }
++
++    if (status == -1) {
++        fprintf(stderr, "failed to read blocks for diff\n");
++        return -1;
++    }
++
++    if (status == 0) {
++        params.foundwrites = true;
++    } else if (params.foundwrites) {
++        fprintf(stderr, "warning: commands executed out of order [%s]\n", params.cmdname);
++    }
++
++    if (params.canwrite) {
++        if (status == 0) {
++            fprintf(stderr, "patching %zu blocks to %zu\n", blocks, tgt.size);
++
++            Value patch_value;
++            patch_value.type = VAL_BLOB;
++            patch_value.size = len;
++            patch_value.data = (char*) (params.patch_start + offset);
++
++            RangeSinkState rss(tgt);
++            rss.fd = params.fd;
++            rss.p_block = 0;
++            rss.p_remain = (tgt.pos[1] - tgt.pos[0]) * BLOCKSIZE;
++
++            off64_t offset = static_cast<off64_t>(tgt.pos[0]) * BLOCKSIZE;
++            if (!discard_blocks(params.fd, offset, rss.p_remain)) {
++                return -1;
++            }
++
++            if (!check_lseek(params.fd, offset, SEEK_SET)) {
++                return -1;
++            }
++
++            if (params.cmdname[0] == 'i') {      // imgdiff
++                if (ApplyImagePatch(params.buffer.data(), blocks * BLOCKSIZE, &patch_value,
++                        &RangeSinkWrite, &rss, nullptr, nullptr) != 0) {
++                    fprintf(stderr, "Failed to apply image patch.\n");
++                    return -1;
++                }
++            } else {
++                if (ApplyBSDiffPatch(params.buffer.data(), blocks * BLOCKSIZE, &patch_value,
++                        0, &RangeSinkWrite, &rss, nullptr) != 0) {
++                    fprintf(stderr, "Failed to apply bsdiff patch.\n");
++                    return -1;
++                }
++            }
++
++            // We expect the output of the patcher to fill the tgt ranges exactly.
++            if (rss.p_block != tgt.count || rss.p_remain != 0) {
++                fprintf(stderr, "range sink underrun?\n");
++            }
++        } else {
++            fprintf(stderr, "skipping %zu blocks already patched to %zu [%s]\n",
++                blocks, tgt.size, params.cmdline);
++        }
++    }
++
++    if (!params.freestash.empty()) {
++        FreeStash(params.stashbase, params.freestash);
++        params.freestash.clear();
++    }
++
++    params.written += tgt.size;
++
++    return 0;
++}
++
++static int PerformCommandErase(CommandParameters& params) {
++    if (DEBUG_ERASE) {
++        return PerformCommandZero(params);
++    }
++
++    struct stat sb;
++    if (fstat(params.fd, &sb) == -1) {
++        fprintf(stderr, "failed to fstat device to erase: %s\n", strerror(errno));
++        return -1;
++    }
++
++    if (!S_ISBLK(sb.st_mode)) {
++        fprintf(stderr, "not a block device; skipping erase\n");
++        return -1;
++    }
++
++    if (params.cpos >= params.tokens.size()) {
++        fprintf(stderr, "missing target blocks for erase\n");
++        return -1;
++    }
++
++    RangeSet tgt;
++    parse_range(params.tokens[params.cpos++], tgt);
++
++    if (params.canwrite) {
++        fprintf(stderr, " erasing %zu blocks\n", tgt.size);
++
++        for (size_t i = 0; i < tgt.count; ++i) {
++            uint64_t blocks[2];
++            // offset in bytes
++            blocks[0] = tgt.pos[i * 2] * (uint64_t) BLOCKSIZE;
++            // length in bytes
++            blocks[1] = (tgt.pos[i * 2 + 1] - tgt.pos[i * 2]) * (uint64_t) BLOCKSIZE;
++
++            if (ioctl(params.fd, BLKDISCARD, &blocks) == -1) {
++                fprintf(stderr, "BLKDISCARD ioctl failed: %s\n", strerror(errno));
++                return -1;
++            }
++        }
++    }
++
++    return 0;
++}
++
++// Definitions for transfer list command functions
++typedef int (*CommandFunction)(CommandParameters&);
++
++struct Command {
++    const char* name;
++    CommandFunction f;
++};
++
++// CompareCommands and CompareCommandNames are for the hash table
++
++static int CompareCommands(const void* c1, const void* c2) {
++    return strcmp(((const Command*) c1)->name, ((const Command*) c2)->name);
++}
++
++static int CompareCommandNames(const void* c1, const void* c2) {
++    return strcmp(((const Command*) c1)->name, (const char*) c2);
++}
++
++// HashString is used to hash command names for the hash table
++
++static unsigned int HashString(const char *s) {
++    unsigned int hash = 0;
++    if (s) {
++        while (*s) {
++            hash = hash * 33 + *s++;
++        }
++    }
++    return hash;
++}
++
++// args:
++//    - block device (or file) to modify in-place
++//    - transfer list (blob)
++//    - new data stream (filename within package.zip)
++//    - patch stream (filename within package.zip, must be uncompressed)
++
++static Value* PerformBlockImageUpdate(const char* name, State* state, int /* argc */, Expr* argv[],
++        const Command* commands, size_t cmdcount, bool dryrun) {
++    CommandParameters params;
++    memset(&params, 0, sizeof(params));
++    params.canwrite = !dryrun;
++
++    fprintf(stderr, "performing %s\n", dryrun ? "verification" : "update");
++    if (state->is_retry) {
++        is_retry = true;
++        fprintf(stderr, "This update is a retry.\n");
++    }
++
++    Value* blockdev_filename = nullptr;
++    Value* transfer_list_value = nullptr;
++    Value* new_data_fn = nullptr;
++    Value* patch_data_fn = nullptr;
++    if (ReadValueArgs(state, argv, 4, &blockdev_filename, &transfer_list_value,
++            &new_data_fn, &patch_data_fn) < 0) {
++        return StringValue(strdup(""));
++    }
++    std::unique_ptr<Value, decltype(&FreeValue)> blockdev_filename_holder(blockdev_filename,
++            FreeValue);
++    std::unique_ptr<Value, decltype(&FreeValue)> transfer_list_value_holder(transfer_list_value,
++            FreeValue);
++    std::unique_ptr<Value, decltype(&FreeValue)> new_data_fn_holder(new_data_fn, FreeValue);
++    std::unique_ptr<Value, decltype(&FreeValue)> patch_data_fn_holder(patch_data_fn, FreeValue);
++
++    if (blockdev_filename->type != VAL_STRING) {
++        ErrorAbort(state, kArgsParsingFailure, "blockdev_filename argument to %s must be string",
++                   name);
++        return StringValue(strdup(""));
++    }
++    if (transfer_list_value->type != VAL_BLOB) {
++        ErrorAbort(state, kArgsParsingFailure, "transfer_list argument to %s must be blob", name);
++        return StringValue(strdup(""));
++    }
++    if (new_data_fn->type != VAL_STRING) {
++        ErrorAbort(state, kArgsParsingFailure, "new_data_fn argument to %s must be string", name);
++        return StringValue(strdup(""));
++    }
++    if (patch_data_fn->type != VAL_STRING) {
++        ErrorAbort(state, kArgsParsingFailure, "patch_data_fn argument to %s must be string",
++                   name);
++        return StringValue(strdup(""));
++    }
++
++    UpdaterInfo* ui = reinterpret_cast<UpdaterInfo*>(state->cookie);
++
++    if (ui == nullptr) {
++        return StringValue(strdup(""));
++    }
++
++    FILE* cmd_pipe = ui->cmd_pipe;
++    ZipArchive* za = ui->package_zip;
++
++    if (cmd_pipe == nullptr || za == nullptr) {
++        return StringValue(strdup(""));
++    }
++
++    const ZipEntry* patch_entry = mzFindZipEntry(za, patch_data_fn->data);
++    if (patch_entry == nullptr) {
++        fprintf(stderr, "%s(): no file \"%s\" in package", name, patch_data_fn->data);
++        return StringValue(strdup(""));
++    }
++
++    params.patch_start = ui->package_zip_addr + mzGetZipEntryOffset(patch_entry);
++    const ZipEntry* new_entry = mzFindZipEntry(za, new_data_fn->data);
++    if (new_entry == nullptr) {
++        fprintf(stderr, "%s(): no file \"%s\" in package", name, new_data_fn->data);
++        return StringValue(strdup(""));
++    }
++
++    params.fd = TEMP_FAILURE_RETRY(open(blockdev_filename->data, O_RDWR));
++    unique_fd fd_holder(params.fd);
++
++    if (params.fd == -1) {
++        fprintf(stderr, "open \"%s\" failed: %s\n", blockdev_filename->data, strerror(errno));
++        return StringValue(strdup(""));
++    }
++
++    if (params.canwrite) {
++        params.nti.za = za;
++        params.nti.entry = new_entry;
++
++        pthread_mutex_init(&params.nti.mu, nullptr);
++        pthread_cond_init(&params.nti.cv, nullptr);
++        pthread_attr_t attr;
++        pthread_attr_init(&attr);
++        pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
++
++        int error = pthread_create(&params.thread, &attr, unzip_new_data, &params.nti);
++        if (error != 0) {
++            fprintf(stderr, "pthread_create failed: %s\n", strerror(error));
++            return StringValue(strdup(""));
++        }
++    }
++
++    // Copy all the lines in transfer_list_value into std::string for
++    // processing.
++    const std::string transfer_list(transfer_list_value->data, transfer_list_value->size);
++    std::vector<std::string> lines = android::base::Split(transfer_list, "\n");
++    if (lines.size() < 2) {
++        ErrorAbort(state, kArgsParsingFailure, "too few lines in the transfer list [%zd]\n",
++                   lines.size());
++        return StringValue(strdup(""));
++    }
++
++    // First line in transfer list is the version number
++    if (!android::base::ParseInt(lines[0].c_str(), &params.version, 1, 4)) {
++        fprintf(stderr, "unexpected transfer list version [%s]\n", lines[0].c_str());
++        return StringValue(strdup(""));
++    }
++
++    fprintf(stderr, "blockimg version is %d\n", params.version);
++
++    // Second line in transfer list is the total number of blocks we expect to write
++    int total_blocks;
++    if (!android::base::ParseInt(lines[1].c_str(), &total_blocks, 0)) {
++        ErrorAbort(state, kArgsParsingFailure, "unexpected block count [%s]\n", lines[1].c_str());
++        return StringValue(strdup(""));
++    }
++
++    if (total_blocks == 0) {
++        return StringValue(strdup("t"));
++    }
++
++    size_t start = 2;
++    if (params.version >= 2) {
++        if (lines.size() < 4) {
++            ErrorAbort(state, kArgsParsingFailure, "too few lines in the transfer list [%zu]\n",
++                       lines.size());
++            return StringValue(strdup(""));
++        }
++
++        // Third line is how many stash entries are needed simultaneously
++        fprintf(stderr, "maximum stash entries %s\n", lines[2].c_str());
++
++        // Fourth line is the maximum number of blocks that will be stashed simultaneously
++        int stash_max_blocks;
++        if (!android::base::ParseInt(lines[3].c_str(), &stash_max_blocks, 0)) {
++            ErrorAbort(state, kArgsParsingFailure, "unexpected maximum stash blocks [%s]\n",
++                       lines[3].c_str());
++            return StringValue(strdup(""));
++        }
++
++        int res = CreateStash(state, stash_max_blocks, blockdev_filename->data, params.stashbase);
++        if (res == -1) {
++            return StringValue(strdup(""));
++        }
++
++        params.createdstash = res;
++
++        start += 2;
++    }
++
++    // Build a hash table of the available commands
++    HashTable* cmdht = mzHashTableCreate(cmdcount, nullptr);
++    std::unique_ptr<HashTable, decltype(&mzHashTableFree)> cmdht_holder(cmdht, mzHashTableFree);
++
++    for (size_t i = 0; i < cmdcount; ++i) {
++        unsigned int cmdhash = HashString(commands[i].name);
++        mzHashTableLookup(cmdht, cmdhash, (void*) &commands[i], CompareCommands, true);
++    }
++
++    int rc = -1;
++
++    // Subsequent lines are all individual transfer commands
++    for (auto it = lines.cbegin() + start; it != lines.cend(); it++) {
++        const std::string& line_str(*it);
++        if (line_str.empty()) {
++            continue;
++        }
++
++        params.tokens = android::base::Split(line_str, " ");
++        params.cpos = 0;
++        params.cmdname = params.tokens[params.cpos++].c_str();
++        params.cmdline = line_str.c_str();
++
++        unsigned int cmdhash = HashString(params.cmdname);
++        const Command* cmd = reinterpret_cast<const Command*>(mzHashTableLookup(cmdht, cmdhash,
++                const_cast<char*>(params.cmdname), CompareCommandNames,
++                false));
++
++        if (cmd == nullptr) {
++            fprintf(stderr, "unexpected command [%s]\n", params.cmdname);
++            goto pbiudone;
++        }
++
++        if (cmd->f != nullptr && cmd->f(params) == -1) {
++            fprintf(stderr, "failed to execute command [%s]\n", line_str.c_str());
++            goto pbiudone;
++        }
++
++        if (params.canwrite) {
++            if (ota_fsync(params.fd) == -1) {
++                failure_type = kFsyncFailure;
++                fprintf(stderr, "fsync failed: %s\n", strerror(errno));
++                goto pbiudone;
++            }
++            fprintf(cmd_pipe, "set_progress %.4f\n", (double) params.written / total_blocks);
++            fflush(cmd_pipe);
++        }
++    }
++
++    if (params.canwrite) {
++        pthread_join(params.thread, nullptr);
++
++        fprintf(stderr, "wrote %zu blocks; expected %d\n", params.written, total_blocks);
++        fprintf(stderr, "stashed %zu blocks\n", params.stashed);
++        fprintf(stderr, "max alloc needed was %zu\n", params.buffer.size());
++
++        const char* partition = strrchr(blockdev_filename->data, '/');
++        if (partition != nullptr && *(partition+1) != 0) {
++            fprintf(cmd_pipe, "log bytes_written_%s: %zu\n", partition + 1,
++                    params.written * BLOCKSIZE);
++            fprintf(cmd_pipe, "log bytes_stashed_%s: %zu\n", partition + 1,
++                    params.stashed * BLOCKSIZE);
++            fflush(cmd_pipe);
++        }
++        // Delete stash only after successfully completing the update, as it
++        // may contain blocks needed to complete the update later.
++        DeleteStash(params.stashbase);
++    } else {
++        fprintf(stderr, "verified partition contents; update may be resumed\n");
++    }
++
++    rc = 0;
++
++pbiudone:
++    if (ota_fsync(params.fd) == -1) {
++        failure_type = kFsyncFailure;
++        fprintf(stderr, "fsync failed: %s\n", strerror(errno));
++    }
++    // params.fd will be automatically closed because of the fd_holder above.
++
++    // Only delete the stash if the update cannot be resumed, or it's
++    // a verification run and we created the stash.
++    if (params.isunresumable || (!params.canwrite && params.createdstash)) {
++        DeleteStash(params.stashbase);
++    }
++
++    if (failure_type != kNoCause && state->cause_code == kNoCause) {
++        state->cause_code = failure_type;
++    }
++
++    return StringValue(rc == 0 ? strdup("t") : strdup(""));
++}
++
++// The transfer list is a text file containing commands to
++// transfer data from one place to another on the target
++// partition.  We parse it and execute the commands in order:
++//
++//    zero [rangeset]
++//      - fill the indicated blocks with zeros
++//
++//    new [rangeset]
++//      - fill the blocks with data read from the new_data file
++//
++//    erase [rangeset]
++//      - mark the given blocks as empty
++//
++//    move <...>
++//    bsdiff <patchstart> <patchlen> <...>
++//    imgdiff <patchstart> <patchlen> <...>
++//      - read the source blocks, apply a patch (or not in the
++//        case of move), write result to target blocks.  bsdiff or
++//        imgdiff specifies the type of patch; move means no patch
++//        at all.
++//
++//        The format of <...> differs between versions 1 and 2;
++//        see the LoadSrcTgtVersion{1,2}() functions for a
++//        description of what's expected.
++//
++//    stash <stash_id> <src_range>
++//      - (version 2+ only) load the given source range and stash
++//        the data in the given slot of the stash table.
++//
++//    free <stash_id>
++//      - (version 3+ only) free the given stash data.
++//
++// The creator of the transfer list will guarantee that no block
++// is read (ie, used as the source for a patch or move) after it
++// has been written.
++//
++// In version 2, the creator will guarantee that a given stash is
++// loaded (with a stash command) before it's used in a
++// move/bsdiff/imgdiff command.
++//
++// Within one command the source and target ranges may overlap so
++// in general we need to read the entire source into memory before
++// writing anything to the target blocks.
++//
++// All the patch data is concatenated into one patch_data file in
++// the update package.  It must be stored uncompressed because we
++// memory-map it in directly from the archive.  (Since patches are
++// already compressed, we lose very little by not compressing
++// their concatenation.)
++//
++// In version 3, commands that read data from the partition (i.e.
++// move/bsdiff/imgdiff/stash) have one or more additional hashes
++// before the range parameters, which are used to check if the
++// command has already been completed and verify the integrity of
++// the source data.
++
++Value* BlockImageVerifyFn(const char* name, State* state, int argc, Expr* argv[]) {
++    // Commands which are not tested are set to nullptr to skip them completely
++    const Command commands[] = {
++        { "bsdiff",     PerformCommandDiff  },
++        { "erase",      nullptr             },
++        { "free",       PerformCommandFree  },
++        { "imgdiff",    PerformCommandDiff  },
++        { "move",       PerformCommandMove  },
++        { "new",        nullptr             },
++        { "stash",      PerformCommandStash },
++        { "zero",       nullptr             }
++    };
++
++    // Perform a dry run without writing to test if an update can proceed
++    return PerformBlockImageUpdate(name, state, argc, argv, commands,
++                sizeof(commands) / sizeof(commands[0]), true);
++}
++
++Value* BlockImageUpdateFn(const char* name, State* state, int argc, Expr* argv[]) {
++    const Command commands[] = {
++        { "bsdiff",     PerformCommandDiff  },
++        { "erase",      PerformCommandErase },
++        { "free",       PerformCommandFree  },
++        { "imgdiff",    PerformCommandDiff  },
++        { "move",       PerformCommandMove  },
++        { "new",        PerformCommandNew   },
++        { "stash",      PerformCommandStash },
++        { "zero",       PerformCommandZero  }
++    };
++
++    return PerformBlockImageUpdate(name, state, argc, argv, commands,
++                sizeof(commands) / sizeof(commands[0]), false);
++}
++
++Value* RangeSha1Fn(const char* name, State* state, int /* argc */, Expr* argv[]) {
++    Value* blockdev_filename;
++    Value* ranges;
++
++    if (ReadValueArgs(state, argv, 2, &blockdev_filename, &ranges) < 0) {
++        return StringValue(strdup(""));
++    }
++    std::unique_ptr<Value, decltype(&FreeValue)> ranges_holder(ranges, FreeValue);
++    std::unique_ptr<Value, decltype(&FreeValue)> blockdev_filename_holder(blockdev_filename,
++            FreeValue);
++
++    if (blockdev_filename->type != VAL_STRING) {
++        ErrorAbort(state, kArgsParsingFailure, "blockdev_filename argument to %s must be string",
++                   name);
++        return StringValue(strdup(""));
++    }
++    if (ranges->type != VAL_STRING) {
++        ErrorAbort(state, kArgsParsingFailure, "ranges argument to %s must be string", name);
++        return StringValue(strdup(""));
++    }
++
++    int fd = open(blockdev_filename->data, O_RDWR);
++    unique_fd fd_holder(fd);
++    if (fd < 0) {
++        ErrorAbort(state, kFileOpenFailure, "open \"%s\" failed: %s", blockdev_filename->data,
++                   strerror(errno));
++        return StringValue(strdup(""));
++    }
++
++    RangeSet rs;
++    parse_range(ranges->data, rs);
++
++    SHA_CTX ctx;
++    SHA1_Init(&ctx);
++
++    std::vector<uint8_t> buffer(BLOCKSIZE);
++    for (size_t i = 0; i < rs.count; ++i) {
++        if (!check_lseek(fd, (off64_t)rs.pos[i*2] * BLOCKSIZE, SEEK_SET)) {
++            ErrorAbort(state, kLseekFailure, "failed to seek %s: %s", blockdev_filename->data,
++                       strerror(errno));
++            return StringValue(strdup(""));
++        }
++
++        for (size_t j = rs.pos[i*2]; j < rs.pos[i*2+1]; ++j) {
++            if (read_all(fd, buffer, BLOCKSIZE) == -1) {
++                ErrorAbort(state, kFreadFailure, "failed to read %s: %s", blockdev_filename->data,
++                        strerror(errno));
++                return StringValue(strdup(""));
++            }
++
++            SHA1_Update(&ctx, buffer.data(), BLOCKSIZE);
++        }
++    }
++    uint8_t digest[SHA_DIGEST_LENGTH];
++    SHA1_Final(digest, &ctx);
++
++    return StringValue(strdup(print_sha1(digest).c_str()));
++}
++
++// This function checks if a device has been remounted R/W prior to an incremental
++// OTA update. This is an common cause of update abortion. The function reads the
++// 1st block of each partition and check for mounting time/count. It return string "t"
++// if executes successfully and an empty string otherwise.
++
++Value* CheckFirstBlockFn(const char* name, State* state, int argc, Expr* argv[]) {
++    Value* arg_filename;
++
++    if (ReadValueArgs(state, argv, 1, &arg_filename) < 0) {
++        return nullptr;
++    }
++    std::unique_ptr<Value, decltype(&FreeValue)> filename(arg_filename, FreeValue);
++
++    if (filename->type != VAL_STRING) {
++        ErrorAbort(state, kArgsParsingFailure, "filename argument to %s must be string", name);
++        return StringValue(strdup(""));
++    }
++
++    int fd = open(arg_filename->data, O_RDONLY);
++    unique_fd fd_holder(fd);
++    if (fd == -1) {
++        ErrorAbort(state, kFileOpenFailure, "open \"%s\" failed: %s", arg_filename->data,
++                   strerror(errno));
++        return StringValue(strdup(""));
++    }
++
++    RangeSet blk0 {1 /*count*/, 1/*size*/, std::vector<size_t> {0, 1}/*position*/};
++    std::vector<uint8_t> block0_buffer(BLOCKSIZE);
++
++    if (ReadBlocks(blk0, block0_buffer, fd) == -1) {
++        ErrorAbort(state, kFreadFailure, "failed to read %s: %s", arg_filename->data,
++                strerror(errno));
++        return StringValue(strdup(""));
++    }
++
++    // https://ext4.wiki.kernel.org/index.php/Ext4_Disk_Layout
++    // Super block starts from block 0, offset 0x400
++    //   0x2C: len32 Mount time
++    //   0x30: len32 Write time
++    //   0x34: len16 Number of mounts since the last fsck
++    //   0x38: len16 Magic signature 0xEF53
++
++    time_t mount_time = *reinterpret_cast<uint32_t*>(&block0_buffer[0x400+0x2C]);
++    uint16_t mount_count = *reinterpret_cast<uint16_t*>(&block0_buffer[0x400+0x34]);
++
++    if (mount_count > 0) {
++        uiPrintf(state, "Device was remounted R/W %d times\n", mount_count);
++        uiPrintf(state, "Last remount happened on %s", ctime(&mount_time));
++    }
++
++    return StringValue(strdup("t"));
++}
++
++
++Value* BlockImageRecoverFn(const char* name, State* state, int argc, Expr* argv[]) {
++    Value* arg_filename;
++    Value* arg_ranges;
++
++    if (ReadValueArgs(state, argv, 2, &arg_filename, &arg_ranges) < 0) {
++        return NULL;
++    }
++
++    std::unique_ptr<Value, decltype(&FreeValue)> filename(arg_filename, FreeValue);
++    std::unique_ptr<Value, decltype(&FreeValue)> ranges(arg_ranges, FreeValue);
++
++    if (filename->type != VAL_STRING) {
++        ErrorAbort(state, kArgsParsingFailure, "filename argument to %s must be string", name);
++        return StringValue(strdup(""));
++    }
++    if (ranges->type != VAL_STRING) {
++        ErrorAbort(state, kArgsParsingFailure, "ranges argument to %s must be string", name);
++        return StringValue(strdup(""));
++    }
++
++    // Output notice to log when recover is attempted
++    fprintf(stderr, "%s image corrupted, attempting to recover...\n", filename->data);
++
++    // When opened with O_RDWR, libfec rewrites corrupted blocks when they are read
++    fec::io fh(filename->data, O_RDWR);
++
++    if (!fh) {
++        ErrorAbort(state, kLibfecFailure, "fec_open \"%s\" failed: %s", filename->data,
++                   strerror(errno));
++        return StringValue(strdup(""));
++    }
++
++    if (!fh.has_ecc() || !fh.has_verity()) {
++        ErrorAbort(state, kLibfecFailure, "unable to use metadata to correct errors");
++        return StringValue(strdup(""));
++    }
++
++    fec_status status;
++
++    if (!fh.get_status(status)) {
++        ErrorAbort(state, kLibfecFailure, "failed to read FEC status");
++        return StringValue(strdup(""));
++    }
++
++    RangeSet rs;
++    parse_range(ranges->data, rs);
++
++    uint8_t buffer[BLOCKSIZE];
++
++    for (size_t i = 0; i < rs.count; ++i) {
++        for (size_t j = rs.pos[i * 2]; j < rs.pos[i * 2 + 1]; ++j) {
++            // Stay within the data area, libfec validates and corrects metadata
++            if (status.data_size <= (uint64_t)j * BLOCKSIZE) {
++                continue;
++            }
++
++            if (fh.pread(buffer, BLOCKSIZE, (off64_t)j * BLOCKSIZE) != BLOCKSIZE) {
++                ErrorAbort(state, kLibfecFailure, "failed to recover %s (block %zu): %s",
++                           filename->data, j, strerror(errno));
++                return StringValue(strdup(""));
++            }
++
++            // If we want to be able to recover from a situation where rewriting a corrected
++            // block doesn't guarantee the same data will be returned when re-read later, we
++            // can save a copy of corrected blocks to /cache. Note:
++            //
++            //  1. Maximum space required from /cache is the same as the maximum number of
++            //     corrupted blocks we can correct. For RS(255, 253) and a 2 GiB partition,
++            //     this would be ~16 MiB, for example.
++            //
++            //  2. To find out if this block was corrupted, call fec_get_status after each
++            //     read and check if the errors field value has increased.
++        }
++    }
++    fprintf(stderr, "...%s image recovered successfully.\n", filename->data);
++    return StringValue(strdup("t"));
++}
++
++void RegisterBlockImageFunctions() {
++    RegisterFunction("block_image_verify", BlockImageVerifyFn);
++    RegisterFunction("block_image_update", BlockImageUpdateFn);
++    RegisterFunction("block_image_recover", BlockImageRecoverFn);
++    RegisterFunction("check_first_block", CheckFirstBlockFn);
++    RegisterFunction("range_sha1", RangeSha1Fn);
++}
+diff --git a/local_updater/blockimg.h b/local_updater/blockimg.h
+new file mode 100644
+index 00000000..2f4ad3c0
+--- /dev/null
++++ b/local_updater/blockimg.h
+@@ -0,0 +1,22 @@
++/*
++ * Copyright (C) 2014 The Android Open Source Project
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *      http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++
++#ifndef _UPDATER_BLOCKIMG_H_
++#define _UPDATER_BLOCKIMG_H_
++
++void RegisterBlockImageFunctions();
++
++#endif
+diff --git a/local_updater/install.cpp b/local_updater/install.cpp
+new file mode 100644
+index 00000000..4a78d51b
+--- /dev/null
++++ b/local_updater/install.cpp
+@@ -0,0 +1,1710 @@
++/*
++ * Copyright (C) 2009 The Android Open Source Project
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *      http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++
++#include <ctype.h>
++#include <errno.h>
++#include <stdarg.h>
++#include <stdio.h>
++#include <stdlib.h>
++#include <string.h>
++#include <sys/mount.h>
++#include <sys/stat.h>
++#include <sys/types.h>
++#include <sys/wait.h>
++#include <unistd.h>
++#include <fcntl.h>
++#include <time.h>
++#include <selinux/selinux.h>
++#include <ftw.h>
++#include <sys/capability.h>
++#include <sys/xattr.h>
++#include <linux/xattr.h>
++#include <inttypes.h>
++
++#include <memory>
++#include <string>
++#include <vector>
++
++#include <android-base/file.h>
++#include <android-base/parseint.h>
++#include <android-base/strings.h>
++#include <android-base/stringprintf.h>
++
++#include "bootloader.h"
++#include "applypatch/applypatch.h"
++#include "cutils/android_reboot.h"
++#include "cutils/misc.h"
++#include "cutils/properties.h"
++#include "edify/expr.h"
++#include "error_code.h"
++#include "minzip/DirUtil.h"
++#include "mtdutils/mounts.h"
++#include "mtdutils/mtdutils.h"
++#include "openssl/sha.h"
++#include "ota_io.h"
++#include "updater.h"
++#include "applypatch/applypatch.h"
++#include "flashutils/flashutils.h"
++#include "install.h"
++#ifdef HAVE_LIBTUNE2FS
++#include "tune2fs.h"
++#endif
++
++#ifdef USE_EXT4
++#include "make_ext4fs.h"
++#include "wipe.h"
++#endif
++
++#define UPDATER_CUSTOM_MOUNT
++
++// Send over the buffer to recovery though the command pipe.
++static void uiPrint(State* state, const std::string& buffer) {
++    UpdaterInfo* ui = reinterpret_cast<UpdaterInfo*>(state->cookie);
++
++    // "line1\nline2\n" will be split into 3 tokens: "line1", "line2" and "".
++    // So skip sending empty strings to UI.
++    std::vector<std::string> lines = android::base::Split(buffer, "\n");
++    for (auto& line: lines) {
++        if (!line.empty()) {
++            fprintf(ui->cmd_pipe, "ui_print %s\n", line.c_str());
++            fprintf(ui->cmd_pipe, "ui_print\n");
++        }
++    }
++
++    // On the updater side, we need to dump the contents to stderr (which has
++    // been redirected to the log file). Because the recovery will only print
++    // the contents to screen when processing pipe command ui_print.
++    fprintf(stderr, "%s", buffer.c_str());
++}
++
++__attribute__((__format__(printf, 2, 3))) __nonnull((2))
++void uiPrintf(State* state, const char* format, ...) {
++    std::string error_msg;
++
++    va_list ap;
++    va_start(ap, format);
++    android::base::StringAppendV(&error_msg, format, ap);
++    va_end(ap);
++
++    uiPrint(state, error_msg);
++}
++
++// Take a sha-1 digest and return it as a newly-allocated hex string.
++char* PrintSha1(const uint8_t* digest) {
++    char* buffer = reinterpret_cast<char*>(malloc(SHA_DIGEST_LENGTH*2 + 1));
++    const char* alphabet = "0123456789abcdef";
++    size_t i;
++    for (i = 0; i < SHA_DIGEST_LENGTH; ++i) {
++        buffer[i*2] = alphabet[(digest[i] >> 4) & 0xf];
++        buffer[i*2+1] = alphabet[digest[i] & 0xf];
++    }
++    buffer[i*2] = '\0';
++    return buffer;
++}
++
++// mount(fs_type, partition_type, location, mount_point)
++//
++//    fs_type="yaffs2" partition_type="MTD"     location=partition
++//    fs_type="ext4"   partition_type="EMMC"    location=device
++Value* MountFn(const char* name, State* state, int argc, Expr* argv[]) {
++    char* result = NULL;
++    if (argc != 4 && argc != 5) {
++        return ErrorAbort(state, kArgsParsingFailure, "%s() expects 4-5 args, got %d", name, argc);
++    }
++    char* fs_type;
++    char* partition_type;
++    char* location;
++    char* mount_point;
++    char* mount_options;
++    bool has_mount_options;
++
++#ifdef UPDATER_CUSTOM_MOUNT
++    char mount_blob_path[] = "/sbin/mount";
++    pid_t child;
++    int status;
++#endif
++
++    if (argc == 5) {
++        has_mount_options = true;
++        if (ReadArgs(state, argv, 5, &fs_type, &partition_type,
++                 &location, &mount_point, &mount_options) < 0) {
++            return NULL;
++        }
++    } else {
++        has_mount_options = false;
++        if (ReadArgs(state, argv, 4, &fs_type, &partition_type,
++                 &location, &mount_point) < 0) {
++            return NULL;
++        }
++    }
++
++    if (strlen(fs_type) == 0) {
++        ErrorAbort(state, kArgsParsingFailure, "fs_type argument to %s() can't be empty", name);
++        goto done;
++    }
++    if (strlen(partition_type) == 0) {
++        ErrorAbort(state, kArgsParsingFailure, "partition_type argument to %s() can't be empty",
++                   name);
++        goto done;
++    }
++    if (strlen(location) == 0) {
++        ErrorAbort(state, kArgsParsingFailure, "location argument to %s() can't be empty", name);
++        goto done;
++    }
++    if (strlen(mount_point) == 0) {
++        ErrorAbort(state, kArgsParsingFailure, "mount_point argument to %s() can't be empty",
++                   name);
++        goto done;
++    }
++
++#ifdef UPDATER_CUSTOM_MOUNT
++    /* 使用toybox mount */
++    child = fork();
++    if (child == 0) {
++        execl(mount_blob_path,mount_point);
++        printf("mount: execv failed: %s\n", strerror(errno));
++        _exit(1);
++    }
++    waitpid(child, &status, 0);
++    if (WIFEXITED(status)) {
++        if (WEXITSTATUS(status) != 0) {
++            printf("mount: child exited with status %d\n",
++                    WEXITSTATUS(status));
++        }
++    } else if (WIFSIGNALED(status)) {
++        printf("mount: child terminated by signal %d\n",
++                WTERMSIG(status));
++    }
++#else //普通挂载
++    {
++        char *secontext = NULL;
++
++        if (sehandle) {
++            selabel_lookup(sehandle, &secontext, mount_point, 0755);
++            setfscreatecon(secontext);
++        }
++
++        mkdir(mount_point, 0755);
++
++        if (secontext) {
++            freecon(secontext);
++            setfscreatecon(NULL);
++        }
++    }
++
++    if (strcmp(partition_type, "MTD") == 0) {
++        mtd_scan_partitions();
++        const MtdPartition* mtd;
++        mtd = mtd_find_partition_by_name(location);
++        if (mtd == NULL) {
++            uiPrintf(state, "%s: no mtd partition named \"%s\"\n",
++                    name, location);
++            result = strdup("");
++            goto done;
++        }
++        if (mtd_mount_partition(mtd, mount_point, fs_type, 0 /* rw */) != 0) {
++            uiPrintf(state, "mtd mount of %s failed: %s\n",
++                    location, strerror(errno));
++            result = strdup("");
++            goto done;
++        }
++        result = mount_point;
++    } else {
++        if (mount(location, mount_point, fs_type,
++                  MS_NOATIME | MS_NODEV | MS_NODIRATIME,
++                  has_mount_options ? mount_options : "") < 0) {
++            uiPrintf(state, "%s: failed to mount %s at %s: %s\n",
++                    name, location, mount_point, strerror(errno));
++            result = strdup("");
++        } else {
++            result = mount_point;
++        }
++    }
++#endif // UPDATER_CUSTOM_MOUNT
++
++done:
++    free(fs_type);
++    free(partition_type);
++    free(location);
++    if (result != mount_point) free(mount_point);
++    if (has_mount_options) free(mount_options);
++    return StringValue(result);
++}
++
++
++// is_mounted(mount_point)
++Value* IsMountedFn(const char* name, State* state, int argc, Expr* argv[]) {
++    char* result = NULL;
++    if (argc != 1) {
++        return ErrorAbort(state, kArgsParsingFailure, "%s() expects 1 arg, got %d", name, argc);
++    }
++    char* mount_point;
++    if (ReadArgs(state, argv, 1, &mount_point) < 0) {
++        return NULL;
++    }
++    if (strlen(mount_point) == 0) {
++        ErrorAbort(state, kArgsParsingFailure, "mount_point argument to unmount() can't be empty");
++        goto done;
++    }
++
++    scan_mounted_volumes();
++    {
++        const MountedVolume* vol = find_mounted_volume_by_mount_point(mount_point);
++        if (vol == NULL) {
++            result = strdup("");
++        } else {
++            result = mount_point;
++        }
++    }
++
++done:
++    if (result != mount_point) free(mount_point);
++    return StringValue(result);
++}
++
++
++Value* UnmountFn(const char* name, State* state, int argc, Expr* argv[]) {
++    char* result = NULL;
++    if (argc != 1) {
++        return ErrorAbort(state, kArgsParsingFailure, "%s() expects 1 arg, got %d", name, argc);
++    }
++    char* mount_point;
++    if (ReadArgs(state, argv, 1, &mount_point) < 0) {
++        return NULL;
++    }
++    if (strlen(mount_point) == 0) {
++        ErrorAbort(state, kArgsParsingFailure, "mount_point argument to unmount() can't be empty");
++        goto done;
++    }
++
++    scan_mounted_volumes();
++    {
++        const MountedVolume* vol = find_mounted_volume_by_mount_point(mount_point);
++        if (vol == NULL) {
++            uiPrintf(state, "unmount of %s failed; no such volume\n", mount_point);
++            result = strdup("");
++        } else {
++            int ret = unmount_mounted_volume(vol);
++            if (ret != 0) {
++                uiPrintf(state, "unmount of %s failed (%d): %s\n",
++                         mount_point, ret, strerror(errno));
++            }
++            result = mount_point;
++        }
++    }
++
++done:
++    if (result != mount_point) free(mount_point);
++    return StringValue(result);
++}
++
++static int exec_cmd(const char* path, char* const argv[]) {
++    int status;
++    pid_t child;
++    if ((child = vfork()) == 0) {
++        execv(path, argv);
++        _exit(-1);
++    }
++    waitpid(child, &status, 0);
++    if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) {
++        printf("%s failed with status %d\n", path, WEXITSTATUS(status));
++    }
++    return WEXITSTATUS(status);
++}
++
++
++// format(fs_type, partition_type, location, fs_size, mount_point)
++//
++//    fs_type="yaffs2" partition_type="MTD"     location=partition fs_size=<bytes> mount_point=<location>
++//    fs_type="ext4"   partition_type="EMMC"    location=device    fs_size=<bytes> mount_point=<location>
++//    fs_type="f2fs"   partition_type="EMMC"    location=device    fs_size=<bytes> mount_point=<location>
++//    if fs_size == 0, then make fs uses the entire partition.
++//    if fs_size > 0, that is the size to use
++//    if fs_size < 0, then reserve that many bytes at the end of the partition (not for "f2fs")
++Value* FormatFn(const char* name, State* state, int argc, Expr* argv[]) {
++    char* result = NULL;
++    if (argc != 5) {
++        return ErrorAbort(state, kArgsParsingFailure, "%s() expects 5 args, got %d", name, argc);
++    }
++    char* fs_type;
++    char* partition_type;
++    char* location;
++    char* fs_size;
++    char* mount_point;
++
++    if (ReadArgs(state, argv, 5, &fs_type, &partition_type, &location, &fs_size, &mount_point) < 0) {
++        return NULL;
++    }
++
++    if (strlen(fs_type) == 0) {
++        ErrorAbort(state, kArgsParsingFailure, "fs_type argument to %s() can't be empty", name);
++        goto done;
++    }
++    if (strlen(partition_type) == 0) {
++        ErrorAbort(state, kArgsParsingFailure, "partition_type argument to %s() can't be empty",
++                   name);
++        goto done;
++    }
++    if (strlen(location) == 0) {
++        ErrorAbort(state, kArgsParsingFailure, "location argument to %s() can't be empty", name);
++        goto done;
++    }
++
++    if (strlen(mount_point) == 0) {
++        ErrorAbort(state, kArgsParsingFailure, "mount_point argument to %s() can't be empty",
++                   name);
++        goto done;
++    }
++
++    if (strcmp(partition_type, "MTD") == 0) {
++        mtd_scan_partitions();
++        const MtdPartition* mtd = mtd_find_partition_by_name(location);
++        if (mtd == NULL) {
++            printf("%s: no mtd partition named \"%s\"",
++                    name, location);
++            result = strdup("");
++            goto done;
++        }
++        MtdWriteContext* ctx = mtd_write_partition(mtd);
++        if (ctx == NULL) {
++            printf("%s: can't write \"%s\"", name, location);
++            result = strdup("");
++            goto done;
++        }
++        if (mtd_erase_blocks(ctx, -1) == -1) {
++            mtd_write_close(ctx);
++            printf("%s: failed to erase \"%s\"", name, location);
++            result = strdup("");
++            goto done;
++        }
++        if (mtd_write_close(ctx) != 0) {
++            printf("%s: failed to close \"%s\"", name, location);
++            result = strdup("");
++            goto done;
++        }
++        result = location;
++#ifdef USE_EXT4
++    } else if (strcmp(fs_type, "ext4") == 0) {
++        int status = make_ext4fs(location, atoll(fs_size), mount_point, sehandle);
++        if (status != 0) {
++            printf("%s: make_ext4fs failed (%d) on %s",
++                    name, status, location);
++            result = strdup("");
++            goto done;
++        }
++        result = location;
++    } else if (strcmp(fs_type, "f2fs") == 0) {
++        char *num_sectors;
++        if (asprintf(&num_sectors, "%lld", atoll(fs_size) / 512) <= 0) {
++            printf("format_volume: failed to create %s command for %s\n", fs_type, location);
++            result = strdup("");
++            goto done;
++        }
++        const char *f2fs_path = "/sbin/mkfs.f2fs";
++        const char* const f2fs_argv[] = {"mkfs.f2fs", "-t", "-d1", location, num_sectors, NULL};
++        int status = exec_cmd(f2fs_path, (char* const*)f2fs_argv);
++        free(num_sectors);
++        if (status != 0) {
++            printf("%s: mkfs.f2fs failed (%d) on %s",
++                    name, status, location);
++            result = strdup("");
++            goto done;
++        }
++        result = location;
++#endif
++    } else {
++        printf("%s: unsupported fs_type \"%s\" partition_type \"%s\"",
++                name, fs_type, partition_type);
++    }
++
++done:
++    free(fs_type);
++    free(partition_type);
++    if (result != location) free(location);
++    return StringValue(result);
++}
++
++Value* RenameFn(const char* name, State* state, int argc, Expr* argv[]) {
++    char* result = NULL;
++    if (argc != 2) {
++        return ErrorAbort(state, kArgsParsingFailure, "%s() expects 2 args, got %d", name, argc);
++    }
++
++    char* src_name;
++    char* dst_name;
++
++    if (ReadArgs(state, argv, 2, &src_name, &dst_name) < 0) {
++        return NULL;
++    }
++    if (strlen(src_name) == 0) {
++        ErrorAbort(state, kArgsParsingFailure, "src_name argument to %s() can't be empty", name);
++        goto done;
++    }
++    if (strlen(dst_name) == 0) {
++        ErrorAbort(state, kArgsParsingFailure, "dst_name argument to %s() can't be empty", name);
++        goto done;
++    }
++    if (make_parents(dst_name) != 0) {
++        ErrorAbort(state, kFileRenameFailure, "Creating parent of %s failed, error %s",
++          dst_name, strerror(errno));
++    } else if (access(dst_name, F_OK) == 0 && access(src_name, F_OK) != 0) {
++        // File was already moved
++        result = dst_name;
++    } else if (rename(src_name, dst_name) != 0) {
++        ErrorAbort(state, kFileRenameFailure, "Rename of %s to %s failed, error %s",
++          src_name, dst_name, strerror(errno));
++    } else {
++        result = dst_name;
++    }
++
++done:
++    free(src_name);
++    if (result != dst_name) free(dst_name);
++    return StringValue(result);
++}
++
++Value* DeleteFn(const char* name, State* state, int argc, Expr* argv[]) {
++    char** paths = reinterpret_cast<char**>(malloc(argc * sizeof(char*)));
++    for (int i = 0; i < argc; ++i) {
++        paths[i] = Evaluate(state, argv[i]);
++        if (paths[i] == NULL) {
++            for (int j = 0; j < i; ++j) {
++                free(paths[j]);
++            }
++            free(paths);
++            return NULL;
++        }
++    }
++
++    bool recursive = (strcmp(name, "delete_recursive") == 0);
++
++    int success = 0;
++    for (int i = 0; i < argc; ++i) {
++        if ((recursive ? dirUnlinkHierarchy(paths[i]) : unlink(paths[i])) == 0)
++            ++success;
++        free(paths[i]);
++    }
++    free(paths);
++
++    char buffer[10];
++    sprintf(buffer, "%d", success);
++    return StringValue(strdup(buffer));
++}
++
++
++Value* ShowProgressFn(const char* name, State* state, int argc, Expr* argv[]) {
++    if (argc != 2) {
++        return ErrorAbort(state, kArgsParsingFailure, "%s() expects 2 args, got %d", name, argc);
++    }
++    char* frac_str;
++    char* sec_str;
++    if (ReadArgs(state, argv, 2, &frac_str, &sec_str) < 0) {
++        return NULL;
++    }
++
++    double frac = strtod(frac_str, NULL);
++    int sec;
++    android::base::ParseInt(sec_str, &sec);
++
++    UpdaterInfo* ui = (UpdaterInfo*)(state->cookie);
++    fprintf(ui->cmd_pipe, "progress %f %d\n", frac, sec);
++
++    free(sec_str);
++    return StringValue(frac_str);
++}
++
++Value* SetProgressFn(const char* name, State* state, int argc, Expr* argv[]) {
++    if (argc != 1) {
++        return ErrorAbort(state, kArgsParsingFailure, "%s() expects 1 arg, got %d", name, argc);
++    }
++    char* frac_str;
++    if (ReadArgs(state, argv, 1, &frac_str) < 0) {
++        return NULL;
++    }
++
++    double frac = strtod(frac_str, NULL);
++
++    UpdaterInfo* ui = (UpdaterInfo*)(state->cookie);
++    fprintf(ui->cmd_pipe, "set_progress %f\n", frac);
++
++    return StringValue(frac_str);
++}
++
++// package_extract_dir(package_path, destination_path)
++Value* PackageExtractDirFn(const char* name, State* state,
++                          int argc, Expr* argv[]) {
++    if (argc != 2) {
++        return ErrorAbort(state, kArgsParsingFailure, "%s() expects 2 args, got %d", name, argc);
++    }
++    char* zip_path;
++    char* dest_path;
++    if (ReadArgs(state, argv, 2, &zip_path, &dest_path) < 0) return NULL;
++
++    ZipArchive* za = ((UpdaterInfo*)(state->cookie))->package_zip;
++
++    // To create a consistent system image, never use the clock for timestamps.
++    struct utimbuf timestamp = { 1217592000, 1217592000 };  // 8/1/2008 default
++
++    bool success = mzExtractRecursive(za, zip_path, dest_path,
++                                      &timestamp,
++                                      NULL, NULL, sehandle);
++    free(zip_path);
++    free(dest_path);
++    return StringValue(strdup(success ? "t" : ""));
++}
++
++
++// package_extract_file(package_path, destination_path)
++//   or
++// package_extract_file(package_path)
++//   to return the entire contents of the file as the result of this
++//   function (the char* returned is actually a FileContents*).
++Value* PackageExtractFileFn(const char* name, State* state,
++                           int argc, Expr* argv[]) {
++    if (argc < 1 || argc > 2) {
++        return ErrorAbort(state, kArgsParsingFailure, "%s() expects 1 or 2 args, got %d",
++                          name, argc);
++    }
++    bool success = false;
++
++    if (argc == 2) {
++        // The two-argument version extracts to a file.
++
++        ZipArchive* za = ((UpdaterInfo*)(state->cookie))->package_zip;
++
++        char* zip_path;
++        char* dest_path;
++        if (ReadArgs(state, argv, 2, &zip_path, &dest_path) < 0) return NULL;
++
++        const ZipEntry* entry = mzFindZipEntry(za, zip_path);
++        if (entry == NULL) {
++            printf("%s: no %s in package\n", name, zip_path);
++            goto done2;
++        }
++
++        {
++            int fd = TEMP_FAILURE_RETRY(ota_open(dest_path, O_WRONLY | O_CREAT | O_TRUNC | O_SYNC,
++                  S_IRUSR | S_IWUSR));
++            if (fd == -1) {
++                printf("%s: can't open %s for write: %s\n", name, dest_path, strerror(errno));
++                goto done2;
++            }
++            success = mzExtractZipEntryToFile(za, entry, fd);
++            if (ota_fsync(fd) == -1) {
++                printf("fsync of \"%s\" failed: %s\n", dest_path, strerror(errno));
++                success = false;
++            }
++            if (ota_close(fd) == -1) {
++                printf("close of \"%s\" failed: %s\n", dest_path, strerror(errno));
++                success = false;
++            }
++        }
++
++      done2:
++        free(zip_path);
++        free(dest_path);
++        return StringValue(strdup(success ? "t" : ""));
++    } else {
++        // The one-argument version returns the contents of the file
++        // as the result.
++
++        char* zip_path;
++        if (ReadArgs(state, argv, 1, &zip_path) < 0) return NULL;
++
++        Value* v = reinterpret_cast<Value*>(malloc(sizeof(Value)));
++        v->type = VAL_BLOB;
++        v->size = -1;
++        v->data = NULL;
++
++        ZipArchive* za = ((UpdaterInfo*)(state->cookie))->package_zip;
++        const ZipEntry* entry = mzFindZipEntry(za, zip_path);
++        if (entry == NULL) {
++            printf("%s: no %s in package\n", name, zip_path);
++            goto done1;
++        }
++
++        v->size = mzGetZipEntryUncompLen(entry);
++        v->data = reinterpret_cast<char*>(malloc(v->size));
++        if (v->data == NULL) {
++            printf("%s: failed to allocate %ld bytes for %s\n",
++                    name, (long)v->size, zip_path);
++            goto done1;
++        }
++
++        success = mzExtractZipEntryToBuffer(za, entry,
++                                            (unsigned char *)v->data);
++
++      done1:
++        free(zip_path);
++        if (!success) {
++            free(v->data);
++            v->data = NULL;
++            v->size = -1;
++        }
++        return v;
++    }
++}
++
++// Create all parent directories of name, if necessary.
++static int make_parents(char* name) {
++    char* p;
++    for (p = name + (strlen(name)-1); p > name; --p) {
++        if (*p != '/') continue;
++        *p = '\0';
++        if (make_parents(name) < 0) return -1;
++        int result = mkdir(name, 0700);
++        if (result == 0) printf("created [%s]\n", name);
++        *p = '/';
++        if (result == 0 || errno == EEXIST) {
++            // successfully created or already existed; we're done
++            return 0;
++        } else {
++            printf("failed to mkdir %s: %s\n", name, strerror(errno));
++            return -1;
++        }
++    }
++    return 0;
++}
++
++// symlink target src1 src2 ...
++//    unlinks any previously existing src1, src2, etc before creating symlinks.
++Value* SymlinkFn(const char* name, State* state, int argc, Expr* argv[]) {
++    if (argc == 0) {
++        return ErrorAbort(state, kArgsParsingFailure, "%s() expects 1+ args, got %d", name, argc);
++    }
++    char* target;
++    target = Evaluate(state, argv[0]);
++    if (target == NULL) return NULL;
++
++    char** srcs = ReadVarArgs(state, argc-1, argv+1);
++    if (srcs == NULL) {
++        free(target);
++        return NULL;
++    }
++
++    int bad = 0;
++    int i;
++    for (i = 0; i < argc-1; ++i) {
++        if (unlink(srcs[i]) < 0) {
++            if (errno != ENOENT) {
++                printf("%s: failed to remove %s: %s\n",
++                        name, srcs[i], strerror(errno));
++                ++bad;
++            }
++        }
++        if (make_parents(srcs[i])) {
++            printf("%s: failed to symlink %s to %s: making parents failed\n",
++                    name, srcs[i], target);
++            ++bad;
++        }
++        if (symlink(target, srcs[i]) < 0) {
++            printf("%s: failed to symlink %s to %s: %s\n",
++                    name, srcs[i], target, strerror(errno));
++            ++bad;
++        }
++        free(srcs[i]);
++    }
++    free(srcs);
++    if (bad) {
++        return ErrorAbort(state, kSymlinkFailure, "%s: some symlinks failed", name);
++    }
++    return StringValue(strdup(""));
++}
++
++struct perm_parsed_args {
++    bool has_uid;
++    uid_t uid;
++    bool has_gid;
++    gid_t gid;
++    bool has_mode;
++    mode_t mode;
++    bool has_fmode;
++    mode_t fmode;
++    bool has_dmode;
++    mode_t dmode;
++    bool has_selabel;
++    char* selabel;
++    bool has_capabilities;
++    uint64_t capabilities;
++};
++
++static struct perm_parsed_args ParsePermArgs(State * state, int argc, char** args) {
++    int i;
++    struct perm_parsed_args parsed;
++    int bad = 0;
++    static int max_warnings = 20;
++
++    memset(&parsed, 0, sizeof(parsed));
++
++    for (i = 1; i < argc; i += 2) {
++        if (strcmp("uid", args[i]) == 0) {
++            int64_t uid;
++            if (sscanf(args[i+1], "%" SCNd64, &uid) == 1) {
++                parsed.uid = uid;
++                parsed.has_uid = true;
++            } else {
++                uiPrintf(state, "ParsePermArgs: invalid UID \"%s\"\n", args[i + 1]);
++                bad++;
++            }
++            continue;
++        }
++        if (strcmp("gid", args[i]) == 0) {
++            int64_t gid;
++            if (sscanf(args[i+1], "%" SCNd64, &gid) == 1) {
++                parsed.gid = gid;
++                parsed.has_gid = true;
++            } else {
++                uiPrintf(state, "ParsePermArgs: invalid GID \"%s\"\n", args[i + 1]);
++                bad++;
++            }
++            continue;
++        }
++        if (strcmp("mode", args[i]) == 0) {
++            int32_t mode;
++            if (sscanf(args[i+1], "%" SCNi32, &mode) == 1) {
++                parsed.mode = mode;
++                parsed.has_mode = true;
++            } else {
++                uiPrintf(state, "ParsePermArgs: invalid mode \"%s\"\n", args[i + 1]);
++                bad++;
++            }
++            continue;
++        }
++        if (strcmp("dmode", args[i]) == 0) {
++            int32_t mode;
++            if (sscanf(args[i+1], "%" SCNi32, &mode) == 1) {
++                parsed.dmode = mode;
++                parsed.has_dmode = true;
++            } else {
++                uiPrintf(state, "ParsePermArgs: invalid dmode \"%s\"\n", args[i + 1]);
++                bad++;
++            }
++            continue;
++        }
++        if (strcmp("fmode", args[i]) == 0) {
++            int32_t mode;
++            if (sscanf(args[i+1], "%" SCNi32, &mode) == 1) {
++                parsed.fmode = mode;
++                parsed.has_fmode = true;
++            } else {
++                uiPrintf(state, "ParsePermArgs: invalid fmode \"%s\"\n", args[i + 1]);
++                bad++;
++            }
++            continue;
++        }
++        if (strcmp("capabilities", args[i]) == 0) {
++            int64_t capabilities;
++            if (sscanf(args[i+1], "%" SCNi64, &capabilities) == 1) {
++                parsed.capabilities = capabilities;
++                parsed.has_capabilities = true;
++            } else {
++                uiPrintf(state, "ParsePermArgs: invalid capabilities \"%s\"\n", args[i + 1]);
++                bad++;
++            }
++            continue;
++        }
++        if (strcmp("selabel", args[i]) == 0) {
++            if (args[i+1][0] != '\0') {
++                parsed.selabel = args[i+1];
++                parsed.has_selabel = true;
++            } else {
++                uiPrintf(state, "ParsePermArgs: invalid selabel \"%s\"\n", args[i + 1]);
++                bad++;
++            }
++            continue;
++        }
++        if (max_warnings != 0) {
++            printf("ParsedPermArgs: unknown key \"%s\", ignoring\n", args[i]);
++            max_warnings--;
++            if (max_warnings == 0) {
++                printf("ParsedPermArgs: suppressing further warnings\n");
++            }
++        }
++    }
++    return parsed;
++}
++
++static int ApplyParsedPerms(
++        State * state,
++        const char* filename,
++        const struct stat *statptr,
++        struct perm_parsed_args parsed)
++{
++    int bad = 0;
++
++    if (parsed.has_selabel) {
++        if (lsetfilecon(filename, parsed.selabel) != 0) {
++            uiPrintf(state, "ApplyParsedPerms: lsetfilecon of %s to %s failed: %s\n",
++                    filename, parsed.selabel, strerror(errno));
++            bad++;
++        }
++    }
++
++    /* ignore symlinks */
++    if (S_ISLNK(statptr->st_mode)) {
++        return bad;
++    }
++
++    if (parsed.has_uid) {
++        if (chown(filename, parsed.uid, -1) < 0) {
++            uiPrintf(state, "ApplyParsedPerms: chown of %s to %d failed: %s\n",
++                    filename, parsed.uid, strerror(errno));
++            bad++;
++        }
++    }
++
++    if (parsed.has_gid) {
++        if (chown(filename, -1, parsed.gid) < 0) {
++            uiPrintf(state, "ApplyParsedPerms: chgrp of %s to %d failed: %s\n",
++                    filename, parsed.gid, strerror(errno));
++            bad++;
++        }
++    }
++
++    if (parsed.has_mode) {
++        if (chmod(filename, parsed.mode) < 0) {
++            uiPrintf(state, "ApplyParsedPerms: chmod of %s to %d failed: %s\n",
++                    filename, parsed.mode, strerror(errno));
++            bad++;
++        }
++    }
++
++    if (parsed.has_dmode && S_ISDIR(statptr->st_mode)) {
++        if (chmod(filename, parsed.dmode) < 0) {
++            uiPrintf(state, "ApplyParsedPerms: chmod of %s to %d failed: %s\n",
++                    filename, parsed.dmode, strerror(errno));
++            bad++;
++        }
++    }
++
++    if (parsed.has_fmode && S_ISREG(statptr->st_mode)) {
++        if (chmod(filename, parsed.fmode) < 0) {
++            uiPrintf(state, "ApplyParsedPerms: chmod of %s to %d failed: %s\n",
++                   filename, parsed.fmode, strerror(errno));
++            bad++;
++        }
++    }
++
++    if (parsed.has_capabilities && S_ISREG(statptr->st_mode)) {
++        if (parsed.capabilities == 0) {
++            if ((removexattr(filename, XATTR_NAME_CAPS) == -1) && (errno != ENODATA)) {
++                // Report failure unless it's ENODATA (attribute not set)
++                uiPrintf(state, "ApplyParsedPerms: removexattr of %s to %" PRIx64 " failed: %s\n",
++                       filename, parsed.capabilities, strerror(errno));
++                bad++;
++            }
++        } else {
++            struct vfs_cap_data cap_data;
++            memset(&cap_data, 0, sizeof(cap_data));
++            cap_data.magic_etc = VFS_CAP_REVISION | VFS_CAP_FLAGS_EFFECTIVE;
++            cap_data.data[0].permitted = (uint32_t) (parsed.capabilities & 0xffffffff);
++            cap_data.data[0].inheritable = 0;
++            cap_data.data[1].permitted = (uint32_t) (parsed.capabilities >> 32);
++            cap_data.data[1].inheritable = 0;
++            if (setxattr(filename, XATTR_NAME_CAPS, &cap_data, sizeof(cap_data), 0) < 0) {
++                uiPrintf(state, "ApplyParsedPerms: setcap of %s to %" PRIx64 " failed: %s\n",
++                        filename, parsed.capabilities, strerror(errno));
++                bad++;
++            }
++        }
++    }
++
++    return bad;
++}
++
++// nftw doesn't allow us to pass along context, so we need to use
++// global variables.  *sigh*
++static struct perm_parsed_args recursive_parsed_args;
++static State* recursive_state;
++
++static int do_SetMetadataRecursive(const char* filename, const struct stat *statptr,
++        int fileflags, struct FTW *pfwt) {
++    return ApplyParsedPerms(recursive_state, filename, statptr, recursive_parsed_args);
++}
++
++static Value* SetMetadataFn(const char* name, State* state, int argc, Expr* argv[]) {
++    int bad = 0;
++    struct stat sb;
++    Value* result = NULL;
++
++    bool recursive = (strcmp(name, "set_metadata_recursive") == 0);
++
++    if ((argc % 2) != 1) {
++        return ErrorAbort(state, kArgsParsingFailure,
++                          "%s() expects an odd number of arguments, got %d", name, argc);
++    }
++
++    char** args = ReadVarArgs(state, argc, argv);
++    if (args == NULL) return NULL;
++
++    if (lstat(args[0], &sb) == -1) {
++        result = ErrorAbort(state, kSetMetadataFailure, "%s: Error on lstat of \"%s\": %s",
++                            name, args[0], strerror(errno));
++        goto done;
++    }
++
++    {
++        struct perm_parsed_args parsed = ParsePermArgs(state, argc, args);
++
++        if (recursive) {
++            recursive_parsed_args = parsed;
++            recursive_state = state;
++            bad += nftw(args[0], do_SetMetadataRecursive, 30, FTW_CHDIR | FTW_DEPTH | FTW_PHYS);
++            memset(&recursive_parsed_args, 0, sizeof(recursive_parsed_args));
++            recursive_state = NULL;
++        } else {
++            bad += ApplyParsedPerms(state, args[0], &sb, parsed);
++        }
++    }
++
++done:
++    for (int i = 0; i < argc; ++i) {
++        free(args[i]);
++    }
++    free(args);
++
++    if (result != NULL) {
++        return result;
++    }
++
++    if (bad > 0) {
++        return ErrorAbort(state, kSetMetadataFailure, "%s: some changes failed", name);
++    }
++
++    return StringValue(strdup(""));
++}
++
++Value* GetPropFn(const char* name, State* state, int argc, Expr* argv[]) {
++    if (argc != 1) {
++        return ErrorAbort(state, kArgsParsingFailure, "%s() expects 1 arg, got %d", name, argc);
++    }
++    char* key = Evaluate(state, argv[0]);
++    if (key == NULL) return NULL;
++
++    char value[PROPERTY_VALUE_MAX];
++    property_get(key, value, "");
++    free(key);
++
++    return StringValue(strdup(value));
++}
++
++// file_getprop(file, key)
++//
++//   interprets 'file' as a getprop-style file (key=value pairs, one
++//   per line. # comment lines,blank lines, lines without '=' ignored),
++//   and returns the value for 'key' (or "" if it isn't defined).
++Value* FileGetPropFn(const char* name, State* state, int argc, Expr* argv[]) {
++    char* result = NULL;
++    char* buffer = NULL;
++    char* filename;
++    char* key;
++    if (ReadArgs(state, argv, 2, &filename, &key) < 0) {
++        return NULL;
++    }
++
++    struct stat st;
++    if (stat(filename, &st) < 0) {
++        ErrorAbort(state, kFileGetPropFailure, "%s: failed to stat \"%s\": %s", name, filename,
++                   strerror(errno));
++        goto done;
++    }
++
++#define MAX_FILE_GETPROP_SIZE    65536
++
++    if (st.st_size > MAX_FILE_GETPROP_SIZE) {
++        ErrorAbort(state, kFileGetPropFailure, "%s too large for %s (max %d)", filename, name,
++                   MAX_FILE_GETPROP_SIZE);
++        goto done;
++    }
++
++    buffer = reinterpret_cast<char*>(malloc(st.st_size+1));
++    if (buffer == NULL) {
++        ErrorAbort(state, kFileGetPropFailure, "%s: failed to alloc %lld bytes", name,
++                   (long long)st.st_size+1);
++        goto done;
++    }
++
++    FILE* f;
++    f = fopen(filename, "rb");
++    if (f == NULL) {
++        ErrorAbort(state, kFileOpenFailure, "%s: failed to open %s: %s", name, filename,
++                   strerror(errno));
++        goto done;
++    }
++
++    if (ota_fread(buffer, 1, st.st_size, f) != static_cast<size_t>(st.st_size)) {
++        ErrorAbort(state, kFreadFailure, "%s: failed to read %lld bytes from %s",
++                   name, (long long)st.st_size+1, filename);
++        fclose(f);
++        goto done;
++    }
++    buffer[st.st_size] = '\0';
++
++    fclose(f);
++
++    char* line;
++    line = strtok(buffer, "\n");
++    do {
++        // skip whitespace at start of line
++        while (*line && isspace(*line)) ++line;
++
++        // comment or blank line: skip to next line
++        if (*line == '\0' || *line == '#') continue;
++
++        char* equal = strchr(line, '=');
++        if (equal == NULL) {
++            continue;
++        }
++
++        // trim whitespace between key and '='
++        char* key_end = equal-1;
++        while (key_end > line && isspace(*key_end)) --key_end;
++        key_end[1] = '\0';
++
++        // not the key we're looking for
++        if (strcmp(key, line) != 0) continue;
++
++        // skip whitespace after the '=' to the start of the value
++        char* val_start = equal+1;
++        while(*val_start && isspace(*val_start)) ++val_start;
++
++        // trim trailing whitespace
++        char* val_end = val_start + strlen(val_start)-1;
++        while (val_end > val_start && isspace(*val_end)) --val_end;
++        val_end[1] = '\0';
++
++        result = strdup(val_start);
++        break;
++
++    } while ((line = strtok(NULL, "\n")));
++
++    if (result == NULL) result = strdup("");
++
++  done:
++    free(filename);
++    free(key);
++    free(buffer);
++    return StringValue(result);
++}
++
++// write_raw_image(filename_or_blob, partition)
++Value* WriteRawImageFn(const char* name, State* state, int argc, Expr* argv[]) {
++    char* result = NULL;
++
++    Value* partition_value;
++    Value* contents;
++    if (ReadValueArgs(state, argv, 2, &contents, &partition_value) < 0) {
++        return NULL;
++    }
++
++    char* partition = NULL;
++    if (partition_value->type != VAL_STRING) {
++        ErrorAbort(state, kArgsParsingFailure, "partition argument to %s must be string", name);
++        goto done;
++    }
++    partition = partition_value->data;
++    if (strlen(partition) == 0) {
++        ErrorAbort(state, kArgsParsingFailure, "partition argument to %s can't be empty", name);
++        goto done;
++    }
++    if (contents->type == VAL_STRING && strlen((char*) contents->data) == 0) {
++        ErrorAbort(state, kArgsParsingFailure, "file argument to %s can't be empty", name);
++        goto done;
++    }
++
++    mtd_scan_partitions();
++    const MtdPartition* mtd;
++    mtd = mtd_find_partition_by_name(partition);
++    if (mtd == NULL) {
++        printf("%s: no mtd partition named \"%s\"\n", name, partition);
++        result = strdup("");
++        goto done;
++    }
++
++    MtdWriteContext* ctx;
++    ctx = mtd_write_partition(mtd);
++    if (ctx == NULL) {
++        printf("%s: can't write mtd partition \"%s\"\n",
++                name, partition);
++        result = strdup("");
++        goto done;
++    }
++
++    bool success;
++
++    if (contents->type == VAL_STRING) {
++        // we're given a filename as the contents
++        char* filename = contents->data;
++        FILE* f = ota_fopen(filename, "rb");
++        if (f == NULL) {
++            printf("%s: can't open %s: %s\n", name, filename, strerror(errno));
++            result = strdup("");
++            goto done;
++        }
++
++        success = true;
++        char* buffer = reinterpret_cast<char*>(malloc(BUFSIZ));
++        int read;
++        while (success && (read = ota_fread(buffer, 1, BUFSIZ, f)) > 0) {
++            int wrote = mtd_write_data(ctx, buffer, read);
++            success = success && (wrote == read);
++        }
++        free(buffer);
++        ota_fclose(f);
++    } else {
++        // we're given a blob as the contents
++        ssize_t wrote = mtd_write_data(ctx, contents->data, contents->size);
++        success = (wrote == contents->size);
++    }
++    if (!success) {
++        printf("mtd_write_data to %s failed: %s\n",
++                partition, strerror(errno));
++    }
++
++    if (mtd_erase_blocks(ctx, -1) == -1) {
++        printf("%s: error erasing blocks of %s\n", name, partition);
++    }
++    if (mtd_write_close(ctx) != 0) {
++        printf("%s: error closing write of %s\n", name, partition);
++    }
++
++    printf("%s %s partition\n",
++           success ? "wrote" : "failed to write", partition);
++
++    result = success ? partition : strdup("");
++
++done:
++    if (result != partition) FreeValue(partition_value);
++    FreeValue(contents);
++    return StringValue(result);
++}
++
++// apply_patch_space(bytes)
++Value* ApplyPatchSpaceFn(const char* name, State* state,
++                         int argc, Expr* argv[]) {
++    char* bytes_str;
++    if (ReadArgs(state, argv, 1, &bytes_str) < 0) {
++        return NULL;
++    }
++
++    size_t bytes;
++    if (!android::base::ParseUint(bytes_str, &bytes)) {
++        ErrorAbort(state, kArgsParsingFailure, "%s(): can't parse \"%s\" as byte count\n\n",
++                   name, bytes_str);
++        free(bytes_str);
++        return nullptr;
++    }
++
++    return StringValue(strdup(CacheSizeCheck(bytes) ? "" : "t"));
++}
++
++// apply_patch(file, size, init_sha1, tgt_sha1, patch)
++
++Value* ApplyPatchFn(const char* name, State* state, int argc, Expr* argv[]) {
++    if (argc < 6 || (argc % 2) == 1) {
++        return ErrorAbort(state, kArgsParsingFailure, "%s(): expected at least 6 args and an "
++                                 "even number, got %d", name, argc);
++    }
++
++    char* source_filename;
++    char* target_filename;
++    char* target_sha1;
++    char* target_size_str;
++    if (ReadArgs(state, argv, 4, &source_filename, &target_filename,
++                 &target_sha1, &target_size_str) < 0) {
++        return NULL;
++    }
++
++    size_t target_size;
++    if (!android::base::ParseUint(target_size_str, &target_size)) {
++        ErrorAbort(state, kArgsParsingFailure, "%s(): can't parse \"%s\" as byte count",
++                   name, target_size_str);
++        free(source_filename);
++        free(target_filename);
++        free(target_sha1);
++        free(target_size_str);
++        return nullptr;
++    }
++
++    int patchcount = (argc-4) / 2;
++    std::unique_ptr<Value*, decltype(&free)> arg_values(ReadValueVarArgs(state, argc-4, argv+4),
++                                                        free);
++    if (!arg_values) {
++        return nullptr;
++    }
++    std::vector<std::unique_ptr<Value, decltype(&FreeValue)>> patch_shas;
++    std::vector<std::unique_ptr<Value, decltype(&FreeValue)>> patches;
++    // Protect values by unique_ptrs first to get rid of memory leak.
++    for (int i = 0; i < patchcount * 2; i += 2) {
++        patch_shas.emplace_back(arg_values.get()[i], FreeValue);
++        patches.emplace_back(arg_values.get()[i+1], FreeValue);
++    }
++
++    for (int i = 0; i < patchcount; ++i) {
++        if (patch_shas[i]->type != VAL_STRING) {
++            ErrorAbort(state, kArgsParsingFailure, "%s(): sha-1 #%d is not string", name, i);
++            return nullptr;
++        }
++        if (patches[i]->type != VAL_BLOB) {
++            ErrorAbort(state, kArgsParsingFailure, "%s(): patch #%d is not blob", name, i);
++            return nullptr;
++        }
++    }
++
++    std::vector<char*> patch_sha_str;
++    std::vector<Value*> patch_ptrs;
++    for (int i = 0; i < patchcount; ++i) {
++        patch_sha_str.push_back(patch_shas[i]->data);
++        patch_ptrs.push_back(patches[i].get());
++    }
++
++    int result = applypatch(source_filename, target_filename,
++                            target_sha1, target_size,
++                            patchcount, patch_sha_str.data(), patch_ptrs.data(), NULL);
++
++    return StringValue(strdup(result == 0 ? "t" : ""));
++}
++
++// apply_patch_check(file, [sha1_1, ...])
++Value* ApplyPatchCheckFn(const char* name, State* state,
++                         int argc, Expr* argv[]) {
++    if (argc < 1) {
++        return ErrorAbort(state, kArgsParsingFailure, "%s(): expected at least 1 arg, got %d",
++                          name, argc);
++    }
++
++    char* filename;
++    if (ReadArgs(state, argv, 1, &filename) < 0) {
++        return NULL;
++    }
++
++    int patchcount = argc-1;
++    char** sha1s = ReadVarArgs(state, argc-1, argv+1);
++
++    int result = applypatch_check(filename, patchcount, sha1s);
++
++    int i;
++    for (i = 0; i < patchcount; ++i) {
++        free(sha1s[i]);
++    }
++    free(sha1s);
++
++    return StringValue(strdup(result == 0 ? "t" : ""));
++}
++
++// This is the updater side handler for ui_print() in edify script. Contents
++// will be sent over to the recovery side for on-screen display.
++Value* UIPrintFn(const char* name, State* state, int argc, Expr* argv[]) {
++    char** args = ReadVarArgs(state, argc, argv);
++    if (args == NULL) {
++        return NULL;
++    }
++
++    std::string buffer;
++    for (int i = 0; i < argc; ++i) {
++        buffer += args[i];
++        free(args[i]);
++    }
++    free(args);
++
++    buffer += "\n";
++    uiPrint(state, buffer);
++    return StringValue(strdup(buffer.c_str()));
++}
++
++Value* WipeCacheFn(const char* name, State* state, int argc, Expr* argv[]) {
++    if (argc != 0) {
++        return ErrorAbort(state, kArgsParsingFailure, "%s() expects no args, got %d", name, argc);
++    }
++    fprintf(((UpdaterInfo*)(state->cookie))->cmd_pipe, "wipe_cache\n");
++    return StringValue(strdup("t"));
++}
++
++Value* RunProgramFn(const char* name, State* state, int argc, Expr* argv[]) {
++    if (argc < 1) {
++        return ErrorAbort(state, kArgsParsingFailure, "%s() expects at least 1 arg", name);
++    }
++    char** args = ReadVarArgs(state, argc, argv);
++    if (args == NULL) {
++        return NULL;
++    }
++
++    char** args2 = reinterpret_cast<char**>(malloc(sizeof(char*) * (argc+1)));
++    memcpy(args2, args, sizeof(char*) * argc);
++    args2[argc] = NULL;
++
++    printf("about to run program [%s] with %d args\n", args2[0], argc);
++
++    pid_t child = fork();
++    if (child == 0) {
++        execv(args2[0], args2);
++        printf("run_program: execv failed: %s\n", strerror(errno));
++        _exit(1);
++    }
++    int status;
++    waitpid(child, &status, 0);
++    if (WIFEXITED(status)) {
++        if (WEXITSTATUS(status) != 0) {
++            printf("run_program: child exited with status %d\n",
++                    WEXITSTATUS(status));
++        }
++    } else if (WIFSIGNALED(status)) {
++        printf("run_program: child terminated by signal %d\n",
++                WTERMSIG(status));
++    }
++
++    int i;
++    for (i = 0; i < argc; ++i) {
++        free(args[i]);
++    }
++    free(args);
++    free(args2);
++
++    char buffer[20];
++    sprintf(buffer, "%d", status);
++
++    return StringValue(strdup(buffer));
++}
++
++// sha1_check(data)
++//    to return the sha1 of the data (given in the format returned by
++//    read_file).
++//
++// sha1_check(data, sha1_hex, [sha1_hex, ...])
++//    returns the sha1 of the file if it matches any of the hex
++//    strings passed, or "" if it does not equal any of them.
++//
++Value* Sha1CheckFn(const char* name, State* state, int argc, Expr* argv[]) {
++    if (argc < 1) {
++        return ErrorAbort(state, kArgsParsingFailure, "%s() expects at least 1 arg", name);
++    }
++
++    std::unique_ptr<Value*, decltype(&free)> arg_values(ReadValueVarArgs(state, argc, argv), free);
++    if (arg_values == nullptr) {
++        return nullptr;
++    }
++    std::vector<std::unique_ptr<Value, decltype(&FreeValue)>> args;
++    for (int i = 0; i < argc; ++i) {
++        args.emplace_back(arg_values.get()[i], FreeValue);
++    }
++
++    if (args[0]->size < 0) {
++        return StringValue(strdup(""));
++    }
++    uint8_t digest[SHA_DIGEST_LENGTH];
++    SHA1(reinterpret_cast<uint8_t*>(args[0]->data), args[0]->size, digest);
++
++    if (argc == 1) {
++        return StringValue(PrintSha1(digest));
++    }
++
++    int i;
++    uint8_t arg_digest[SHA_DIGEST_LENGTH];
++    for (i = 1; i < argc; ++i) {
++        if (args[i]->type != VAL_STRING) {
++            printf("%s(): arg %d is not a string; skipping",
++                    name, i);
++        } else if (ParseSha1(args[i]->data, arg_digest) != 0) {
++            // Warn about bad args and skip them.
++            printf("%s(): error parsing \"%s\" as sha-1; skipping",
++                   name, args[i]->data);
++        } else if (memcmp(digest, arg_digest, SHA_DIGEST_LENGTH) == 0) {
++            break;
++        }
++    }
++    if (i >= argc) {
++        // Didn't match any of the hex strings; return false.
++        return StringValue(strdup(""));
++    }
++    // Found a match.
++    return args[i].release();
++}
++
++// Read a local file and return its contents (the Value* returned
++// is actually a FileContents*).
++Value* ReadFileFn(const char* name, State* state, int argc, Expr* argv[]) {
++    if (argc != 1) {
++        return ErrorAbort(state, kArgsParsingFailure, "%s() expects 1 arg, got %d", name, argc);
++    }
++    char* filename;
++    if (ReadArgs(state, argv, 1, &filename) < 0) return NULL;
++
++    Value* v = static_cast<Value*>(malloc(sizeof(Value)));
++    if (v == nullptr) {
++        return nullptr;
++    }
++    v->type = VAL_BLOB;
++    v->size = -1;
++    v->data = nullptr;
++
++    FileContents fc;
++    if (LoadFileContents(filename, &fc) == 0) {
++        v->data = static_cast<char*>(malloc(fc.data.size()));
++        if (v->data != nullptr) {
++            memcpy(v->data, fc.data.data(), fc.data.size());
++            v->size = fc.data.size();
++        }
++    }
++    free(filename);
++    return v;
++}
++
++// write_value(value, filename)
++//   Writes 'value' to 'filename'.
++//   Example: write_value("960000", "/sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq")
++Value* WriteValueFn(const char* name, State* state, int argc, Expr* argv[]) {
++    if (argc != 2) {
++        return ErrorAbort(state, kArgsParsingFailure, "%s() expects 2 args, got %d", name, argc);
++    }
++
++    char* value;
++    char* filename;
++    if (ReadArgs(state, argv, 2, &value, &filename) < 0) {
++        return ErrorAbort(state, kArgsParsingFailure, "%s(): Failed to parse the argument(s)",
++                          name);
++    }
++
++    bool ret = android::base::WriteStringToFile(value, filename);
++    if (!ret) {
++        printf("%s: Failed to write to \"%s\": %s\n", name, filename, strerror(errno));
++    }
++
++    free(value);
++    free(filename);
++    return StringValue(strdup(ret ? "t" : ""));
++}
++
++// Immediately reboot the device.  Recovery is not finished normally,
++// so if you reboot into recovery it will re-start applying the
++// current package (because nothing has cleared the copy of the
++// arguments stored in the BCB).
++//
++// The argument is the partition name passed to the android reboot
++// property.  It can be "recovery" to boot from the recovery
++// partition, or "" (empty string) to boot from the regular boot
++// partition.
++Value* RebootNowFn(const char* name, State* state, int argc, Expr* argv[]) {
++    if (argc != 2) {
++        return ErrorAbort(state, kArgsParsingFailure, "%s() expects 2 args, got %d", name, argc);
++    }
++
++    char* filename;
++    char* property;
++    if (ReadArgs(state, argv, 2, &filename, &property) < 0) return NULL;
++
++    char buffer[80];
++
++    // zero out the 'command' field of the bootloader message.
++    memset(buffer, 0, sizeof(((struct bootloader_message*)0)->command));
++    FILE* f = fopen(filename, "r+b");
++    fseek(f, offsetof(struct bootloader_message, command), SEEK_SET);
++    fseek(f, BOOTLOADER_MESSAGE_OFFSET_IN_MISC, SEEK_CUR);
++    ota_fwrite(buffer, sizeof(((struct bootloader_message*)0)->command), 1, f);
++    fclose(f);
++    free(filename);
++
++    strcpy(buffer, "reboot,");
++    if (property != NULL) {
++        strncat(buffer, property, sizeof(buffer)-10);
++    }
++
++    property_set(ANDROID_RB_PROPERTY, buffer);
++
++    sleep(5);
++    free(property);
++    ErrorAbort(state, kRebootFailure, "%s() failed to reboot", name);
++    return NULL;
++}
++
++// Store a string value somewhere that future invocations of recovery
++// can access it.  This value is called the "stage" and can be used to
++// drive packages that need to do reboots in the middle of
++// installation and keep track of where they are in the multi-stage
++// install.
++//
++// The first argument is the block device for the misc partition
++// ("/misc" in the fstab), which is where this value is stored.  The
++// second argument is the string to store; it should not exceed 31
++// bytes.
++Value* SetStageFn(const char* name, State* state, int argc, Expr* argv[]) {
++    if (argc != 2) {
++        return ErrorAbort(state, kArgsParsingFailure, "%s() expects 2 args, got %d", name, argc);
++    }
++
++    char* filename;
++    char* stagestr;
++    if (ReadArgs(state, argv, 2, &filename, &stagestr) < 0) return NULL;
++
++    // Store this value in the misc partition, immediately after the
++    // bootloader message that the main recovery uses to save its
++    // arguments in case of the device restarting midway through
++    // package installation.
++    FILE* f = fopen(filename, "r+b");
++    fseek(f, offsetof(struct bootloader_message, stage), SEEK_SET);
++    fseek(f, BOOTLOADER_MESSAGE_OFFSET_IN_MISC, SEEK_CUR);
++    int to_write = strlen(stagestr)+1;
++    int max_size = sizeof(((struct bootloader_message*)0)->stage);
++    if (to_write > max_size) {
++        to_write = max_size;
++        stagestr[max_size-1] = 0;
++    }
++    ota_fwrite(stagestr, to_write, 1, f);
++    fclose(f);
++
++    free(stagestr);
++    return StringValue(filename);
++}
++
++// Return the value most recently saved with SetStageFn.  The argument
++// is the block device for the misc partition.
++Value* GetStageFn(const char* name, State* state, int argc, Expr* argv[]) {
++    if (argc != 1) {
++        return ErrorAbort(state, kArgsParsingFailure, "%s() expects 1 arg, got %d", name, argc);
++    }
++
++    char* filename;
++    if (ReadArgs(state, argv, 1, &filename) < 0) return NULL;
++
++    char buffer[sizeof(((struct bootloader_message*)0)->stage)];
++    FILE* f = fopen(filename, "rb");
++    fseek(f, offsetof(struct bootloader_message, stage), SEEK_SET);
++    fseek(f, BOOTLOADER_MESSAGE_OFFSET_IN_MISC, SEEK_CUR);
++    ota_fread(buffer, sizeof(buffer), 1, f);
++    fclose(f);
++    buffer[sizeof(buffer)-1] = '\0';
++
++    return StringValue(strdup(buffer));
++}
++
++Value* WipeBlockDeviceFn(const char* name, State* state, int argc, Expr* argv[]) {
++    if (argc != 2) {
++        return ErrorAbort(state, kArgsParsingFailure, "%s() expects 2 args, got %d", name, argc);
++    }
++
++    char* filename;
++    char* len_str;
++    if (ReadArgs(state, argv, 2, &filename, &len_str) < 0) return NULL;
++
++    size_t len;
++    android::base::ParseUint(len_str, &len);
++    int fd = ota_open(filename, O_WRONLY, 0644);
++    int success = wipe_block_device(fd, len);
++
++    free(filename);
++    free(len_str);
++
++    ota_close(fd);
++
++    return StringValue(strdup(success ? "t" : ""));
++}
++
++Value* EnableRebootFn(const char* name, State* state, int argc, Expr* argv[]) {
++    if (argc != 0) {
++        return ErrorAbort(state, kArgsParsingFailure, "%s() expects no args, got %d", name, argc);
++    }
++    UpdaterInfo* ui = (UpdaterInfo*)(state->cookie);
++    fprintf(ui->cmd_pipe, "enable_reboot\n");
++    return StringValue(strdup("t"));
++}
++
++Value* Tune2FsFn(const char* name, State* state, int argc, Expr* argv[]) {
++#ifdef HAVE_LIBTUNE2FS
++    if (argc == 0) {
++        return ErrorAbort(state, kArgsParsingFailure, "%s() expects args, got %d", name, argc);
++    }
++
++    char** args = ReadVarArgs(state, argc, argv);
++    if (args == NULL) {
++        return ErrorAbort(state, kArgsParsingFailure, "%s() could not read args", name);
++    }
++
++    char** args2 = reinterpret_cast<char**>(malloc(sizeof(char*) * (argc+1)));
++    // Tune2fs expects the program name as its args[0]
++    args2[0] = strdup(name);
++    for (int i = 0; i < argc; ++i) {
++       args2[i + 1] = args[i];
++    }
++    int result = tune2fs_main(argc + 1, args2);
++    for (int i = 0; i < argc; ++i) {
++        free(args[i]);
++    }
++    free(args);
++
++    free(args2[0]);
++    free(args2);
++    if (result != 0) {
++        return ErrorAbort(state, kTune2FsFailure, "%s() returned error code %d",
++                          name, result);
++    }
++    return StringValue(strdup("t"));
++#else
++    return ErrorAbort(state, "%s() support not present, no libtune2fs", name);
++#endif // HAVE_LIBTUNE2FS
++}
++
++void RegisterInstallFunctions() {
++    RegisterFunction("mount", MountFn);
++    RegisterFunction("is_mounted", IsMountedFn);
++    RegisterFunction("unmount", UnmountFn);
++    RegisterFunction("format", FormatFn);
++    RegisterFunction("show_progress", ShowProgressFn);
++    RegisterFunction("set_progress", SetProgressFn);
++    RegisterFunction("delete", DeleteFn);
++    RegisterFunction("delete_recursive", DeleteFn);
++    RegisterFunction("package_extract_dir", PackageExtractDirFn);
++    RegisterFunction("package_extract_file", PackageExtractFileFn);
++    RegisterFunction("symlink", SymlinkFn);
++
++    // Usage:
++    //   set_metadata("filename", "key1", "value1", "key2", "value2", ...)
++    // Example:
++    //   set_metadata("/system/bin/netcfg", "uid", 0, "gid", 3003, "mode", 02750, "selabel", "u:object_r:system_file:s0", "capabilities", 0x0);
++    RegisterFunction("set_metadata", SetMetadataFn);
++
++    // Usage:
++    //   set_metadata_recursive("dirname", "key1", "value1", "key2", "value2", ...)
++    // Example:
++    //   set_metadata_recursive("/system", "uid", 0, "gid", 0, "fmode", 0644, "dmode", 0755, "selabel", "u:object_r:system_file:s0", "capabilities", 0x0);
++    RegisterFunction("set_metadata_recursive", SetMetadataFn);
++
++    RegisterFunction("getprop", GetPropFn);
++    RegisterFunction("file_getprop", FileGetPropFn);
++    RegisterFunction("write_raw_image", WriteRawImageFn);
++
++    RegisterFunction("apply_patch", ApplyPatchFn);
++    RegisterFunction("apply_patch_check", ApplyPatchCheckFn);
++    RegisterFunction("apply_patch_space", ApplyPatchSpaceFn);
++
++    RegisterFunction("wipe_block_device", WipeBlockDeviceFn);
++
++    RegisterFunction("read_file", ReadFileFn);
++    RegisterFunction("sha1_check", Sha1CheckFn);
++    RegisterFunction("rename", RenameFn);
++    RegisterFunction("write_value", WriteValueFn);
++
++    RegisterFunction("wipe_cache", WipeCacheFn);
++
++    RegisterFunction("ui_print", UIPrintFn);
++
++    RegisterFunction("run_program", RunProgramFn);
++
++    RegisterFunction("reboot_now", RebootNowFn);
++    RegisterFunction("get_stage", GetStageFn);
++    RegisterFunction("set_stage", SetStageFn);
++
++    RegisterFunction("enable_reboot", EnableRebootFn);
++    RegisterFunction("tune2fs", Tune2FsFn);
++}
+diff --git a/local_updater/install.h b/local_updater/install.h
+new file mode 100644
+index 00000000..70e34340
+--- /dev/null
++++ b/local_updater/install.h
+@@ -0,0 +1,27 @@
++/*
++ * Copyright (C) 2009 The Android Open Source Project
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *      http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++
++#ifndef _UPDATER_INSTALL_H_
++#define _UPDATER_INSTALL_H_
++
++void RegisterInstallFunctions();
++
++// uiPrintf function prints msg to screen as well as logs
++void uiPrintf(State* state, const char* format, ...);
++
++static int make_parents(char* name);
++
++#endif
+diff --git a/local_updater/updater.cpp b/local_updater/updater.cpp
+new file mode 100644
+index 00000000..452c3530
+--- /dev/null
++++ b/local_updater/updater.cpp
+@@ -0,0 +1,231 @@
++/*
++ * Copyright (C) 2009 The Android Open Source Project
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *      http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++
++#include <stdio.h>
++#include <unistd.h>
++#include <stdlib.h>
++#include <fcntl.h>
++#include <string.h>
++
++#include "edify/expr.h"
++#include "updater.h"
++#include "install.h"
++#include "blockimg.h"
++#include "minzip/Zip.h"
++#include "minzip/SysUtil.h"
++#include "config.h"
++
++// Generated by the makefile, this function defines the
++// RegisterDeviceExtensions() function, which calls all the
++// registration functions for device-specific extensions.
++#include "register.inc"
++
++// Where in the package we expect to find the edify script to execute.
++// (Note it's "updateR-script", not the older "update-script".)
++#define SCRIPT_NAME "META-INF/com/google/android/updater-script"
++#define SELINUX_CONTEXTS_ZIP "file_contexts"
++#define SELINUX_CONTEXTS_TMP "/tmp/file_contexts"
++
++extern bool have_eio_error;
++
++struct selabel_handle *sehandle;
++
++int main(int argc, char** argv) {
++    // Various things log information to stdout or stderr more or less
++    // at random (though we've tried to standardize on stdout).  The
++    // log file makes more sense if buffering is turned off so things
++    // appear in the right order.
++    setbuf(stdout, NULL);
++    setbuf(stderr, NULL);
++
++    if (argc != 4 && argc != 5) {
++        printf("unexpected number of arguments (%d)\n", argc);
++        return 1;
++    }
++
++    char* version = argv[1];
++    if ((version[0] != '1' && version[0] != '2' && version[0] != '3') ||
++        version[1] != '\0') {
++        // We support version 1, 2, or 3.
++        printf("wrong updater binary API; expected 1, 2, or 3; "
++                        "got %s\n",
++                argv[1]);
++        return 2;
++    }
++
++    // Set up the pipe for sending commands back to the parent process.
++
++    int fd = atoi(argv[2]);
++    FILE* cmd_pipe = fdopen(fd, "wb");
++    setlinebuf(cmd_pipe);
++
++    // Extract the script from the package.
++
++    const char* package_filename = argv[3];
++    MemMapping map;
++    if (sysMapFile(package_filename, &map) != 0) {
++        printf("failed to map package %s\n", argv[3]);
++        return 3;
++    }
++    ZipArchive za;
++    int err;
++    err = mzOpenZipArchive(map.addr, map.length, &za);
++    if (err != 0) {
++        printf("failed to open package %s: %s\n",
++               argv[3], strerror(err));
++        return 3;
++    }
++    ota_io_init(&za);
++
++    const ZipEntry* script_entry = mzFindZipEntry(&za, SCRIPT_NAME);
++    if (script_entry == NULL) {
++        printf("failed to find %s in %s\n", SCRIPT_NAME, package_filename);
++        return 4;
++    }
++
++    char* script = reinterpret_cast<char*>(malloc(script_entry->uncompLen+1));
++    if (!mzReadZipEntry(&za, script_entry, script, script_entry->uncompLen)) {
++        printf("failed to read script from package\n");
++        return 5;
++    }
++    script[script_entry->uncompLen] = '\0';
++
++    const ZipEntry* file_contexts_entry = mzFindZipEntry(&za, SELINUX_CONTEXTS_ZIP);
++    if (file_contexts_entry != NULL) {
++        int file_contexts_fd = creat(SELINUX_CONTEXTS_TMP, 0644);
++		if (file_contexts_fd < 0) {
++			fprintf(stderr, "Could not extract %s to '%s'\n", SELINUX_CONTEXTS_ZIP, SELINUX_CONTEXTS_TMP);
++			return 3;
++		}
++
++		int ret_val = mzExtractZipEntryToFile(&za, file_contexts_entry, file_contexts_fd);
++		close(file_contexts_fd);
++
++		if (!ret_val) {
++			fprintf(stderr, "Could not extract '%s'\n", SELINUX_CONTEXTS_ZIP);
++			return 3;
++		}
++    }
++
++    // Configure edify's functions.
++
++    RegisterBuiltins();
++    RegisterInstallFunctions();
++    RegisterBlockImageFunctions();
++    RegisterDeviceExtensions();
++    FinishRegistration();
++
++    // Parse the script.
++
++    Expr* root;
++    int error_count = 0;
++    int error = parse_string(script, &root, &error_count);
++    if (error != 0 || error_count > 0) {
++        printf("%d parse errors\n", error_count);
++        return 6;
++    }
++
++    if (access(SELINUX_CONTEXTS_TMP, R_OK) == 0) {
++        struct selinux_opt seopts[] = {
++          { SELABEL_OPT_PATH, SELINUX_CONTEXTS_TMP }
++        };
++
++        sehandle = selabel_open(SELABEL_CTX_FILE, seopts, 1);
++    } else {
++        struct selinux_opt seopts[] = {
++          { SELABEL_OPT_PATH, "/file_contexts" }
++        };
++
++        sehandle = selabel_open(SELABEL_CTX_FILE, seopts, 1);
++    }
++
++    if (!sehandle) {
++        fprintf(cmd_pipe, "ui_print Warning: No file_contexts\n");
++    }
++
++    // Evaluate the parsed script.
++
++    UpdaterInfo updater_info;
++    updater_info.cmd_pipe = cmd_pipe;
++    updater_info.package_zip = &za;
++    updater_info.version = atoi(version);
++    updater_info.package_zip_addr = map.addr;
++    updater_info.package_zip_len = map.length;
++
++    State state;
++    state.cookie = &updater_info;
++    state.script = script;
++    state.errmsg = NULL;
++
++    if (argc == 5) {
++        if (strcmp(argv[4], "retry") == 0) {
++            state.is_retry = true;
++        } else {
++            printf("unexpected argument: %s", argv[4]);
++        }
++    }
++
++    char* result = Evaluate(&state, root);
++
++    if (have_eio_error) {
++        fprintf(cmd_pipe, "retry_update\n");
++    }
++
++    if (result == NULL) {
++        if (state.errmsg == NULL) {
++            printf("script aborted (no error message)\n");
++            fprintf(cmd_pipe, "ui_print script aborted (no error message)\n");
++        } else {
++            printf("script aborted: %s\n", state.errmsg);
++            char* line = strtok(state.errmsg, "\n");
++            while (line) {
++                // Parse the error code in abort message.
++                // Example: "E30: This package is for bullhead devices."
++                if (*line == 'E') {
++                    if (sscanf(line, "E%u: ", &state.error_code) != 1) {
++                         printf("Failed to parse error code: [%s]\n", line);
++                    }
++                }
++                fprintf(cmd_pipe, "ui_print %s\n", line);
++                line = strtok(NULL, "\n");
++            }
++            fprintf(cmd_pipe, "ui_print\n");
++        }
++
++        if (state.error_code != kNoError) {
++            fprintf(cmd_pipe, "log error: %d\n", state.error_code);
++            // Cause code should provide additional information about the abort;
++            // report only when an error exists.
++            if (state.cause_code != kNoCause) {
++                fprintf(cmd_pipe, "log cause: %d\n", state.cause_code);
++            }
++        }
++
++        free(state.errmsg);
++        return 7;
++    } else {
++        fprintf(cmd_pipe, "ui_print script succeeded: result was [%s]\n", result);
++        free(result);
++    }
++
++    if (updater_info.package_zip) {
++        mzCloseZipArchive(updater_info.package_zip);
++    }
++    sysReleaseMap(&map);
++    free(script);
++
++    return 0;
++}
+diff --git a/local_updater/updater.h b/local_updater/updater.h
+new file mode 100644
+index 00000000..d1dfdd05
+--- /dev/null
++++ b/local_updater/updater.h
+@@ -0,0 +1,37 @@
++/*
++ * Copyright (C) 2009 The Android Open Source Project
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *      http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++
++#ifndef _UPDATER_UPDATER_H_
++#define _UPDATER_UPDATER_H_
++
++#include <stdio.h>
++#include "minzip/Zip.h"
++
++#include <selinux/selinux.h>
++#include <selinux/label.h>
++
++typedef struct {
++    FILE* cmd_pipe;
++    ZipArchive* package_zip;
++    int version;
++
++    uint8_t* package_zip_addr;
++    size_t package_zip_len;
++} UpdaterInfo;
++
++extern struct selabel_handle *sehandle;
++
++#endif
+-- 
+2.17.0
+
