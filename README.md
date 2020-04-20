@@ -28,10 +28,12 @@ GPU     | Mali-T860
  * MTP
  * Display
  * Thermal
- * flashlight
+ * Flashlight
  * OMX
+ * RIL(GSM)
+ * Goodix fingerprint
 
 ### 不工作:
  * Camera
- * RIL
- * Goodix fingerprint
+ * RIL(CDMA)
+ * Tee(mcDeviceDaemon)
