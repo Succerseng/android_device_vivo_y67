@@ -100,10 +100,6 @@ PRODUCT_COPY_FILES += \
 ADDITIONAL_DEFAULT_PROPERTIES += \
     persist.sys.fptype=goodix_5126m
 
-# /*无法启动指纹暂时开启虚拟按键*/
-PRODUCT_PROPERTY_OVERRIDES += \
-    qemu.hw.mainkeys=0
-
 # gps
 $(call inherit-product, device/common/gps/gps_us_supl.mk)
 

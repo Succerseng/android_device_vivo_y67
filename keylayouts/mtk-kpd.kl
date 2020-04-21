@@ -94,3 +94,12 @@ key 163   MEDIA_NEXT
 key 165   MEDIA_PREVIOUS
 key 168   MEDIA_REWIND
 key 159   MEDIA_FAST_FORWARD
+
+# liuwei add key for fingerprint begin
+key 744 FINGERPRINT_TOUCH
+key 745 FINGERPRINT_SCREENSHOT
+# liuwei add key for fingerprint end
+
+#vivo chenyidian add for VIVO_KEY_CODE begin
+key 746 KEY_TS_SWIPE
+#vivo chenyidian add for VIVO_KEY_CODE begin
