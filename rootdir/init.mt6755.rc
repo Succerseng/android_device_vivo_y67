@@ -40,9 +40,6 @@ on init
     chmod 0666 /dev/kmsg
 
 on fs
-    wait /dev/block/platform/mtk-msdc.0/11230000.msdc0/by-name/cust
-    mount ext4 /dev/block/platform/mtk-msdc.0/11230000.msdc0/by-name/cust /oem ro
-
     chmod 0666 /dev/kmsg
     start fuelgauged
 
