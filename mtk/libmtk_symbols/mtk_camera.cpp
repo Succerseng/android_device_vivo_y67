@@ -219,4 +219,8 @@ extern "C"{
             return 0;
         }
 #endif
+        char _ZN7android13ParamsManager13setParametersERKNS_16CameraParametersE(){
+            return 0;
+        }
+        char setLogLevelToEngLoad(){return 0;}
 }
