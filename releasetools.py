@@ -64,12 +64,12 @@ def InstallRawImage(image_data, api_version, input_zip, fn, info, filesmap):
     partition = filesmap[filename][0]
     checksum = filesmap[filename][1]
     file_size = filesmap[filename][2]
-    # read_file returns a blob or NULL. Use sha1_check to convert to a string
-    # that can be evaluated (a NULL results in an empty string)
-    info.script.AppendExtra('ifelse((sha1_check(read_file("EMMC:%s:%d:%s")) != ""),'
+    # Unzip the file first and then flash in with img
+    info.script.AppendExtra('ifelse((package_extract_file("%s", "/tmp/%s")),'
             '(ui_print("%s already up to date")),'
-            '(package_extract_file("%s", "%s")));'
-            % (partition, file_size, checksum, partition, filename, partition))
+            '(write_raw_image("/tmp/%s","%s")),'
+            '(delete("/tmp/%s")));'
+            % (partition, filename, filename, filename, partition, filename))
     common.ZipWriteStr(info.output_zip, filename, image_data)
     return
   else:
@@ -80,7 +80,9 @@ def InstallRadioFiles(info):
   if files == {}:
     print "warning radio-update: no radio image in input target_files; not flashing radio"
     return
-  info.script.Print("Writing radio image...")
+  info.script.Print("Writing bootloader image...")
+  # Remove partition protection...
+  info.script.AppendExtra('run_program("/sbin/dd", "if=/dev/zero", "of=/proc/driver/mtd_writeable", "bs=3c", "count=1");')
   #Load filesmap file
   filesmap = LoadFilesMap(info.input_zip)
   if filesmap == {}:

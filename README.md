@@ -1,6 +1,8 @@
 vivo y67(PD1612)
 ==============
 
+[vendor](https://github.com/BabQ/android_vendor_vivo_y67)
+
 ### 规格信息
 
 类型     | 细节

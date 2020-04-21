@@ -16,7 +16,6 @@ $(call inherit-product, $(SRC_TARGET_DIR)/product/core_64_bit.mk)
 $(call inherit-product, $(SRC_TARGET_DIR)/product/full_base_telephony.mk)
 
 TARGET_RECOVERY_VERSION := twrp
-TARGET_ADD_RADIO_FILES:= true
 
 $(call inherit-product, device/vivo/y67/device.mk)
 
