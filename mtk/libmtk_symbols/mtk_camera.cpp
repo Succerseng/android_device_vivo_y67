@@ -18,8 +18,8 @@ extern "C"{
             return 0;
         }
 
-        /* 目前尝试用其他机型的库替换掉vivo对其相机hal做的修改 */
 #if 0
+#else
         //所有可能的函数名都加进去
 
         //libcam.paramsmgr.so
