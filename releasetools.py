@@ -65,10 +65,10 @@ def InstallRawImage(image_data, api_version, input_zip, fn, info, filesmap):
     checksum = filesmap[filename][1]
     file_size = filesmap[filename][2]
     # Unzip the file first and then flash in with img
-    info.script.AppendExtra('assert(package_extract_file("%s", "/tmp/%s"),'
+    info.script.AppendExtra('assert(package_extract_file("%s","/tmp/%s"),'
             'write_raw_image("/tmp/%s","%s"),'
             'delete("/tmp/%s"));'
-            % (partition, filename, filename, partition, filename))
+            % (filename, filename, filename, partition, filename))
     common.ZipWriteStr(info.output_zip, filename, image_data)
     return
   else:
