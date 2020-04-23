@@ -151,6 +151,8 @@ TARGET_SYSTEM_PROP += $(DEVICE_PATH)/system.prop
 
 # Twrp
 ifeq ($(TARGET_RECOVERY_VERSION), twrp)
+TW_USE_LOCAL_BINARY := true
+TW_LOCAL_BINARY_PATH := "/sbin/local_binary"
 TW_CUSTOM_UPDATE_BLOB := true
 TW_INCLUDE_L_CRYPTO := true
 TW_CRYPTO_USE_SYSTEM_VOLD := true
@@ -165,6 +167,7 @@ RECOVERY_SDCARD_ON_DATA := true
 TW_EXCLUDE_SUPERSU := true
 RECOVERY_GRAPHICS_USE_LINELENGTH := true
 PRODUCT_COPY_FILES += $(DEVICE_PATH)/rootdir/recovery/etc/twrp.fstab:recovery/root/etc/twrp.fstab
+PRODUCT_COPY_FILES += $(DEVICE_PATH)/rootdir/recovery/sbin/local_binary:recovery/root/sbin/local_binary
 endif
 
 # Wireless

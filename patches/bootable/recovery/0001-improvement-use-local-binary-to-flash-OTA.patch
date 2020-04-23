@@ -1,0 +1,70 @@
+From 42540766000b9da83fb321237d605f789018bd81 Mon Sep 17 00:00:00 2001
+From: babq <succerseng@gmail.com>
+Date: Thu, 23 Apr 2020 13:35:23 +0800
+Subject: [PATCH] improvement: use local binary to flash OTA
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+尝试解决vivo刷机问题
+
+Signed-off-by: babq <succerseng@gmail.com>
+---
+ Android.mk  |  8 ++++++++
+ install.cpp | 20 ++++++++++++++++++++
+ 2 files changed, 28 insertions(+)
+
+diff --git a/Android.mk b/Android.mk
+index 85cdd325..3115ef2b 100644
+--- a/Android.mk
++++ b/Android.mk
+@@ -14,6 +14,14 @@
+ 
+ LOCAL_PATH := $(call my-dir)
+ 
++ifeq ($(TW_USE_LOCAL_BINARY), true)
++    ifdef TW_LOCAL_BINARY_PATH
++        LOCAL_CFLAGS += -DLOCAL_BINARY_PATH $(TW_LOCAL_BINARY_PATH)
++    else
++        LOCAL_CFLAGS += -DLOCAL_BINARY_PATH "/sbin/updater"
++    endif
++endif
++
+ ifdef project-path-for
+     ifeq ($(LOCAL_PATH),$(call project-path-for,recovery))
+         PROJECT_PATH_AGREES := true
+diff --git a/install.cpp b/install.cpp
+index e144d9b2..71ee2214 100644
+--- a/install.cpp
++++ b/install.cpp
+@@ -277,7 +277,27 @@ update_binary_command(const char* path, ZipArchive* zip, int retry_count,
+         LOGE("Can't make %s\n", binary);
+         return INSTALL_ERROR;
+     }
++
++#ifdef LOCAL_BINARY_PATH
++    const char* local_binary = LOCAL_BINARY_PATH;
++    if (metadata["ota-type"] == "FILE" && metadata["ota-type"] == "BLOCK" || access(local_binary, F_OK) == 0) {
++        LOGI("Package is OTA update use local bindary\n");
++        int client=fork();
++        if(client==0){
++            close(fd);
++            execl("/sbin/cp","%s %s",local_binary,binary);
++            _exit(1);
++        }else{
++            int status;
++            waitpid(client,&status,0);
++        }
++    }else{
++        LOGI("Package is not OTA update not use local bindary\n");
++        bool ok = mzExtractZipEntryToFile(zip, binary_entry, fd);
++    }
++#else
+     bool ok = mzExtractZipEntryToFile(zip, binary_entry, fd);
++#endif // USE_LOCAL_BINDARY
+     close(fd);
+ 
+     if (!ok) {
+-- 
+2.17.0
+
