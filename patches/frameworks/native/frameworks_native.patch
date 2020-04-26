@@ -208,6 +208,7 @@ index d8cabad..f2cd4c2 100644
 +ifeq ($(BOARD_HAS_MTK_HARDWARE),true)
 +LOCAL_SHARED_LIBRARIES += \
 +	libbinder
++LOCAL_CFLAGS += -DMTK_HARDWARE
 +endif
 +
  ifneq ($(BOARD_FRAMEBUFFER_FORCE_FORMAT),)
