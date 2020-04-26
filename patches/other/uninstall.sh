@@ -1,19 +1,12 @@
 #!/bin/sh
-cd frameworks/av
+
+cd bootable/recovery
 git checkout -- . && git clean -df
 cd ../..
 
-cd frameworks/base
+cd packages/apps/ManagedProvisioning
 git checkout -- . && git clean -df
-cd ../..
-
-cd frameworks/native
-git checkout -- . && git clean -df
-cd ../..
-
-cd bionic
-git checkout -- . && git clean -df
-cd ..
+cd ../../..
 
 cd system/core
 git checkout -- . && git clean -df
