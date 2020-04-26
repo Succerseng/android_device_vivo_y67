@@ -44,7 +44,7 @@ PRODUCT_BUILD_PROP_OVERRIDES += \
    BUILD_FINGERPRINT=vivo/PD1612/PD1612:6.0/MRA58K/1503320571:user/release-keys \
    PRIVATE_BUILD_DESC="full_bbk6750_66_m-user 6.0 MRA58K 1503320571 release-keys"
 
-# OTA更新(娱乐)
+# OTA更新
 UPDATER_RUL := "https://succerseng.top/updater/pd1612/update.json"
 PRODUCT_PROPERTY_OVERRIDES += \
     cm.updater.uri=$(UPDATER_RUL)
