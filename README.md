@@ -1,9 +1,9 @@
 vivo y67(PD1612)
 ==============
 
-### [vendor](https://github.com/BabQ/android_vendor_vivo_y67)
+### [android_vendor_vivo_y67](https://github.com/BabQ/android_vendor_vivo_y67)
 
-### 规格信息
+## 规格信息
 
 类型     | 细节
 -------:|:---------------------------------------------
@@ -18,30 +18,29 @@ GPU     | Mali-T860
 后置相机 | 13MP (S5K3P3SX), Dual LED Flash, Laser autofocus
 ---------------------------------------------------------
 
-# 构建信息
+## 修复进度
+- [x] Wi-Fi
+- [x] GPS
+- [x] Sensors
+- [x] Bluetooth
+- [x] Micro SD
+- [x] Display
+- [x] Thermal
+- [x] Flashlight
+- [x] OMX
+- [x] RIL(GSM)
+- [x] Audio
+- [x] Fingerprint
+- [ ] Selinux
+- [ ] root
+- [ ] Camera
+- [ ] RIL(CDMA)
+- [ ] Tee(mcDeviceDaemon)
 
-### 工作:
- * Wi-Fi
- * GPS
- * Audio
- * Sensors
- * Bluetooth
- * Micro SD
- * MTP
- * Display
- * Thermal
- * Flashlight
- * OMX
- * RIL(GSM)
- * Goodix fingerprint
+总有一天会完成~~哒~~
 
-### 不工作:
- * Camera
- * RIL(CDMA)
- * Tee(mcDeviceDaemon)
-
-# 致谢
-## [rote66](https://github.com/rote66)
-## [ReallySnow](https://github.com/ReallySnow)
-## [graineeg](https://github.com/graineeg)
-## [DeckerSU](https://github.com/DeckerSU)
+## 致谢
+### [rote66](https://github.com/rote66)
+### [ReallySnow](https://github.com/ReallySnow)
+### [graineeg](https://github.com/graineeg)
+### [DeckerSU](https://github.com/DeckerSU)
