@@ -139,9 +139,10 @@ PRODUCT_COPY_FILES += \
 PRODUCT_PACKAGES += \
    libmtk_symbols
 
-# Overlay
-DEVICE_PACKAGE_OVERLAYS += \
-    $(LOCAL_PATH)/overlay
+
+# Overlay 默认设置
+#DEVICE_PACKAGE_OVERLAYS += \
+#    $(LOCAL_PATH)/overlay
 
 # Permissions
 PRODUCT_COPY_FILES += \
