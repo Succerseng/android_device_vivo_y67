@@ -59,3 +59,6 @@ allow ccci_fsd rawfs:file create_file_perms;
 allow ccci_fsd sysfs:file r_file_perms;
 allow ccci_fsd mtk_md_prop:file r_file_perms;
 allow ccci_fsd rootfs:lnk_file { getattr };
+
+# version
+allow ccci_fsd sysfs_ccci_version:file { open read getattr };

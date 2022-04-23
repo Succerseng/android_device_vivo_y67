@@ -109,6 +109,7 @@ allow goodixfingerprintd goodixfingerprintd_lib_file:file { create_file_perms ge
 allow goodixfingerprintd goodixfingerprintd_lib_file:chr_file { rw_file_perms setattr };
 allow goodixfingerprintd goodixfingerprintd_lib_file:dir ra_dir_perms;
 
+
 # allow system_file
 allow goodixfingerprintd system_file:file { rx_file_perms };
 
@@ -164,3 +165,4 @@ allow goodixfingerprintd mobicore_data_file:chr_file { open read ioctl write };
 
 allow goodixfingerprintd mobicore_lib_file:file { read open getattr };
 allow goodixfingerprintd goodixfingerprintd_service:service_manager { add };
+#allow goodixfingerprintd goodixfingerprintd_lib_file:file { execute };

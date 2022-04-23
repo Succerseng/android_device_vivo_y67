@@ -13,3 +13,5 @@ allow fingerprintd goodixfingerprintd_service:service_manager find;
 allow fingerprintd goodixfingerprintd_lib_file:file { read open };
 allow fingerprintd mobicore_lib_file:file { read open };
 allow fingerprintd goodixfingerprintd:binder { call };
+
+allow fingerprintd property_socket:sock_file { write };

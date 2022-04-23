@@ -10,10 +10,8 @@
 # Meta/Factory Mode multi_init
 /sbin/multi_init		u:object_r:init_exec:s0
 
-
 #############################
 # Data files
-#
 /data/aee_exp(/.*)?  u:object_r:aee_exp_data_file:s0
 /data/agps_supl(/.*)?    u:object_r:agpsd_data_file:s0
 /data/misc/gps(/.*)?   u:object_r:gps_data_file:s0
@@ -62,6 +60,7 @@
 /data/key_provisioning(/.*)?         u:object_r:key_install_data_file:s0
 /data/thh(/.*)? u:object_r:teei_data_file:s0
 /data/gnss_flp(/.*)?  u:object_r:mtkFlpDaemon_data_file:s0
+/data/md_mon/mdlog_mon1_config u:object_r:system_data_file:s0
 
 ##########################
 # Devices
@@ -325,29 +324,47 @@
 /dev/xt_qtaguid(/.*)? u:object_r:xt_qtaguid_device:s0
 /dev/pmic_ftm(/.*)? u:object_r:pmic_ftm_device:s0
 /dev/shf  u:object_r:shf_device:s0
-/dev/block/platform/mtk-msdc\.0/by-name/proinfo  u:object_r:nvram_device:s0
-/dev/block/platform/mtk-msdc\.0/by-name/nvram  u:object_r:nvram_device:s0
-/dev/block/platform/mtk-msdc\.0/by-name/nvdata u:object_r:nvdata_device:s0
-/dev/block/platform/mtk-msdc\.0/by-name/frp  u:object_r:frp_block_device:s0
-/dev/block/platform/mtk-msdc\.0/by-name/expdb u:object_r:expdb_block_device:s0
-/dev/block/platform/mtk-msdc\.0/by-name/misc2 u:object_r:misc2_block_device:s0
-/dev/block/platform/mtk-msdc\.0/by-name/logo u:object_r:logo_block_device:s0
-/dev/block/platform/mtk-msdc\.0/by-name/para u:object_r:para_block_device:s0
-/dev/block/platform/mtk-msdc\.0/by-name/tee1 u:object_r:tee_block_device:s0
-/dev/block/platform/mtk-msdc\.0/by-name/tee2 u:object_r:tee_block_device:s0
-/dev/block/platform/mtk-msdc\.0/by-name/seccfg u:object_r:seccfg_block_device:s0
-/dev/block/platform/mtk-msdc\.0/by-name/secro u:object_r:secro_block_device:s0
-/dev/block/platform/mtk-msdc\.0/by-name/userdata u:object_r:userdata_block_device:s0
-/dev/block/platform/mtk-msdc\.0/by-name/cache u:object_r:cache_block_device:s0
-/dev/block/platform/mtk-msdc\.0/by-name/recovery u:object_r:recovery_block_device:s0
+/dev/usb-ffs/adb  u:object_r:functionfs:s0
+
+/dev/block/platform/mtk-msdc\.0/[0-9]+\.msdc0/by-name/proinfo		u:object_r:nvram_device:s0
+/dev/block/platform/mtk-msdc\.0/[0-9]+\.msdc0/by-name/nvram		u:object_r:nvram_device:s0
+/dev/block/platform/mtk-msdc\.0/[0-9]+\.msdc0/by-name/nvdata		u:object_r:nvdata_device:s0
+/dev/block/platform/mtk-msdc\.0/[0-9]+\.msdc0/by-name/frp		u:object_r:frp_block_device:s0
+/dev/block/platform/mtk-msdc\.0/[0-9]+\.msdc0/by-name/expdb		u:object_r:expdb_block_device:s0
+/dev/block/platform/mtk-msdc\.0/[0-9]+\.msdc0/by-name/misc2		u:object_r:misc2_block_device:s0
+/dev/block/platform/mtk-msdc\.0/[0-9]+\.msdc0/by-name/logo		u:object_r:logo_block_device:s0
+/dev/block/platform/mtk-msdc\.0/[0-9]+\.msdc0/by-name/para		u:object_r:para_block_device:s0
+/dev/block/platform/mtk-msdc\.0/[0-9]+\.msdc0/by-name/tee1		u:object_r:tee_block_device:s0
+/dev/block/platform/mtk-msdc\.0/[0-9]+\.msdc0/by-name/tee2		u:object_r:tee_block_device:s0
+/dev/block/platform/mtk-msdc\.0/[0-9]+\.msdc0/by-name/seccfg		u:object_r:seccfg_block_device:s0
+/dev/block/platform/mtk-msdc\.0/[0-9]+\.msdc0/by-name/secro		u:object_r:secro_block_device:s0
+/dev/block/platform/mtk-msdc\.0/[0-9]+\.msdc0/by-name/system		u:object_r:system_block_device:s0
+/dev/block/platform/mtk-msdc\.0/[0-9]+\.msdc0/by-name/userdata		u:object_r:userdata_block_device:s0
+/dev/block/platform/mtk-msdc\.0/[0-9]+\.msdc0/by-name/cache		u:object_r:cache_block_device:s0
+/dev/block/platform/mtk-msdc\.0/[0-9]+\.msdc0/by-name/recovery		u:object_r:recovery_block_device:s0
+/dev/block/platform/mtk-msdc\.0/[0-9]+\.msdc0/by-name/survival		u:object_r:recovery_block_device:s0
+/dev/block/platform/mtk-msdc\.0/[0-9]+\.msdc0/by-name/protect1		u:object_r:protect1_block_device:s0
+/dev/block/platform/mtk-msdc\.0/[0-9]+\.msdc0/by-name/protect2		u:object_r:protect2_block_device:s0
+/dev/block/platform/mtk-msdc\.0/[0-9]+\.msdc0/by-name/keystore		u:object_r:keystore_block_device:s0
+/dev/block/platform/mtk-msdc\.0/[0-9]+\.msdc0/by-name/oemkeystore	u:object_r:oemkeystore_block_device:s0
+/dev/block/platform/mtk-msdc\.0/[0-9]+\.msdc0/by-name/boot	        u:object_r:boot_block_device:s0
+/dev/block/platform/mtk-msdc\.0/[0-9]+\.msdc0/by-name/persist		u:object_r:persist_block_device:s0
+/dev/block/platform/mtk-msdc\.0/[0-9]+\.msdc0/by-name/md1img		u:object_r:md_block_device:s0
+/dev/block/platform/mtk-msdc\.0/[0-9]+\.msdc0/by-name/md1dsp		u:object_r:dsp_block_device:s0
+/dev/block/platform/mtk-msdc\.0/[0-9]+\.msdc0/by-name/md1arm7		u:object_r:md_block_device:s0
+/dev/block/platform/mtk-msdc\.0/[0-9]+\.msdc0/by-name/md3img		u:object_r:md_block_device:s0
+/dev/block/platform/mtk-msdc\.0/[0-9]+\.msdc0/by-name/ppl		u:object_r:ppl_block_device:s0
+/dev/block/platform/mtk-msdc\.0/[0-9]+\.msdc0/by-name/nvcfg		u:object_r:nvcfg_block_device:s0
+
 /dev/block/mmcblk0boot0 u:object_r:preloader_block_device:s0
 /dev/block/mmcblk0boot1 u:object_r:preloader_block_device:s0
 /dev/block/mmcblk0 u:object_r:mmcblk0_block_device:s0
 /dev/block/mmcblk1 u:object_r:mmcblk1_block_device:s0
 /dev/block/mmcblk1p1 u:object_r:mmcblk1p1_block_device:s0
-
-#04-23 21:13:47.320  2591  2591 I system_server: type=1400 audit(0.0:138): avc: denied { ioctl } for path="/dev/block/mmcblk0p4" dev="tmpfs" ino=2321 ioctlcmd=1272 scontext=u:r:system_server:s0 tcontext=u:object_r:block_device:s0 tclass=blk_file permissive=1
 /dev/block/mmcblk0p4 u:object_r:mmcblk0p4_block_device:s0
+
+# cust -> oem
+/dev/block/mmcblk0p10 u:object_r:oemfs:s0
 
 /protect_f(/.*)?         u:object_r:protect_f_data_file:s0
 /protect_s(/.*)?         u:object_r:protect_s_data_file:s0
@@ -362,6 +379,10 @@
 /dev/teei_fp u:object_r:teei_fp_device:s0
 /dev/mbim u:object_r:mbim_device:s0
 /dev/i2c_smartpa u:object_r:tfa9890_device:s0
+
+/dev/socket/property_service(/.*)? u:object_r:property_socket:s0
+/dev/__properties__(/.*)?          u:object_r:properties_device:s0
+
 #############################
 # sysfs files
 #
@@ -375,10 +396,11 @@
 /sys/devices/platform/msensor/driver(/.*)?	u:object_r:sysfs_msensor_file:s0
 /sys/bus/platform/drivers/mtk-kpd(/.*)?	u:object_r:sysfs_keypad_file:s0
 /sys/power/vcorefs/pwr_ctrl -- u:object_r:sysfs_vcorefs_pwrctrl:s0
-/sys/devices/virtual/misc/md32(/.*)?  u:object_r:sysfs_md32:s0
-/sys/devices/virtual/misc/scp(/.*)?  u:object_r:sysfs_scp:s0
-/sys/devices/platform/mtk_disp_mgr.0/rgb       u:object_r:livedisplay_sysfs:s0
-
+/sys/devices/virtual/misc/md32(/.*)?  		u:object_r:sysfs_md32:s0
+/sys/devices/virtual/misc/scp(/.*)?  			u:object_r:sysfs_scp:s0
+/sys/devices/platform/mtk_disp_mgr.0/rgb       	u:object_r:livedisplay_sysfs:s0
+/sys/devices/virtual/BOOT/BOOT/boot/boot_mode		u:object_r:sysfs_boot_mode_file:s0
+/sys/kernel/ccci/version 				u:object_r:sysfs_ccci_version:s0
 
 #############################
 # System files
@@ -388,9 +410,7 @@
 /system/bin/aal u:object_r:aal_exec:s0
 /system/bin/aee_core_forwarder u:object_r:aee_core_forwarder_exec:s0
 /system/bin/akmd09911 u:object_r:akmd09911_exec:s0
-#ly_zhangtao add for mag sensor start
 /system/bin/mxg2320d u:object_r:mxg2320d_exec:s0
-#ly_zhangtao add for mag sensor end
 /system/bin/akmd09912 u:object_r:akmd09912_exec:s0
 /system/bin/akmd8963 u:object_r:akmd8963_exec:s0
 /system/bin/akmd8975 u:object_r:akmd8975_exec:s0
@@ -437,7 +457,6 @@
 /system/bin/memsicd3416x u:object_r:memsicd3416x_exec:s0
 /system/bin/memsicd u:object_r:memsicd_exec:s0
 /system/bin/meta_tst u:object_r:meta_tst_exec:s0
- 
 /system/bin/mmc_ffu u:object_r:mmc_ffu_exec:s0
 /system/bin/emmc_rw_debug u:object_r:emmc_rw_debug_exec:s0
 /system/bin/mvg_app u:object_r:mvg_app_exec:s0
@@ -521,14 +540,8 @@
 # Wallpaper file for smartbook
 /data/system/users/[0-9]+/smartbook_wallpaper	u:object_r:wallpaper_file:s0
 
-#lockscreen wallpaper add by Tauren
-/data/system/users/[0-9]+/lockscreen   u:object_r:wallpaper_file:s0
-
-#fat on nand image
+# fat on nand image
 /fat(/.*)?  u:object_r:fon_image_data_file:s0
-
-#smart audio pa 
-/system/bin/smart_audio.sh  u:object_r:smart_audio_exec:s0
 
 # Mobicore
 /data/app/mcRegistry(/.*)? u:object_r:mobicore_data_file:s0
@@ -539,39 +552,12 @@
 /(system\/vendor|vendor)/bin/mcDriverDaemon u:object_r:mobicore_exec:s0
 /(system\/vendor|vendor)/app/mcRegistry(/.*)? u:object_r:mobicore_data_file:s0
 
-# Device files
-/dev/goodix_fp                 u:object_r:goodixfingerprintd_device:s0
-# Goodix librarires
-/system/lib64/libMcClient.so  u:object_r:mobicore_lib_file:s0
-/system/lib/libMcClient.so  u:object_r:mobicore_lib_file:s0
-/system/lib64/libMcRegistry.so  u:object_r:mobicore_lib_file:s0
-/system/lib/libMcRegistry.so  u:object_r:mobicore_lib_file:s0
-/system/lib/hw/libMcGatekeeper.so u:object_r:mobicore_lib_file:s0
-/system/lib64/hw/libMcGatekeeper.so u:object_r:mobicore_lib_file:s0
-/system/lib64/libgf_hal.so u:object_r:goodixfingerprintd_lib_file:s0
-/system/lib64/libgf_ca.so  u:object_r:goodixfingerprintd_lib_file:s0
-/system/lib/libgf_ca.so  u:object_r:goodixfingerprintd_lib_file:s0
-/system/lib64/libgf_algo.so  u:object_r:goodixfingerprintd_lib_file:s0
-/system/lib/libgf_algo.so  u:object_r:goodixfingerprintd_lib_file:s0
-/system/lib/libgf_hal.so   u:object_r:goodixfingerprintd_lib_file:s0
-/system/lib64/libgoodixfingerprintd_binder.so  u:object_r:goodixfingerprintd_lib_file:s0
-/system/lib/libgoodixfingerprintd_binder.so  u:object_r:goodixfingerprintd_lib_file:s0
-
-/data/system/fingerprint(/.*)?    u:object_r:goodixfingerprintd_data_file:s0
-/persist/data/gxfp(/.*)?		  u:object_r:goodixfingerprintd_data_file:s0
-
-# Executable binary of goodix
+# goodix
+/dev/goodix_fp          u:object_r:goodixfingerprintd_device:s0
 /system/bin/goodixfingerprintd u:object_r:goodixfingerprintd_exec:s0
-
-# Fingerprint
-# /data/system/users/[0-9]+/fpdata(/.*)? u:object_r:fingerprintd_data_file:s0
-# /data/system/fingerprint(/.*)?  u:object_r:_data_file:s0 
-# /dev/gf66xx-spi u:object_r:goodixfingerprintd_device:s0 
-# /dev/goodix_fp* u:object_r:goodixfingerprintd_device:s0 
-/dev/ttyACM[0-9]* u:object_r:goodixfingerprintd_device:s0 
-
-/dev/socket/property_service(/.*)? u:object_r:property_socket:s0
-/dev/__properties__(/.*)?          u:object_r:properties_device:s0
 
 # vivo
 /system/bin/yamaha537fusiond u:object_r:yamaha537fusiond_exec:s0
+
+# mddb
+/system/etc/mddb(/.*)? u:object_r:md_monitor_file:s0

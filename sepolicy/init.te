@@ -116,3 +116,9 @@ allow init mobicore_admin_device:chr_file ioctl;
 allow init self:netlink_socket { write read };
 allow init self:netlink_socket { create bind };
 allow init mobicore_user_device:chr_file { ioctl write };
+
+
+allow sysfs_ccci_version sysfs:filesystem { associate };
+
+allow init oemfs:dir { mounton };
+allow init functionfs:dir { mounton };

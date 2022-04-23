@@ -44,3 +44,5 @@ allow mtk_agpsd mnt_user_file:lnk_file create_file_perms;
 allow mtk_agpsd slpd:unix_dgram_socket sendto;
 allow mtk_agpsd rilproxy:unix_dgram_socket sendto;
 allow mtk_agpsd rootfs:lnk_file { getattr };
+allow mtk_agpsd mtk_md_prop:file { read open getattr };
+allow mtk_agpsd properties_device:file getattr;

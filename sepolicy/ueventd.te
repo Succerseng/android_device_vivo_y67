@@ -24,3 +24,6 @@ allow ueventd fm_device:chr_file { relabelto };
 
 # wmtwifi
 allow ueventd wmtWifi_device:chr_file { create setattr read write ioctl open relabelto };
+
+# /sys/devices/virtual/BOOT/BOOT/boot/boot_mode
+allow ueventd sysfs_boot_mode_file:file { relabelto getattr };
