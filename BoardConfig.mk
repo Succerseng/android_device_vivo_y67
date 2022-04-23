@@ -78,7 +78,8 @@ TARGET_SPECIFIC_HEADER_PATH := $(DEVICE_PATH)/include
 BOARD_KERNEL_IMAGE_NAME := Image.gz-dtb
 BOARD_KERNEL_BASE := 0x40078000
 BOARD_KERNEL_PAGESIZE := 2048
-BOARD_KERNEL_CMDLINE := bootopt=64S3,32N2,64N2 enforcing=0 androidboot.selinux=permissive
+#BOARD_KERNEL_CMDLINE := bootopt=64S3,32N2,64N2 enforcing=0 androidboot.selinux=permissive
+BOARD_KERNEL_CMDLINE := bootopt=64S3,32N2,64N2 androidboot.selinux=permissive
 BOARD_MKBOOTIMG_ARGS := --board 1465391499 --ramdisk_offset 0x04f88000 --second_offset 0x00e88000 --tags_offset 0x03f88000
 TARGET_USES_64_BIT_BINDER := true
 
@@ -160,9 +161,9 @@ TARGET_LDPRELOAD += libmtk_symbols.so
 TARGET_SYSTEM_PROP += $(DEVICE_PATH)/system.prop
 
 # Twrp
-ifeq ($(TARGET_RECOVERY_VERSION), twrp)
+ifeq ($(TARGET_RECOVERY_VERSION_TWRP), true)
+BOARD_KERNEL_CMDLINE := bootopt=64S3,32N2,64N2 enforcing=0 androidboot.selinux=permissive
 TW_USE_LOCAL_BINARY := true
-TW_LOCAL_BINARY_PATH := "/sbin/local_binary"
 TW_CUSTOM_UPDATE_BLOB := true
 TW_INCLUDE_L_CRYPTO := true
 TW_CRYPTO_USE_SYSTEM_VOLD := true
@@ -177,7 +178,6 @@ RECOVERY_SDCARD_ON_DATA := true
 TW_EXCLUDE_SUPERSU := true
 RECOVERY_GRAPHICS_USE_LINELENGTH := true
 PRODUCT_COPY_FILES += $(DEVICE_PATH)/rootdir/recovery/etc/twrp.fstab:recovery/root/etc/twrp.fstab
-PRODUCT_COPY_FILES += $(DEVICE_PATH)/rootdir/recovery/sbin/local_binary:recovery/root/sbin/local_binary
 endif
 
 # Wireless

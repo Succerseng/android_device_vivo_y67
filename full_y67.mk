@@ -15,7 +15,8 @@
 $(call inherit-product, $(SRC_TARGET_DIR)/product/core_64_bit.mk)
 $(call inherit-product, $(SRC_TARGET_DIR)/product/full_base_telephony.mk)
 
-TARGET_RECOVERY_VERSION := twrp
+# 是否生成一个成熟的recovery
+# TARGET_RECOVERY_VERSION_TWRP := true
 
 $(call inherit-product, device/vivo/y67/device.mk)
 

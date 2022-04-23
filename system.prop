@@ -244,3 +244,7 @@ ro.mtk_modem_monitor_support=1
 ro.mtk_embms_support=1
 mtk.vdec.waitkeyframeforplay=1
 persist.radio.mtk_ps2_rat=C/W/G
+
+# mtklog
+persist.mtklog.log2sd.path=/mnt/sdcard
+persist.mtklog.mdlog.path=/mnt/sdcard

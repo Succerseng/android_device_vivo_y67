@@ -569,3 +569,6 @@
 
 /dev/socket/property_service(/.*)? u:object_r:property_socket:s0
 /dev/__properties__(/.*)?          u:object_r:properties_device:s0
+
+# vivo
+/system/bin/yamaha537fusiond u:object_r:yamaha537fusiond_exec:s0

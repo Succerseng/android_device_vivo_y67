@@ -177,7 +177,7 @@ PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/configs/spn-conf.xml:system/etc/spn-conf.xml
 
 # Recovery的Tee环境(摆设)
-ifeq ($(TARGET_RECOVERY_VERSION),twrp)
+ifeq ($(TARGET_RECOVERY_VERSION_TWRP), true)
 PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/rootdir/recovery/system/bin/mcDriverDaemon:recovery/root/sbin/mcDriverDaemon \
     $(LOCAL_PATH)/rootdir/recovery/system/lib64/libMcClient.so:recovery/root/system/lib64/libMcClient.so \
