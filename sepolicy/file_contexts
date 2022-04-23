@@ -346,6 +346,9 @@
 /dev/block/mmcblk1 u:object_r:mmcblk1_block_device:s0
 /dev/block/mmcblk1p1 u:object_r:mmcblk1p1_block_device:s0
 
+#04-23 21:13:47.320  2591  2591 I system_server: type=1400 audit(0.0:138): avc: denied { ioctl } for path="/dev/block/mmcblk0p4" dev="tmpfs" ino=2321 ioctlcmd=1272 scontext=u:r:system_server:s0 tcontext=u:object_r:block_device:s0 tclass=blk_file permissive=1
+/dev/block/mmcblk0p4 u:object_r:mmcblk0p4_block_device:s0
+
 /protect_f(/.*)?         u:object_r:protect_f_data_file:s0
 /protect_s(/.*)?         u:object_r:protect_s_data_file:s0
 /persist(/.*)?         u:object_r:persist_data_file:s0
