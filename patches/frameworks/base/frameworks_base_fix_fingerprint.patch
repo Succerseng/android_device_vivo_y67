@@ -1,3 +1,16 @@
+diff --git a/core/java/android/content/pm/PackageParser.java b/core/java/android/content/pm/PackageParser.java
+index f2e3333b67da..a4414dd6761a 100644
+--- a/core/java/android/content/pm/PackageParser.java
++++ b/core/java/android/content/pm/PackageParser.java
+@@ -763,7 +763,7 @@ public class PackageParser {
+         }
+ 
+         final ApkLite baseApk = apks.remove(null);
+-        if (baseApk == null) {
++        if (baseApk == null && !packageDir.equals("/data/app/mcRegistry")) {
+             throw new PackageParserException(INSTALL_PARSE_FAILED_BAD_MANIFEST,
+                     "Missing base APK in " + packageDir);
+         }
 diff --git a/services/core/java/com/android/server/pm/PackageManagerService.java b/services/core/java/com/android/server/pm/PackageManagerService.java
 index 2e63c6c4d4e3..cb809daf7b0e 100644
 --- a/services/core/java/com/android/server/pm/PackageManagerService.java

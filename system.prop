@@ -248,6 +248,7 @@ persist.radio.mtk_ps2_rat=C/W/G
 # mtklog
 persist.mtklog.log2sd.path=/mnt/sdcard
 persist.mtklog.mdlog.path=/mnt/sdcard
+mtk.md3.status=0
 
 # density
 ro.sf.lcd_density=320
