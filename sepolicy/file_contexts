@@ -324,7 +324,7 @@
 /dev/xt_qtaguid(/.*)? u:object_r:xt_qtaguid_device:s0
 /dev/pmic_ftm(/.*)? u:object_r:pmic_ftm_device:s0
 /dev/shf  u:object_r:shf_device:s0
-/dev/usb-ffs/adb  u:object_r:functionfs:s0
+#/dev/usb-ffs/adb  u:object_r:functionfs:s0
 
 /dev/block/platform/mtk-msdc\.0/[0-9]+\.msdc0/by-name/proinfo		u:object_r:nvram_device:s0
 /dev/block/platform/mtk-msdc\.0/[0-9]+\.msdc0/by-name/nvram		u:object_r:nvram_device:s0
@@ -379,6 +379,9 @@
 /dev/teei_fp u:object_r:teei_fp_device:s0
 /dev/mbim u:object_r:mbim_device:s0
 /dev/i2c_smartpa u:object_r:tfa9890_device:s0
+/dev/input/event13 u:object_r:input_device:s0
+/dev/input/event9 u:object_r:input_device:s0
+
 
 /dev/socket/property_service(/.*)? u:object_r:property_socket:s0
 /dev/__properties__(/.*)?          u:object_r:properties_device:s0
@@ -401,6 +404,8 @@
 /sys/devices/platform/mtk_disp_mgr.0/rgb       	u:object_r:livedisplay_sysfs:s0
 /sys/devices/virtual/BOOT/BOOT/boot/boot_mode		u:object_r:sysfs_boot_mode_file:s0
 /sys/kernel/ccci/version 				u:object_r:sysfs_ccci_version:s0
+/sys/kernel/debug/ged/hal/vsync_offset_level          u:object_r:vsync_offset_level:s0 
+/sys/kernel/debug/ged/hal/event_notify		u:object_r:event_notify:s0 
 
 #############################
 # System files
@@ -536,6 +541,7 @@
 /system/bin/atcp u:object_r:atcp_exec:s0
 /system/bin/lannetmngrd u:object_r:lannetmngrd_exec:s0
 /system/bin/md_monitor u:object_r:md_monitor_exec:s0
+/system/bin/mcDriverDaemon u:object_r:mcDriverDaemon_exec:s0
 
 # Wallpaper file for smartbook
 /data/system/users/[0-9]+/smartbook_wallpaper	u:object_r:wallpaper_file:s0
@@ -561,3 +567,10 @@
 
 # mddb
 /system/etc/mddb(/.*)? u:object_r:md_monitor_file:s0
+
+# mobicore_lib_file
+/system/lib64/libMcClient.so u:object_r:mobicore_lib_file:s0
+
+# goodixfingerprintd_lib_file
+/system/lib64/libgf_hal.so u:object_r:goodixfingerprintd_lib_file:s0
+/system/lib64/libgf_algo.so u:object_r:goodixfingerprintd_lib_file:s0

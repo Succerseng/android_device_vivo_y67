@@ -122,3 +122,9 @@ allow sysfs_ccci_version sysfs:filesystem { associate };
 
 allow init oemfs:dir { mounton };
 allow init functionfs:dir { mounton };
+allow init yamaha537fusiond_exec:file { getattr open read execute };
+allow vsync_offset_level debugfs:filesystem { associate };
+allow init mobicore_admin_device:chr_file { write };
+
+#allow init system_file:file { write };
+allow event_notify debugfs:filesystem { associate };

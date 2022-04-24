@@ -106,3 +106,4 @@ allow mtkrild rootfs:lnk_file { getattr };
 allow mtkrild volte_prop:file { read open getattr };
 allow mtkrild mtk_tele_prop:file { open read };
 allow mtkrild ril_active_md_prop:file { read open };
+allow mtkrild sysfs_ccci_version:file { open read getattr };

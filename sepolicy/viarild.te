@@ -80,3 +80,4 @@ allow viarild ril_active_md_prop:property_service set;
 
 #Search permission for findPidByName
 allow statusd domain:dir search;
+allow viarild proc:file { open read };

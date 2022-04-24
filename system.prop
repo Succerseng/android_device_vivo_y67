@@ -62,3 +62,4 @@ persist.mtk.wcn.combo.chipid=-1
 persist.mtk.wcn.combo.chipid=-1
 persist.mtk.wcn.fwlog.status=no
 persist.mtk.wcn.dynamic.dump=0
+service.wcn.coredump.mode=0

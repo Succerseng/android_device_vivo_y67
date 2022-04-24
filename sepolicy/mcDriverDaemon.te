@@ -1,0 +1,2 @@
+type mcDriverDaemon_exec, file_type, exec_type;
+#allow init mcDriverDaemon_exec:file { execute_no_trans };

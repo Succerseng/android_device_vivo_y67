@@ -259,3 +259,6 @@ type sysfs_boot_mode_file, file_type, data_file_type;
 allow sysfs_boot_mode_file sysfs:filesystem { associate };
 
 type md_monitor_file, file_type, data_file_type;
+
+type vsync_offset_level, file_type, data_file_type;
+type event_notify, file_type, data_file_type;

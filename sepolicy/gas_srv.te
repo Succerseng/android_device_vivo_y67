@@ -52,3 +52,7 @@ allow platform_app      gas_srv_service:service_manager     find;
 allow gas_srv           sysfs:file              { read open };
 allow gas_srv           proc:file               { open ioctl };
 allow gas_srv           rootfs:lnk_file         { getattr };
+allow gas_srv sysfs_boot_mode_file:file { read open };
+allow gas_srv vsync_offset_level:file { open read write };
+allow gas_srv event_notify:file { open read write };
+allow ged_srv proc:file { open read };

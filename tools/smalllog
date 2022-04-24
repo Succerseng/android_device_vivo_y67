@@ -1,0 +1,34 @@
+#!/bin/bash
+
+FILE=$1
+
+echo > .tmp_log_cut_selinux.txt
+cat $FILE | grep permissive= >> .tmp_log_cut_selinux.txt
+
+echo > result1.txt
+cat .tmp_log_cut_selinux.txt | while read line
+do
+	echo ${line:31} >> result1.txt
+done
+
+echo > result2.txt
+cat result1.txt|grep -v write > result2.txt
+
+echo > result3.txt
+cat result2.txt|grep -v mknod > result3.txt
+
+echo > result4.txt
+cat result3.txt|grep -v create > result4.txt
+
+echo > result5.txt
+cat result4.txt|grep -v link > result5.txt
+
+
+mv result5.txt result.txt
+
+rm -rf result1.txt
+rm -rf result2.txt
+rm -rf result3.txt
+rm -rf result4.txt
+
+rm -rf .tmp_log_cut_selinux.txt

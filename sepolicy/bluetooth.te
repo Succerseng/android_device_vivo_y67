@@ -29,3 +29,8 @@ allow bluetooth rilproxy:unix_stream_socket connectto;
 # Operation: Program binary service
 # Purpose : Add permission for program binary service find from ServiceManager.
 allow bluetooth program_binary_service:service_manager find;
+
+allow bluetooth wmt_prop:file { open read getattr };
+allow bluetooth sysfs_boot_mode_file:file { open read getattr };
+allow bluetooth persist_bt_prop:file { read open getattr };
+allow bluetooth bt_prop:file { read open getattr };
