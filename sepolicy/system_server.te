@@ -314,3 +314,6 @@ allow system_server wifi_data_file:sock_file { unlink };
 # Operation : Goodix FP
 # Purpose : Give Goodix Fingerprint device R/W permissions
 allow system_server goodixfingerprintd_device:chr_file rw_file_perms;
+
+allow system_server event_input_device:dir { read write open remove_name search getattr };
+allow system_server event_input_device:chr_file { read write getattr open ioctl };

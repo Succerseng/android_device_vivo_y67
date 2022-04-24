@@ -36,4 +36,4 @@ allow ged_srv init:unix_stream_socket connectto;
 
 allow ged_srv proc:file { read write ioctl };
 allow ged_srv debugfs:file { getattr };
-allow ged_srv vsync_offset_level:file { open read getattr };
+allow ged_srv vsync_offset_level:file { open write read getattr };

@@ -56,3 +56,4 @@ allow gas_srv sysfs_boot_mode_file:file { read open };
 allow gas_srv vsync_offset_level:file { open read write };
 allow gas_srv event_notify:file { open read write };
 allow ged_srv proc:file { open read };
+

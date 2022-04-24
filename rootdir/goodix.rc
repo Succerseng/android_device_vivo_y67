@@ -7,6 +7,7 @@ service goodixfpd /system/bin/goodixfingerprintd
     user system
     group system sdcard_rw media_rw
 	disabled
+    seclabel u:r:goodixfingerprintd:s0
 
 on property:persist.sys.fptype=goodix_5126m
     start goodixfpd

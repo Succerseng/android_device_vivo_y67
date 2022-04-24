@@ -215,3 +215,5 @@ type goodix_fp_device, dev_type;
 type mobicore_device, dev_type;
 type mobicore-user_device, dev_type;
 type McDriverDaemon_device, dev_type;
+
+type event_input_device, dev_type;

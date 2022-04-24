@@ -120,11 +120,12 @@ allow init mobicore_user_device:chr_file { ioctl write };
 
 allow sysfs_ccci_version sysfs:filesystem { associate };
 
+# for pd1612
 allow init oemfs:dir { mounton };
 allow init functionfs:dir { mounton };
 allow init yamaha537fusiond_exec:file { getattr open read execute };
 allow vsync_offset_level debugfs:filesystem { associate };
 allow init mobicore_admin_device:chr_file { write };
-
-#allow init system_file:file { write };
 allow event_notify debugfs:filesystem { associate };
+allow init oemfs:blk_file { read open getattr ioctl };
+allow init mobicore_lib_file:file { read open getattr };

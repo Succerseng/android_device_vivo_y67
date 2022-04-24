@@ -379,8 +379,7 @@
 /dev/teei_fp u:object_r:teei_fp_device:s0
 /dev/mbim u:object_r:mbim_device:s0
 /dev/i2c_smartpa u:object_r:tfa9890_device:s0
-/dev/input/event13 u:object_r:input_device:s0
-/dev/input/event9 u:object_r:input_device:s0
+/dev/input(/.*)? u:object_r:event_input_device:s0
 
 
 /dev/socket/property_service(/.*)? u:object_r:property_socket:s0

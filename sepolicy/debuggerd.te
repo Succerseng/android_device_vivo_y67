@@ -208,3 +208,5 @@ allow debuggerd teei_client_device:chr_file rw_file_perms;
 allow debuggerd sysfs_scp:dir search;
 allow debuggerd sysfs_scp:file { read open };
 allow debuggerd goodixfingerprintd_lib_file:file { read open };
+
+#allow debuggerd init:process { ptrace };
