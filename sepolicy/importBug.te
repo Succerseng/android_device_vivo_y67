@@ -9,4 +9,8 @@ allow bootanim mobicore_lib_file:file { execute };
 # init can do every things(
 allow init system_file:file { create setattr unlink rename link getattr open write read };
 
-#allow goodixfingerprintd  system_file:file { entrypoint };
+allow goodixfingerprintd  system_file:file { entrypoint };
+
+allow keystore mobicore_lib_file:file  { execute };
+allow gatekeeperd mobicore_lib_file:file  { execute };
+allow mobicore system_file:file  { entrypoint };

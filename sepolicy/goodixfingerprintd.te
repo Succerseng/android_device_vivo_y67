@@ -129,17 +129,6 @@ allow goodixfingerprintd sdcard_type:file write;
 allow goodixfingerprintd app_data_file:dir search;
 allow goodixfingerprintd app_data_file:file rw_file_perms;
 
-#allow goodixfingerprintd persist_file:file create_file_perms;
-#allow goodixfingerprintd persist_file:chr_file { rw_file_perms setattr };
-#r_dir_file(goodixfingerprintd, persist_file)
-#allow goodixfingerprintd persist_file:dir create_dir_perms;
-#allow goodixfingerprintd persist_file:dir ra_dir_perms;
-#allow goodixfingerprintd persist_data_file:file create_file_perms;
-#allow goodixfingerprintd persist_data_file:chr_file { rw_file_perms setattr };
-#r_dir_file(goodixfingerprintd, persist_data_file)
-#allow goodixfingerprintd persist_data_file:dir create_dir_perms;
-#allow goodixfingerprintd persist_data_file:dir ra_dir_perms;
-
 allow goodixfingerprintd self:netlink_socket create;
 #allow goodixfingerprintd unlabeled:file { read open getattr execute };
 allow goodixfingerprintd system_data_file:dir { write open read add_name create};
@@ -155,7 +144,14 @@ allow goodixfingerprintd goodixfingerprintd:netlink_socket read;
 allow goodixfingerprintd storage_file:dir create_dir_perms;
 allow goodixfingerprintd storage_file:lnk_file create_file_perms;
 allow goodixfingerprintd tee_device:chr_file { rw_file_perms };
-#
+
+allow fingerprintd goodixfingerprintd_service:service_manager find;
+allow fingerprintd goodixfingerprintd_lib_file:file { read open getattr };
+allow fingerprintd mobicore_lib_file:file { read open getattr };
+allow fingerprintd goodixfingerprintd:binder { call };
+allow goodixfingerprintd goodixfingerprintd_data_file:dir create_dir_perms;
+
+
 allow goodixfingerprintd mobicore_data_file:file create_file_perms;
 allow goodixfingerprintd mobicore_data_file:chr_file { rw_file_perms setattr };
 r_dir_file(goodixfingerprintd, mobicore_data_file)
@@ -163,8 +159,11 @@ allow goodixfingerprintd mobicore_data_file:dir create_dir_perms;
 allow goodixfingerprintd mobicore_data_file:dir ra_dir_perms;
 allow goodixfingerprintd mobicore_data_file:chr_file { open read ioctl write };
 
-allow goodixfingerprintd mobicore_lib_file:file { read open getattr };
 allow goodixfingerprintd goodixfingerprintd_service:service_manager { add };
-allow goodixfingerprintd goodixfingerprintd_lib_file:file { open read getattr };
+allow goodixfingerprintd goodixfingerprintd_exec:file { entrypoint open read };
 
-allow goodixfingerprintd goodixfingerprintd_exec:file { entrypoint };
+allow goodixfingerprintd mobicore_lib_file:file { read open getattr execute };
+allow goodixfingerprintd goodixfingerprintd_lib_file:file { open read getattr execute };
+allow goodixfingerprintd mobicore:unix_stream_socket { read write connectto ioctl };
+allow goodixfingerprintd fingerprint_service:service_manager { find };
+allow goodixfingerprintd goodixfingerprintd:netlink_socket { setopt read bind create write getattr shutdown write ioctl };

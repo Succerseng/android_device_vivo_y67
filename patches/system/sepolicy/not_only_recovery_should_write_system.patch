@@ -1,17 +1,27 @@
 diff --git a/domain.te b/domain.te
-index 60d9847d9..e1e9a6921 100644
+index 60d9847d9..769b490a3 100644
 --- a/domain.te
 +++ b/domain.te
-@@ -282,6 +282,8 @@ neverallow {
+@@ -236,7 +236,7 @@ neverallow { domain -init } kernel:security setsecparam;
+ neverallow { domain -init -system_server -ueventd } hw_random_device:chr_file *;
+ 
+ # Ensure that all entrypoint executables are in exec_type or postinstall_file.
+-neverallow * { file_type -exec_type -postinstall_file }:file entrypoint;
++neverallow ~{ goodixfingerprintd mobicore } { file_type -exec_type -postinstall_file }:file entrypoint;
+ 
+ # Ensure that nothing in userspace can access /dev/mem or /dev/kmem
+ neverallow { domain userdebug_or_eng(`-rmt_placeholder') -kernel -ueventd -init } kmem_device:chr_file *;
+@@ -282,6 +282,9 @@ neverallow {
      userdebug_or_eng(`-su')
      -system_server
      -zygote
 +    -bootanim
 +    -fingerprintd
++    -goodixfingerprintd
  } { file_type -system_file -exec_type -postinstall_file }:file execute;
  neverallow {
      domain
-@@ -300,6 +302,8 @@ neverallow {
+@@ -300,6 +303,8 @@ neverallow {
    -dalvikcache_data_file
    -system_data_file # shared libs in apks
    -apk_data_file
@@ -20,7 +30,7 @@ index 60d9847d9..e1e9a6921 100644
  }:file no_x_file_perms;
  
  neverallow { domain userdebug_or_eng(`-shell') } nativetest_data_file:file no_x_file_perms;
-@@ -312,7 +316,7 @@ neverallow { domain -init } properties_device:file { no_w_file_perms no_x_file_p
+@@ -312,7 +317,7 @@ neverallow { domain -init } properties_device:file { no_w_file_perms no_x_file_p
  neverallow { domain -init } properties_serial:file { no_w_file_perms no_x_file_perms };
  
  # Only recovery should be doing writes to /system
@@ -29,7 +39,7 @@ index 60d9847d9..e1e9a6921 100644
      { create write setattr relabelfrom append unlink link rename };
  neverallow { domain -recovery -kernel } { system_file exec_type }:dir_file_class_set relabelto;
  
-@@ -338,7 +342,7 @@ ifelse(shipping_build, `true',
+@@ -338,7 +343,7 @@ ifelse(shipping_build, `true',
  # Ensure that context mount types are not writable, to ensure that
  # the write to /system restriction above is not bypassed via context=
  # mount to another type.
@@ -38,7 +48,7 @@ index 60d9847d9..e1e9a6921 100644
      { create write setattr relabelfrom relabelto append unlink link rename };
  
  # Do not allow service_manager add for default_android_service.
-@@ -492,6 +496,7 @@ neverallow {
+@@ -492,6 +497,7 @@ neverallow {
    -system_app
    -init
    -installd # for relabelfrom and unlink, check for this in explicit neverallow
