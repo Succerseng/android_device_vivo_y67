@@ -1,8 +1,31 @@
+# ==============================================
+# Policy File of /system/binem_svr Executable File 
+
+
+# ==============================================
+# Type Declaration
+# ==============================================
+
 type em_svr_exec , exec_type, file_type;
 type em_svr ,domain;
+
+# ==============================================
+# Android Policy Rule
+# ==============================================
+
+# ==============================================
+# NSA Policy Rule
+# ==============================================
+
+# ==============================================
+# MTK Policy Rule
+# ==============================================
+
 init_daemon_domain(em_svr)
-binder_use(em_svr)
-binder_call(em_svr, surfaceflinger)
+
+# Date: W14.38 2014/09/17
+# Operation : Migration
+# Purpose : for em_svr
 allow em_svr proc:file write;
 allow em_svr sysfs:file write;
 allow em_svr nvram_device:blk_file { read write open };
@@ -40,7 +63,26 @@ allow em_svr system_data_file:dir { write remove_name add_name relabelfrom creat
 allow em_svr kernel:system module_request;
 allow em_svr fuse:dir create_dir_perms;
 allow em_svr fuse:file create_file_perms;
+#allow em_svr tmpfs:lnk_file read;
+
+# Date: 2015/08/09
+# Operation : M Migration
+# Purpose : set policy for surfaceflinger_service
 allow em_svr surfaceflinger_service:service_manager find;
+
+# Date: 2015/08/21
+# Operation : M Migration
+# Purpose : set policy for sysfs:dir
 allow em_svr sysfs:dir write;
+
+# for use binder
+binder_use(em_svr)
+binder_call(em_svr, surfaceflinger)
+
+# Date: 2015/09/16
+# Operation : M Migration
+# Purpose : add policy for system data file access
 allow em_svr system_data_file:file open;
+
+# Nougat
 allow em_svr rootfs:lnk_file { getattr };

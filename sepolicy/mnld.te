@@ -1,8 +1,10 @@
 type mnld, domain;
 type mnld_exec, exec_type, file_type;
-net_domain(mnld)
+
+# STOPSHIP: Permissive is not allowed. CTS violation!
 init_daemon_domain(mnld)
-file_type_auto_trans(mnld,system_data_file,mnld_data_file);
+
+net_domain(mnld)
 allow mnld agpsd_data_file:dir create_dir_perms;
 allow mnld agpsd_data_file:sock_file create_file_perms;
 allow mnld MPED_data_file:dir create_dir_perms;
@@ -25,9 +27,12 @@ allow mnld property_socket:sock_file rw_file_perms;
 allow mnld system_data_file:dir rw_dir_perms;
 allow mnld system_data_file:dir create_dir_perms;
 allow mnld system_data_file:file { open read};
+file_type_auto_trans(mnld,system_data_file,mnld_data_file);
 allow mnld mnld_data_file:file rw_file_perms;
 allow mnld mnld_data_file:file create_file_perms;
 allow mnld mnld_data_file:file open;
+#allow mnld system_data_file:file rw_file_perms;
+#allow mnld system_data_file:file create_file_perms;
 allow mnld system_server:unix_dgram_socket sendto;
 allow mnld system_data_file:sock_file create_file_perms;
 allow mnld nvram_device:blk_file rw_file_perms;
@@ -57,11 +62,27 @@ allow mnld apk_data_file:dir { write add_name };
 allow mnld apk_data_file:file { write create };
 allow mnld gps_data_file:dir rw_dir_perms;
 allow mnld gps_data_file:file create_file_perms;
+
+# Date : WK15.30
+# Operation : Migration
+# Purpose : for device bring up, not to block early migration/sanity
 allow mnld proc_lk_env:file rw_file_perms;
+
+# Date : WK15.34
+# Operation : Feature Developing
+# Purpose : Add permission for mnld fifo file
 allow mnld mnld_data_file:fifo_file create_file_perms;
+
+# Date : WK15.47
+# Operation : Feature Developing
+# Purpose : For mtkFlpDaemon
 allow mnld mtkFlpDaemon:unix_dgram_socket sendto;
 allow mnld mtkFlpDaemon_data_file:dir create_dir_perms;
 allow mnld mtkFlpDaemon_data_file:sock_file create_file_perms;
+
+# Nougat
 allow mnld wmt_prop:file r_file_perms;
 allow mnld rootfs:lnk_file { getattr };
+
+
 allow mnld sysfs_boot_mode_file:file { open read getattr };

@@ -1,7 +1,10 @@
 type yamaha537fusiond_exec, exec_type, file_type;
+
+allow init input_device:chr_file { read open write ioctl };
+
 type yamaha537fusiond, domain;
 init_daemon_domain(yamaha537fusiond)
-allow init input_device:chr_file { read open write ioctl };
+
 allow yamaha537fusiond event_input_device:chr_file { read open ioctl write };
 allow yamaha537fusiond event_input_device:dir { read open search };
 allow yamaha537fusiond system_data_file:dir { write remove_name add_name };
