@@ -1,13 +1,6 @@
-# ==============================================
-# Policy File of /system/bin/statusd Executable File 
-
 type statusd_exec, exec_type, file_type;
 type statusd, domain;
-
-# permissive statusd;
-
 init_daemon_domain(statusd)
-
 allow statusd block_device:dir search;
 allow statusd ctl_pppd_via_prop:property_service set;
 allow statusd flashlessd_exec:file { read execute open execute_no_trans };
@@ -39,8 +32,6 @@ allow statusd ttyMT_device:chr_file { read write ioctl open };
 allow statusd ttySDIO_device:chr_file { read write open setattr ioctl};
 allow statusd viarild_exec:file { read execute open execute_no_trans };
 allow statusd vmodem_device:chr_file { read write open setattr ioctl};
-
-# property service
 allow statusd system_prop:property_service set;
 allow statusd system_radio_prop:property_service set;
 allow statusd persist_ril_prop:property_service set;
@@ -48,6 +39,4 @@ allow statusd ril_mux_report_case_prop:property_service set;
 allow statusd cdma_prop:property_service set;
 auditallow statusd net_radio_prop:property_service set;
 auditallow statusd system_radio_prop:property_service set;
-
-#Search permission for findPidByName
 allow statusd domain:dir search;

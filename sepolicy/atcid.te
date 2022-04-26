@@ -1,25 +1,5 @@
-# ==============================================
-# Policy File of /system/binatcid Executable File 
-
-
-# ==============================================
-# Type Declaration
-# ==============================================
-
 type atcid_exec , exec_type, file_type;
 type atcid ,domain;
-
-# ==============================================
-# Android Policy Rule
-# ==============================================
-
-# ==============================================
-# NSA Policy Rule
-# ==============================================
-
-# ==============================================
-# MTK Policy Rule
-# ==============================================
 init_daemon_domain(atcid)
 allow atcid self:capability dac_override;
 allow atcid init:unix_stream_socket connectto;
@@ -50,14 +30,10 @@ allow atcid self:rawip_socket create;
 allow atcid self:rawip_socket getopt;
 allow atcid self:rawip_socket setopt;
 allow atcid rild_atci_c2k_socket:sock_file write;
-
 allow atcid viarild:unix_stream_socket connectto;
 allow atci_service gpu_device:chr_file { read write open ioctl getattr };
-#allow atci_service CAM_CAL_DRV1_device:chr_file { read write open };
 allow atci_service pq:binder call;
 allow atcid rilproxy_atci_socket:sock_file write;
 allow atcid rilproxy:unix_stream_socket connectto;
 allow atcid self:capability sys_time;
-
-# Nougat
 allow atcid sysfs:file { read open };

@@ -1,7 +1,3 @@
-# ==============================================
-# MTK Policy Rule
-# ==============================================
-
 type devmap_device, dev_type;
 type ttyMT_device, dev_type;
 type ttySDIO_device, dev_type;
@@ -141,7 +137,6 @@ type uboot_device, dev_type;
 type uibc_device, dev_type;
 type usrdata_device, dev_type;
 type zram0_device, dev_type;
-#type platformblk_device, dev_type;
 type RT_Monitor_device, dev_type;
 type kick_powerkey_device, dev_type;
 type agps_device, dev_type;
@@ -184,10 +179,7 @@ type oemkeystore_block_device, dev_type;
 type mmcblk0_block_device, dev_type;
 type mmcblk1_block_device, dev_type;
 type mmcblk1p1_block_device, dev_type;
-
-
 type mmcblk0p4_block_device, dev_type;
-
 type spm_device, dev_type;
 type persist_block_device, dev_type;
 type md_block_device, dev_type;
@@ -198,22 +190,15 @@ type ancservice_device, dev_type;
 type mbim_device, dev_type;
 type audio_ipi_device, dev_type;
 type tfa9890_device, dev_type;
-
-#type properties_device, dev_type;
-
-# Fingerprint and TEE
 type fingerprint_device, dev_type;
 type teei_rpmb_device, dev_type;
 type teei_fp_device, dev_type;
 type teei_client_device, dev_type;
 type teei_config_device, dev_type;
 type teei_vfs_device, dev_type;
-
 type goodixfingerprintd_device, dev_type, mlstrustedobject;
 type goodix_fp_device, dev_type;
-
 type mobicore_device, dev_type;
 type mobicore-user_device, dev_type;
 type McDriverDaemon_device, dev_type;
-
 type event_input_device, dev_type;

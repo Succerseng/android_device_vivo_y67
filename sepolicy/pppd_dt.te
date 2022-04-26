@@ -1,27 +1,5 @@
-# ==============================================
-# Policy File of /system/binpppd_dt Executable File 
-
-
-# ==============================================
-# Type Declaration
-# ==============================================
-
 type pppd_dt_exec , exec_type, file_type;
 type pppd_dt ,domain;
-
-# ==============================================
-# Android Policy Rule
-# ==============================================
-
-# ==============================================
-# NSA Policy Rule
-# ==============================================
-
-# ==============================================
-# MTK Policy Rule
-# ==============================================
-
-
 init_daemon_domain(pppd_dt)
 allow pppd_dt self:capability { setgid setuid net_admin };
 allow pppd_dt property_socket:sock_file write;

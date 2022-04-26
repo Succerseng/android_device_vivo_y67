@@ -1,26 +1,8 @@
-# ==============================================
-# Policy File of /system/bin/rilproxy Executable File
-
-
-# ==============================================
-# Type Declaration
-# ==============================================
-
+wakelock_use(rilproxy)
 type rilproxy_exec , exec_type, file_type;
 type rilproxy ,domain;
-
-
-# ==============================================
-# MTK Policy Rule
-# ==============================================
-
-init_daemon_domain(rilproxy)
 net_domain(rilproxy)
-
-# Access to wake locks
-wakelock_use(rilproxy)
-
-# Rilproxy Bringup Policy
+init_daemon_domain(rilproxy)
 allow rilproxy init:unix_stream_socket connectto;
 allow rilproxy mtkrild:unix_stream_socket connectto;
 allow rilproxy property_socket:sock_file write;
