@@ -44,3 +44,6 @@ allow md_monitor system_file:dir { read open };
 
 allow md_monitor security_file:dir { search };
 allow md_monitor sysfs_ccci_version:file { read open getattr };
+allow md_monitor md_monitor_file:dir { read open getattr };
+allow md_monitor md_monitor_file:dir { search };
+allow md_monitor md_monitor_file:file { read open getattr };

@@ -19,8 +19,7 @@ LOCAL_PATH := device/vivo/y67
 PRODUCT_PACKAGES += \
     Gallery2 \
     FMRadio \
-    Snap \
-    YGPS
+    Snap
 
 # Audio
 PRODUCT_PACKAGES += \
@@ -75,7 +74,7 @@ PRODUCT_PACKAGES += \
     libion
 
 PRODUCT_PROPERTY_OVERRIDES += \
-    ro.sf.lcd_density=399
+    ro.sf.lcd_density=320
 
 # FM
 PRODUCT_PACKAGES += \
@@ -108,9 +107,6 @@ PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/configs/agps/agps_profiles_conf2.xml:system/etc/agps_profiles_conf2.xml \
     $(LOCAL_PATH)/configs/slp_conf:system/etc/slp_conf
 
-PRODUCT_PACKAGES += \
-    gps.mt6750
-
 # Graphics
 MTK_GPU_VERSION := mali midgard r7p0
 
@@ -138,11 +134,6 @@ PRODUCT_COPY_FILES += \
 # Mediatek platform
 PRODUCT_PACKAGES += \
    libmtk_symbols
-
-
-# Overlay 默认设置
-#DEVICE_PACKAGE_OVERLAYS += \
-#    $(LOCAL_PATH)/overlay
 
 # Permissions
 PRODUCT_COPY_FILES += \
@@ -176,16 +167,6 @@ PRODUCT_PACKAGES += \
 PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/configs/spn-conf.xml:system/etc/spn-conf.xml
 
-# Recovery的Tee环境(摆设)
-ifeq ($(TARGET_RECOVERY_VERSION_TWRP), true)
-PRODUCT_COPY_FILES += \
-    $(LOCAL_PATH)/rootdir/recovery/system/bin/mcDriverDaemon:recovery/root/sbin/mcDriverDaemon \
-    $(LOCAL_PATH)/rootdir/recovery/system/lib64/libMcClient.so:recovery/root/system/lib64/libMcClient.so \
-    $(LOCAL_PATH)/rootdir/recovery/system/lib64/hw/keystore.mt6755.so:recovery/root/system/lib64/hw/keystore.mt6755.so
-
-PRODUCT_COPY_FILES += $(call find-copy-subdir-files,*,$(LOCAL_PATH)/rootdir/recovery/system/app/mcRegistry,recovery/root/system/app/mcRegistry)
-endif
-
 PRODUCT_PACKAGES += \
     init.recovery.mt6755.rc
 
@@ -216,7 +197,7 @@ PRODUCT_AAPT_PREF_CONFIG := xxhdpi
 PRODUCT_AAPT_PREBUILT_DPI := xxhdpi xhdpi hdpi
 
 # SU
-#PRODUCT_PACKAGES += \
+PRODUCT_PACKAGES += \
     su
 
 # Telephony

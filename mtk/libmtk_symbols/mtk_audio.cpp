@@ -44,5 +44,8 @@ extern "C" {
     }
         
     //int getPresentationPosition(){return 0;} //这个不会被加载
+    int _getPresentationPosition(){
+    	return 0;
+    }
 }
 

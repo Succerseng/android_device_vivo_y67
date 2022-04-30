@@ -475,3 +475,4 @@ allow mediaserver sysfs:file { read open };
 #allow mediaserver properties_device:chr_file { read write open ioctl };
 
 #allow mediaserver properties_device:wmt_prop { read write open };
+allow mediaserver sysfs_boot_mode_file:file { read open getattr };

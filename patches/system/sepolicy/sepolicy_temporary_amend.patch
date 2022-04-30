@@ -80,6 +80,19 @@ index 59de1f129..769b490a3 100644
  } system_data_file:file no_w_file_perms;
  # do not grant anything greater than r_file_perms and relabelfrom unlink
  # to installd
+diff --git a/init.te b/init.te
+index 9bc78d173..f8e64d6cd 100644
+--- a/init.te
++++ b/init.te
+@@ -297,7 +297,7 @@ allow init misc_block_device:blk_file w_file_perms;
+ # never via an exec-based transition.
+ neverallow domain init:process dyntransition;
+ neverallow { domain -kernel} init:process transition;
+-neverallow init { file_type fs_type -init_exec }:file entrypoint;
++neverallow init { file_type fs_type -init_exec -mcDriverDaemon_exec }:file entrypoint;
+ 
+ # Never read/follow symlinks created by shell or untrusted apps.
+ neverallow init shell_data_file:lnk_file read;
 diff --git a/isolated_app.te b/isolated_app.te
 index 978982aa5..1b4138452 100644
 --- a/isolated_app.te

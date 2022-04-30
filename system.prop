@@ -53,9 +53,6 @@ persist.mtklog.log2sd.path=/mnt/sdcard
 persist.mtklog.mdlog.path=/mnt/sdcard
 mtk.md3.status=0
 
-# density
-ro.sf.lcd_density=320
-
 # wcn
 service.wcn.driver.ready=no
 persist.mtk.wcn.combo.chipid=-1

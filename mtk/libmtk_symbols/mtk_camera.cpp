@@ -17,9 +17,11 @@ extern "C"{
         int _ZN7android16CameraParameters10KEY_MIDDLEE(){
             return 0;
         }
+        
+        int __pthread_gettid(){
+            return 0;
+        }
 
-#if 0
-#else
         //所有可能的函数名都加进去
 
         //libcam.paramsmgr.so
@@ -218,7 +220,7 @@ extern "C"{
         char _ZN7android16CameraParameters19BBK_MANUAL_AF_VALUEE(){
             return 0;
         }
-#endif
+
         char _ZN7android13ParamsManager13setParametersERKNS_16CameraParametersE(){
             return 0;
         }
