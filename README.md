@@ -1,7 +1,7 @@
 vivo y67(PD1612)
 ==============
 
-### [android_vendor_vivo_y67](https://github.com/BabQ/android_vendor_vivo_y67)
+### [android_vendor_vivo_y67](https://github.com/succerseng/android_vendor_vivo_y67)
 
 ## 规格信息
 
@@ -20,24 +20,22 @@ GPU     | Mali-T860
 
 ## 修复进度
 - [x] Wi-Fi
-- [x] GPS
-- [x] Sensors
 - [x] Bluetooth
-- [x] Micro SD
+- [x] Sensors
 - [x] Display
 - [x] Thermal
-- [x] Flashlight
 - [x] OMX
 - [x] RIL(GSM)
 - [x] Audio
-- [x] Fingerprint
-- [ ] Selinux
+- [x] Selinux
+- [x] OTA
+- [ ] GPS
+- [ ] Fingerprint
 - [ ] root
 - [ ] Camera
 - [ ] RIL(CDMA)
-- [ ] Tee(mcDeviceDaemon)
 
-总有一天会完成~~哒~~
+总有一天会完成哒
 
 ## 致谢
 ### [rote66](https://github.com/rote66)
