@@ -205,6 +205,7 @@ SIM_COUNT := 2
 PRODUCT_PROPERTY_OVERRIDES += ro.telephony.sim.count=$(SIM_COUNT)
 PRODUCT_PROPERTY_OVERRIDES += persist.radio.default.sim=0
 PRODUCT_PROPERTY_OVERRIDES += persist.radio.multisim.config=dsds
+PRODUCT_PROPERTY_OVERRIDES += ril.rilproxy=1
 
 # Volte
 PRODUCT_COPY_FILES += \
