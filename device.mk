@@ -19,7 +19,8 @@ LOCAL_PATH := device/vivo/y67
 PRODUCT_PACKAGES += \
     Gallery2 \
     FMRadio \
-    Snap
+    Snap \
+    YGPS
 
 # Audio
 PRODUCT_PACKAGES += \
@@ -106,6 +107,9 @@ $(call inherit-product, device/common/gps/gps_us_supl.mk)
 PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/configs/agps/agps_profiles_conf2.xml:system/etc/agps_profiles_conf2.xml \
     $(LOCAL_PATH)/configs/slp_conf:system/etc/slp_conf
+
+PRODUCT_PACKAGES += \
+    libepos
 
 # Graphics
 MTK_GPU_VERSION := mali midgard r7p0
