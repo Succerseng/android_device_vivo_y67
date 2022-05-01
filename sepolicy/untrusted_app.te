@@ -178,3 +178,4 @@ allow untrusted_app safemode_prop:file { read open getattr };
 allow untrusted_app mmc_prop:file { read open getattr };
 allow untrusted_app logpersistd_logging_prop:file { read open getattr };
 allow untrusted_app device_logging_prop:file { read open getattr };
+allow untrusted_app debug_netlog_prop:file { open read getattr };

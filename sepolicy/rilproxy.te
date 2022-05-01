@@ -34,3 +34,4 @@ allow rilproxy cdma_prop:property_service set;
 allow rilproxy ril_cdma_report_prop:property_service set;
 allow rilproxy ril_mux_report_case_prop:property_service set;
 allow rilproxy mtk_agpsd:unix_stream_socket connectto;
+allow rilproxy proc:file { read open getattr };
