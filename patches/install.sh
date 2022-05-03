@@ -8,7 +8,7 @@ for dir in $dirs ; do
 	cd $rootdirectory
 	cd $dir
 	echo "Applying $dir patches..."
-	git apply $rootdirectory/device/vivo/y67/patches/$dir/*.patch
+	git apply $rootdirectory/device/vivo/y67/patches/$dir/*.patch >> /dev/null 2&>1
 	echo " "
 done
 
@@ -18,7 +18,7 @@ for dir in $dirs ; do
 	cd $rootdirectory
 	cd $dir
 	echo "Applying $dir patches..."
-	git apply $rootdirectory/device/vivo/y67/patches/$dir/*.patch
+	git apply $rootdirectory/device/vivo/y67/patches/$dir/*.patch >> /dev/null 2&>1
 	echo " "
 done
 
@@ -28,7 +28,7 @@ for dir in $dirs ; do
 	cd $rootdirectory
 	cd $dir
 	echo "Applying $dir patches..."
-	git apply $rootdirectory/device/vivo/y67/patches/$dir/*.patch
+	git apply $rootdirectory/device/vivo/y67/patches/$dir/*.patch >> /dev/null 2&>1
 	echo " "
 done
 
@@ -38,7 +38,7 @@ for dir in $dirs ; do
 	cd $rootdirectory
 	cd $dir
 	echo "Applying $dir patches..."
-	git apply $rootdirectory/device/vivo/y67/patches/$dir/*.patch
+	git apply $rootdirectory/device/vivo/y67/patches/$dir/*.patch >> /dev/null 2&>1
 	echo " "
 done
 
