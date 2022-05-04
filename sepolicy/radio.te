@@ -237,3 +237,5 @@ allow radio proc_mtkcooler:dir search;
 allow radio proc_mtktz:dir search;
 allow radio md_monitor:dir search;
 allow radio md_monitor:file { read open getattr};
+
+allow radio mnld_prop:file { read open getattr };

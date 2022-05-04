@@ -188,8 +188,10 @@ allow untrusted_app oemfs:blk_file { getattr read open };
 allow untrusted_app fuse_device:blk_file { getattr open };
 allow untrusted_app rootfs:dir { read open search };
 allow untrusted_app rootfs:file { read open getattr };
-allow untrusted_app md_monitor_file:dir { read open getattr };
+allow untrusted_app md_monitor_file:dir { read open getattr search };
 allow untrusted_app md_monitor_file:file { read open getattr };
 allow untrusted_app goodixfingerprintd_lib_file:file { read open getattr };
 allow untrusted_app debuggerd_exec:file { read open getattr };
-
+allow untrusted_app nvdata_file:dir { getattr open read search };
+#allow untrusted_app fuse_device:chr_file { getattr };
+allow untrusted_app nvdata_file:file { getattr open read };
