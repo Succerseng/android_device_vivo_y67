@@ -53,6 +53,10 @@ persist.mtklog.log2sd.path=/mnt/sdcard
 persist.mtklog.mdlog.path=/mnt/sdcard
 mtk.md3.status=0
 
+# gps
+ro.mtk_agps_app=1
+ro.mtk_gps_support=1
+
 # wcn
 service.wcn.driver.ready=no
 persist.mtk.wcn.combo.chipid=-1
