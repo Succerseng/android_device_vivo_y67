@@ -75,7 +75,7 @@ PRODUCT_PACKAGES += \
     libion
 
 PRODUCT_PROPERTY_OVERRIDES += \
-    ro.sf.lcd_density=320
+    ro.sf.lcd_density=390
 
 # FM
 PRODUCT_PACKAGES += \
