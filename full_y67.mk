@@ -25,3 +25,9 @@ PRODUCT_NAME := full_y67
 PRODUCT_BRAND := vivo
 PRODUCT_MODEL := y67
 PRODUCT_MANUFACTURER := vivo
+
+# OTA更新
+UPDATER_RUL := "http://succerseng.cc/rom/pd1612/update.json"
+PRODUCT_PROPERTY_OVERRIDES += \
+    cm.updater.uri=$(UPDATER_RUL)
+    ro.cm.releasetype=UNOFFICIAL
