@@ -5,7 +5,7 @@
     }
     {
     "remote":"github",
-    "repository": "babq/android_vendor_vivo_y67",
+    "repository": "succerseng/android_vendor_vivo_y67",
     "target_path": "vendor/vivo/y67",
     "revision":"android-7.1"
     }

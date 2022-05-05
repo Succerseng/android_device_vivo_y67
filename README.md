@@ -3,6 +3,8 @@ vivo y67(PD1612)
 
 ### [android_vendor_vivo_y67](https://github.com/succerseng/android_vendor_vivo_y67)
 
+### Read [build manual](manual.md) to build
+
 ## 规格信息
 
 类型     | 细节
