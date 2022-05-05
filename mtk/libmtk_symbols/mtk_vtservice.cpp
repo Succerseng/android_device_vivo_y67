@@ -7,4 +7,5 @@ extern "C" {
     void _ZN7android14FindAVCSPSInfoEPhjPNS_7SPSInfoE(){}
     void _ZN7android6Camera7connectEiRKNS_8String16Ei(){}
     void _ZN7android14ICameraService11asInterfaceERKNS_2spINS_7IBinderEEE(){}
+    void _Z8sk_throwv(){}
 }

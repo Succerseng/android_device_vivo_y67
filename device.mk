@@ -15,13 +15,6 @@
 
 LOCAL_PATH := device/vivo/y67
 
-# Apps
-PRODUCT_PACKAGES += \
-    Gallery2 \
-    FMRadio \
-    Snap \
-    YGPS
-
 # Audio
 PRODUCT_PACKAGES += \
     audio.a2dp.default \
@@ -48,7 +41,9 @@ $(call inherit-product-if-exists, frameworks/native/build/phone-xxxhdpi-4096-hwu
 
 # Camera
 PRODUCT_PACKAGES += \
-    mtkcamera_parameters
+    mtkcamera_parameters \
+    Gallery2 \
+    Snap
 
 PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/configs/camera/camerasize.xml:system/etc/camerasize.xml
@@ -79,7 +74,8 @@ PRODUCT_PROPERTY_OVERRIDES += \
 
 # FM
 PRODUCT_PACKAGES += \
-    libfmjni
+    libfmjni \
+    FMRadio
 
 # Fingerprint
 PRODUCT_COPY_FILES += \
@@ -109,7 +105,9 @@ PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/configs/slp_conf:system/etc/slp_conf
 
 PRODUCT_PACKAGES += \
-    libepos
+    gps.mt6750 \
+    libcurl \
+    YGPS
 
 # Graphics
 MTK_GPU_VERSION := mali midgard r7p0
@@ -178,6 +176,11 @@ PRODUCT_PACKAGES += \
 PRODUCT_PROPERTY_OVERRIDES += \
     persist.ril.log=0 \
     ro.disable.xlog=0
+
+# Power
+PRODUCT_PACKAGES += \
+    power.default \
+    power.mt6750
 
 # root
 PRODUCT_PACKAGES += \

@@ -8,5 +8,4 @@ extern "C" {
 
 extern "C" {
     void RIL_onRequestAck() {}
-    void SSL_ctrl(){}
 }
