@@ -2,6 +2,16 @@ echo $1
 rootdirectory="$PWD"
 # ---------------------------------
 
+dirs="bionic"
+
+for dir in $dirs ; do
+	cd $rootdirectory
+	cd $dir
+	echo "Applying camera patches..."
+	git apply $rootdirectory/device/vivo/y67/patches/$dir/camera_symbol.patch >> /dev/null 2&>1
+	echo " "
+done
+
 dirs="build"
 
 for dir in $dirs ; do

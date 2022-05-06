@@ -7,9 +7,10 @@ extern "C"{
         }
 
         int app_type(){
-            return 2;//数值瞎猜的
+            return 0;
         }
-
+        
+/*
         int _ZN7android16CameraParameters21KEY_STOP_PREVIEW_FLAGE(){
             return 0;
         }
@@ -18,9 +19,6 @@ extern "C"{
             return 0;
         }
         
-        int __pthread_gettid(){
-            return 0;
-        }
 
         //所有可能的函数名都加进去
 
@@ -200,6 +198,9 @@ extern "C"{
         char _ZN7android16CameraParameters22BBK_CAMERA_LIGHT_VALUEE(){
             return 0;
         }
+        
+       // void _ZN7android22NSMtkDefaultCamAdapter10CamAdapter13setParametersEv(){}
+
 
         //libcam.vivohalext.so
         char _ZN7android16CameraParameters37KEY_BBK_PROFESSION_MODEL_INFO_AE_TIMEE(){
@@ -225,4 +226,5 @@ extern "C"{
             return 0;
         }
         char setLogLevelToEngLoad(){return 0;}
+        */
 }
