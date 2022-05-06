@@ -158,7 +158,9 @@ BOARD_SEPOLICY_DIRS += $(DEVICE_PATH)/sepolicy
 POLICYVERS := 29
 
 # Symbols
-TARGET_LDPRELOAD += libmtk_symbols.so
+TARGET_LDPRELOAD += \
+    libmtk_symbols.so \
+    libcamera_symbol.so
 
 # System
 TARGET_SYSTEM_PROP += $(DEVICE_PATH)/system.prop

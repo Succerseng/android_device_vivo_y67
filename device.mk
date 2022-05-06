@@ -51,7 +51,11 @@ PRODUCT_PACKAGES += \
 
 PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/configs/camera/camerasize.xml:system/etc/camerasize.xml
-    
+
+PRODUCT_COPY_FILES += \
+    $(LOCAL_PATH)/camera/lib/libcamera_symbol.so:system/lib/libcamera_symbol.so \
+    $(LOCAL_PATH)/camera/lib64/libcamera_symbol.so:system/lib64/libcamera_symbol.so
+
 PRODUCT_PACKAGES += \
     fs_config_files
 
