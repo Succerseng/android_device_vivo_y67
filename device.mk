@@ -18,14 +18,17 @@ LOCAL_PATH := device/vivo/y67
 # Audio
 PRODUCT_PACKAGES += \
     audio.a2dp.default \
-    audio.usb.default \
+    audio_policy.default \
     audio.r_submix.default \
-    libaudiopolicymanagerdefault \
+    audio.usb.default \
+    libaudio-resampler \
+    libemoji \
+    com.android.future.usb.accessory \
+    libnl_2 \
     libtinyalsa \
     libtinycompress \
     libtinymix \
-    libtinyxml \
-    libfs_mgr
+    libtinyxml
 
 PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/configs/audio/audio_device.xml:system/etc/audio_device.xml \
@@ -47,6 +50,9 @@ PRODUCT_PACKAGES += \
 
 PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/configs/camera/camerasize.xml:system/etc/camerasize.xml
+    
+PRODUCT_PACKAGES += \
+    fs_config_files
 
 # Charger Mode
 PRODUCT_PACKAGES += \
@@ -68,9 +74,13 @@ $(call inherit-product-if-exists, frameworks/native/build/phone-xxxhdpi-4096-dal
 # Display
 PRODUCT_PACKAGES += \
     libion
-
+    
 PRODUCT_PROPERTY_OVERRIDES += \
-    ro.sf.lcd_density=390
+    ro.sf.lcd_density=320
+
+# EngineerMode
+PRODUCT_PACKAGES += \
+    EngineerMode
 
 # FM
 PRODUCT_PACKAGES += \
@@ -131,7 +141,13 @@ PRODUCT_COPY_FILES += \
 
 PRODUCT_COPY_FILES += \
     frameworks/av/media/libstagefright/data/media_codecs_google_audio.xml:system/etc/media_codecs_google_audio.xml \
-    frameworks/av/media/libstagefright/data/media_codecs_google_video_le.xml:system/etc/media_codecs_google_video_le.xml
+    frameworks/av/media/libstagefright/data/media_codecs_google_telephony.xml:system/etc/media_codecs_google_telephony.xml \
+    frameworks/av/media/libstagefright/data/media_codecs_google_video_le.xml:system/etc/media_codecs_google_video_le.xml \
+    frameworks/av/services/audiopolicy/config/a2dp_audio_policy_configuration.xml:/system/etc/a2dp_audio_policy_configuration.xml \
+    frameworks/av/services/audiopolicy/config/audio_policy_volumes.xml:/system/etc/audio_policy_volumes.xml \
+    frameworks/av/services/audiopolicy/config/default_volume_tables.xml:/system/etc/default_volume_tables.xml \
+    frameworks/av/services/audiopolicy/config/r_submix_audio_policy_configuration.xml:/system/etc/r_submix_audio_policy_configuration.xml \
+    frameworks/av/services/audiopolicy/config/usb_audio_policy_configuration.xml:/system/etc/usb_audio_policy_configuration.xml
 
 # Mediatek platform
 PRODUCT_PACKAGES += \
@@ -216,6 +232,10 @@ PRODUCT_PROPERTY_OVERRIDES += ro.telephony.sim.count=$(SIM_COUNT)
 PRODUCT_PROPERTY_OVERRIDES += persist.radio.default.sim=0
 PRODUCT_PROPERTY_OVERRIDES += persist.radio.multisim.config=dsds
 PRODUCT_PROPERTY_OVERRIDES += ril.rilproxy=1
+
+# Trust
+PRODUCT_PROPERTY_OVERRIDES += \
+    ro.mtk_trustonic_tee_support=1
 
 # Volte
 PRODUCT_COPY_FILES += \
