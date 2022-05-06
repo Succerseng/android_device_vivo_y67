@@ -18,18 +18,14 @@ LOCAL_PATH := device/vivo/y67
 # Audio
 PRODUCT_PACKAGES += \
     audio.a2dp.default \
-    audio_policy.default \
-    audio.r_submix.default \
     audio.usb.default \
-    libaudio-resampler \
+    audio.r_submix.default \
     libaudiopolicymanagerdefault \
-    libemoji \
-    com.android.future.usb.accessory \
-    libnl_2 \
     libtinyalsa \
     libtinycompress \
     libtinymix \
-    libtinyxml
+    libtinyxml \
+    libfs_mgr
 
 PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/configs/audio/audio_device.xml:system/etc/audio_device.xml \

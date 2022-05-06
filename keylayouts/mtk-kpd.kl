@@ -26,7 +26,7 @@ key 61    CALL
 key 232   DPAD_CENTER
 key 108   DPAD_DOWN
 key 103   DPAD_UP
-key 102   HOME
+key 102   HOME VIRTUAL
 key 105   DPAD_LEFT
 key 106   DPAD_RIGHT
 key 115   VOLUME_UP
@@ -95,7 +95,53 @@ key 165   MEDIA_PREVIOUS
 key 168   MEDIA_REWIND
 key 159   MEDIA_FAST_FORWARD
 
+# vivo guotao add for VIVO_KEY_CODE begin
+key 249   WAKEUP_SWIPE
+key 250   TS_LARGE_SUPPRESSION
+key 251   BAR_SWIPE
+key 252   CUSTOM_GESTURE
+# vivo guotao add for VIVO_KEY_CODE end
+# liuwei add key for fingerprint begin
+key 254   FINGERPRINT_WAKE
+# liuwei add key for fingerprint end
+
+
+# liuwei add key for fingerprint begin
 key 744 FINGERPRINT_TOUCH
 key 745 FINGERPRINT_SCREENSHOT
+# liuwei add key for fingerprint end
 
+#vivo chenyidian add for VIVO_KEY_CODE begin
 key 746 KEY_TS_SWIPE
+#vivo chenyidian add for VIVO_KEY_CODE begin
+
+
+
+# Joystick and game controller axes.
+# Axes that are not mapped will be assigned generic axis numbers by the input subsystem.
+axis 0x00 X
+axis 0x01 Y
+axis 0x02 Z
+axis 0x03 RX
+axis 0x04 RY
+axis 0x05 RZ
+axis 0x06 THROTTLE
+axis 0x07 RUDDER
+axis 0x08 WHEEL
+axis 0x09 GAS
+axis 0x0a BRAKE
+axis 0x10 HAT_X
+axis 0x11 HAT_Y
+
+# LEDs
+led 0x00 NUM_LOCK
+led 0x01 CAPS_LOCK
+led 0x02 SCROLL_LOCK
+led 0x03 COMPOSE
+led 0x04 KANA
+led 0x05 SLEEP
+led 0x06 SUSPEND
+led 0x07 MUTE
+led 0x08 MISC
+led 0x09 MAIL
+led 0x0a CHARGING
