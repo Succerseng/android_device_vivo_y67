@@ -46,7 +46,8 @@ PRODUCT_PACKAGES += \
     Snap
 
 PRODUCT_COPY_FILES += \
-    $(LOCAL_PATH)/configs/camera/camerasize.xml:system/etc/camerasize.xml
+    $(LOCAL_PATH)/configs/camera/camerasize.xml:system/etc/camerasize.xml \
+    $(LOCAL_PATH)/configs/camera/media_profiles.xml:system/etc/media_profiles.xml
 
 PRODUCT_PACKAGES += \
     fs_config_files
