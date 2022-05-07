@@ -42,10 +42,5 @@ extern "C" {
     int _ZN7android11AudioSystem15GetAudioCommandEiPi(int var1) {
         return 0;
     }
-        
-    //int getPresentationPosition(){return 0;} //这个不会被加载
-    int _getPresentationPosition(){
-    	return 0;
-    }
 }
 

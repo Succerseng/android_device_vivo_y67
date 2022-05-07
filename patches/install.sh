@@ -42,7 +42,6 @@ for dir in $dirs ; do
 	cd $dir
 	echo "Applying camera patches..."
 	git apply $rootdirectory/device/vivo/y67/patches/$dir/0009-add-mtk-color-format-support.patch
-	git apply $rootdirectory/device/vivo/y67/patches/$dir/frameworks_av.patch
 	echo " "
 done
 
