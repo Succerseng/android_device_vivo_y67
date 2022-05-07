@@ -160,6 +160,9 @@ POLICYVERS := 29
 # Symbols
 TARGET_LDPRELOAD += libmtk_symbols.so
 
+# use linker to load libcamera_client.so, this blob from vivo and it has vivo official modify
+LINKER_FORCED_SHIM_LIBS := /system/lib/libcam.paramsmgr.so|libcamera_symbol.so:/system/lib64/libcam.paramsmgr.so|libcamera_symbol.so
+
 # System
 TARGET_SYSTEM_PROP += $(DEVICE_PATH)/system.prop
 
