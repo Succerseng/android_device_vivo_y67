@@ -47,8 +47,6 @@ BOARD_BLUETOOTH_BDROID_BUILDCFG_INCLUDE_DIR := $(DEVICE_PATH)/bluetooth
 
 # Camera and Codecs
 BOARD_GLOBAL_CFLAGS += -DMETADATA_CAMERA_SOURCE
-media.stagefright.legacyencoder=true
-media.stagefright.less-secure=true
 # while TARGET_HAS_LEGACY_CAMERA_HAL1 := true will build cameraserver in mediaserver
 #TARGET_HAS_LEGACY_CAMERA_HAL1 := true
 TARGET_PROVIDES_CAMERA_HAL := true
