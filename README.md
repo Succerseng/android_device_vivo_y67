@@ -31,11 +31,10 @@ GPU     | Mali-T860
 - [x] Audio
 - [x] Selinux
 - [x] OTA
-- [ ] GPS
-- [ ] Fingerprint
-- [ ] root
-- [ ] Camera
-- [ ] RIL(CDMA)
+- [ ] GPS			50%
+- [ ] Fingerprint	20%
+- [ ] Camera		10%
+- [ ] RIL(CDMA)     0%
 
 总有一天会完成哒
 
