@@ -50,7 +50,7 @@ BOARD_GLOBAL_CFLAGS += -DMETADATA_CAMERA_SOURCE
 media.stagefright.legacyencoder=true
 media.stagefright.less-secure=true
 # while TARGET_HAS_LEGACY_CAMERA_HAL1 := true will build cameraserver in mediaserver
-TARGET_HAS_LEGACY_CAMERA_HAL1 := true
+#TARGET_HAS_LEGACY_CAMERA_HAL1 := true
 TARGET_PROVIDES_CAMERA_HAL := true
 USE_DEVICE_SPECIFIC_CAMERA := true
 USE_CAMERA_STUB := true
@@ -159,7 +159,7 @@ BOARD_SEPOLICY_DIRS += $(DEVICE_PATH)/sepolicy
 POLICYVERS := 29
 
 # Symbols
-TARGET_LDPRELOAD += libmtk_symbols.so
+TARGET_LDPRELOAD += libmtk_symbols.so:libxlog.so
 
 # use linker to load libcamera_client.so, this blob from vivo and it has vivo official modify
 LINKER_FORCED_SHIM_LIBS := /system/lib/libcam_mmp.so|libcamera_symbol.so:/system/lib64/libcam_mmp.so|libcamera_symbol.so
