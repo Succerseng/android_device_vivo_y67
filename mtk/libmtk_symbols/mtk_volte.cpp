@@ -1,4 +1,5 @@
 extern "C"{
+
     char _ZN7android12AudioPCMxWay4stopEv(){
         return 0;
     }

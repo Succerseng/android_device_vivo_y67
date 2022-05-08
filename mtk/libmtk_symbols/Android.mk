@@ -10,7 +10,6 @@ LOCAL_SRC_FILES := \
     mtk_xlog.cpp \
     mtk_camera.cpp \
     mtk_volte.cpp \
-    mtk_tee.cpp \
     mtk_vtservice.cpp \
     ssl.c
 
