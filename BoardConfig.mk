@@ -80,7 +80,7 @@ USE_PREBUILD_GPS_BLOB := yes
 TARGET_SPECIFIC_HEADER_PATH := $(DEVICE_PATH)/include
 
 # Kernel informations
-ENFORCE_SELINUX := false
+ENFORCE_SELINUX := true
 ifeq ($(ENFORCE_SELINUX), true)
 BOARD_KERNEL_CMDLINE := bootopt=64S3,32N2,64N2
 else

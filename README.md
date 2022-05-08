@@ -34,8 +34,8 @@ GPU     | Mali-T860
 - [x] Selinux
 - [x] OTA
 - [ ] GPS			50%
+- [ ] Camera		30%
 - [ ] Fingerprint	20%
-- [ ] Camera		10%
 - [ ] RIL(CDMA)     0%
 
 虽然咱很菜，但咱相信，这棵树总有一天会变得完美哒
