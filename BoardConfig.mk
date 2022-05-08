@@ -47,7 +47,8 @@ BOARD_BLUETOOTH_BDROID_BUILDCFG_INCLUDE_DIR := $(DEVICE_PATH)/bluetooth
 
 # Camera and Codecs
 BOARD_GLOBAL_CFLAGS += -DMETADATA_CAMERA_SOURCE
-# while TARGET_HAS_LEGACY_CAMERA_HAL1 := true will build cameraserver in mediaserver
+#while TARGET_HAS_LEGACY_CAMERA_HAL1 := true will build cameraserver in mediaserver
+#but it let photo quality decrease and could't open hdr, so we cast away it
 #TARGET_HAS_LEGACY_CAMERA_HAL1 := true
 TARGET_PROVIDES_CAMERA_HAL := true
 USE_DEVICE_SPECIFIC_CAMERA := true

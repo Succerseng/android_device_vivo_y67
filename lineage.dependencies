@@ -1,9 +1,5 @@
 [
     {
-      "repository": "android_external_stlport",
-      "target_path": "external/stlport"
-    }
-    {
     "remote":"github",
     "repository": "succerseng/android_vendor_vivo_y67",
     "target_path": "vendor/vivo/y67",

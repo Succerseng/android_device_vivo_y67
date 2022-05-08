@@ -41,7 +41,6 @@ $(call inherit-product-if-exists, frameworks/native/build/phone-xxxhdpi-4096-hwu
 
 # Camera
 PRODUCT_PACKAGES += \
-    mtkcamera_parameters \
     Gallery2 \
     Snap
 
@@ -264,6 +263,6 @@ PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/configs/wifi/wpa_supplicant_overlay.conf:system/etc/wifi/wpa_supplicant_overlay.conf \
     $(LOCAL_PATH)/configs/wifi/p2p_supplicant_overlay.conf:system/etc/wifi/p2p_supplicant_overlay.conf
     
-# xlog
+# Xlog
 PRODUCT_PACKAGES += \
     libxlog
