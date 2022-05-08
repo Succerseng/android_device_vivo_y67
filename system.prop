@@ -13,6 +13,11 @@ persist.radio.multisim.config=dsds
 persist.radio.flashless.fsm=0
 persist.radio.flashless.fsm_cst=0
 persist.radio.flashless.fsm_rw=0
+persist.radio.mobile.data=0,0
+persist.radio.mtk_dsbp_support=1
+persist.radio.mtk_ps2_rat=C/W/G
+fmradio.driver.enable=1
+persist.radio.gemini_support=1
 
 bgw.current3gband=0
 ril.external.md=0
@@ -28,9 +33,13 @@ mtk.md3.status=stop
 ro.mtk_enable_md1=1
 ro.mtk_enable_md3=1
 ro.mtk_afw_support=1
+
+# c2k
+mtk.eccci.c2k=enabled
+ro.mtk_c2k_support=1
 ro.c2k.irat.support=1
 ro.mtk.c2k.slot2.support=1
-
+ro.mtk.c2k.om.mode=cllwtg
 ro.cdma.cfu.enable=*72
 ro.cdma.cfu.disable=*720
 ro.cdma.cfb.enable=*90
@@ -42,6 +51,7 @@ ro.cdma.cfdf.disable=*680
 ro.cdma.cfall.disable=*730
 ro.cdma.cw.enable=*74
 ro.cdma.cw.disable=*740
+telephony.lteOnCdmaDevice=1
 
 keyguard.no_require_sim=true
 ro.com.android.dataroaming=true
