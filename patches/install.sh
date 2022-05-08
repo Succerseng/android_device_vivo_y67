@@ -60,8 +60,8 @@ dirs="system/core"
 for dir in $dirs ; do
 	cd $rootdirectory
 	cd $dir
-	echo "Applying symbol and battery patches..."
-	git apply $rootdirectory/device/vivo/y67/patches/$dir/system_core.patch
+	echo "Applying find OpenGL ES patches..."
+	git apply $rootdirectory/device/vivo/y67/patches/$dir/0001-Remove-CAP_SYS_NICE-from-surfaceflinger.patch
 	echo " "
 done
 
