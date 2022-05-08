@@ -7,6 +7,8 @@ vivo y67(PD1612)
 
 ## 规格信息
 
+![PD1612-image](https://wwwstatic.vivo.com.cn/vivoportal/files/image/upgrade/20180504/2018050409313642485_original.png)
+
 类型     | 细节
 -------:|:---------------------------------------------
 CPU     | 2.0GHz Octa-Core MT6750
@@ -36,7 +38,7 @@ GPU     | Mali-T860
 - [ ] Camera		10%
 - [ ] RIL(CDMA)     0%
 
-总有一天会完成哒
+虽然咱很菜，但咱相信，这棵树总有一天会变得完美哒
 
 ## 致谢
 ### [rote66](https://github.com/rote66)
