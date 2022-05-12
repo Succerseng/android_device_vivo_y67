@@ -28,7 +28,3 @@ allow ueventd wmtWifi_device:chr_file { create setattr read write ioctl open rel
 # /sys/devices/virtual/BOOT/BOOT/boot/boot_mode
 allow ueventd sysfs_boot_mode_file:file { relabelto getattr };
 
-
-allow init MPED_exec:file { setattr };
-allow init system_file:dir { write };
-allow ueventd oemfs:blk_file { relabelfrom setattr relabelto };
