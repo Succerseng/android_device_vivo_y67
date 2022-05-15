@@ -71,7 +71,7 @@ for dir in $dirs ; do
 	cd $rootdirectory
 	cd $dir
 	echo "Applying sepolicy patches..."
-	git apply --reject $rootdirectory/device/vivo/y67/patches/$dir/0003-Revert-back-to-policy-version-29.patch
+	git apply $rootdirectory/device/vivo/y67/patches/$dir/sepolicy.patch
 	echo " "
 done
 

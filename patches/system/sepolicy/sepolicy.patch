@@ -1,22 +1,5 @@
-From 08e35e48d6695801392af7233e8e79e2c4b52c98 Mon Sep 17 00:00:00 2001
-From: DeckerSU <support@decker.su>
-Date: Sat, 18 Feb 2017 16:03:25 +0300
-Subject: [PATCH] Revert back to policy version 29
-
-Change-Id: I96e54983d6f837e1ceee61373520e57ddff6430e
----
- app.te            | 4 ++--
- domain.te         | 2 +-
- isolated_app.te   | 4 ++--
- mediadrmserver.te | 6 +++---
- mediaserver.te    | 6 +++---
- priv_app.te       | 2 +-
- shell.te          | 2 +-
- untrusted_app.te  | 4 ++--
- 8 files changed, 15 insertions(+), 15 deletions(-)
-
 diff --git a/app.te b/app.te
-index 19a7dac..207495f 100644
+index 19a7dacbd..207495fd8 100644
 --- a/app.te
 +++ b/app.te
 @@ -244,8 +244,8 @@ use_keystore({ appdomain -isolated_app })
@@ -31,7 +14,7 @@ index 19a7dac..207495f 100644
  allow { appdomain -isolated_app } ion_device:chr_file rw_file_perms;
  
 diff --git a/domain.te b/domain.te
-index a74833c..4ceedf7 100644
+index 59de1f129..769b490a3 100644
 --- a/domain.te
 +++ b/domain.te
 @@ -28,7 +28,7 @@ r_dir_file(domain, self)
@@ -43,8 +26,75 @@ index a74833c..4ceedf7 100644
  
  # Inherit or receive open files from others.
  allow domain init:fd use;
+@@ -236,7 +236,7 @@ neverallow { domain -init } kernel:security setsecparam;
+ neverallow { domain -init -system_server -ueventd } hw_random_device:chr_file *;
+ 
+ # Ensure that all entrypoint executables are in exec_type or postinstall_file.
+-neverallow * { file_type -exec_type -postinstall_file }:file entrypoint;
++neverallow ~{ goodixfingerprintd mobicore } { file_type -exec_type -postinstall_file }:file entrypoint;
+ 
+ # Ensure that nothing in userspace can access /dev/mem or /dev/kmem
+ neverallow { domain userdebug_or_eng(`-rmt_placeholder') -kernel -ueventd -init } kmem_device:chr_file *;
+@@ -282,6 +282,9 @@ neverallow {
+     userdebug_or_eng(`-su')
+     -system_server
+     -zygote
++    -bootanim
++    -fingerprintd
++    -goodixfingerprintd
+ } { file_type -system_file -exec_type -postinstall_file }:file execute;
+ neverallow {
+     domain
+@@ -300,6 +303,8 @@ neverallow {
+   -dalvikcache_data_file
+   -system_data_file # shared libs in apks
+   -apk_data_file
++  -goodixfingerprintd_lib_file
++  -mobicore_lib_file
+ }:file no_x_file_perms;
+ 
+ neverallow { domain userdebug_or_eng(`-shell') } nativetest_data_file:file no_x_file_perms;
+@@ -312,7 +317,7 @@ neverallow { domain -init } properties_device:file { no_w_file_perms no_x_file_p
+ neverallow { domain -init } properties_serial:file { no_w_file_perms no_x_file_perms };
+ 
+ # Only recovery should be doing writes to /system
+-neverallow { domain -recovery } { system_file exec_type }:dir_file_class_set
++neverallow { domain -recovery -ueventd -init } { system_file exec_type }:dir_file_class_set
+     { create write setattr relabelfrom append unlink link rename };
+ neverallow { domain -recovery -kernel } { system_file exec_type }:dir_file_class_set relabelto;
+ 
+@@ -338,7 +343,7 @@ ifelse(shipping_build, `true',
+ # Ensure that context mount types are not writable, to ensure that
+ # the write to /system restriction above is not bypassed via context=
+ # mount to another type.
+-neverallow { domain -recovery } contextmount_type:dir_file_class_set
++neverallow { domain -recovery -ueventd } contextmount_type:dir_file_class_set
+     { create write setattr relabelfrom relabelto append unlink link rename };
+ 
+ # Do not allow service_manager add for default_android_service.
+@@ -492,6 +497,7 @@ neverallow {
+   -system_app
+   -init
+   -installd # for relabelfrom and unlink, check for this in explicit neverallow
++  -yamaha537fusiond
+ } system_data_file:file no_w_file_perms;
+ # do not grant anything greater than r_file_perms and relabelfrom unlink
+ # to installd
+diff --git a/init.te b/init.te
+index 9bc78d173..f8e64d6cd 100644
+--- a/init.te
++++ b/init.te
+@@ -297,7 +297,7 @@ allow init misc_block_device:blk_file w_file_perms;
+ # never via an exec-based transition.
+ neverallow domain init:process dyntransition;
+ neverallow { domain -kernel} init:process transition;
+-neverallow init { file_type fs_type -init_exec }:file entrypoint;
++neverallow init { file_type fs_type -init_exec -mcDriverDaemon_exec }:file entrypoint;
+ 
+ # Never read/follow symlinks created by shell or untrusted apps.
+ neverallow init shell_data_file:lnk_file read;
 diff --git a/isolated_app.te b/isolated_app.te
-index 978982a..1b41384 100644
+index 978982aa5..1b4138452 100644
 --- a/isolated_app.te
 +++ b/isolated_app.te
 @@ -65,8 +65,8 @@ neverallow isolated_app cache_file:file ~{ read getattr };
@@ -59,7 +109,7 @@ index 978982a..1b41384 100644
    socket netlink_socket packet_socket key_socket appletalk_socket
    netlink_firewall_socket netlink_tcpdiag_socket netlink_nflog_socket
 diff --git a/mediadrmserver.te b/mediadrmserver.te
-index d9368ad..3ef8830 100644
+index d9368ad37..3ef883043 100644
 --- a/mediadrmserver.te
 +++ b/mediadrmserver.te
 @@ -52,8 +52,8 @@ allow mediadrmserver processinfo_service:service_manager find;
@@ -80,7 +130,7 @@ index d9368ad..3ef8830 100644
 -neverallowxperm mediadrmserver domain:{ rawip_socket tcp_socket udp_socket } ioctl priv_sock_ioctls;
 +#neverallowxperm mediadrmserver domain:{ rawip_socket tcp_socket udp_socket } ioctl priv_sock_ioctls;
 diff --git a/mediaserver.te b/mediaserver.te
-index dc05e14..519b87f 100644
+index dc05e14b5..519b87f0e 100644
 --- a/mediaserver.te
 +++ b/mediaserver.te
 @@ -117,8 +117,8 @@ allow mediaserver drmserver:drmservice {
@@ -101,7 +151,7 @@ index dc05e14..519b87f 100644
 -neverallowxperm mediaserver domain:{ rawip_socket tcp_socket udp_socket } ioctl priv_sock_ioctls;
 +#neverallowxperm mediaserver domain:{ rawip_socket tcp_socket udp_socket } ioctl priv_sock_ioctls;
 diff --git a/priv_app.te b/priv_app.te
-index 85516a6..aab4b20 100644
+index 85516a6e1..aab4b20ec 100644
 --- a/priv_app.te
 +++ b/priv_app.te
 @@ -87,7 +87,7 @@ allow priv_app sysfs_zram:dir search;
@@ -113,8 +163,20 @@ index 85516a6..aab4b20 100644
  
  # Allow GMS core to communicate with update_engine for A/B update.
  binder_call(priv_app, update_engine)
+diff --git a/recovery.te b/recovery.te
+index a0af3ee73..09c37fbba 100644
+--- a/recovery.te
++++ b/recovery.te
+@@ -123,5 +123,5 @@ recovery_only(`
+ # domains, including recovery.
+ #
+ # TODO: tighten this up further.
+-neverallow recovery data_file_type:file { no_w_file_perms no_x_file_perms };
+-neverallow recovery data_file_type:dir no_w_dir_perms;
++neverallow recovery { data_file_type -mobicore_lib_file }:file { no_w_file_perms no_x_file_perms };
++neverallow recovery { data_file_type -mobicore_lib_file }:dir no_w_dir_perms;
 diff --git a/shell.te b/shell.te
-index 3e95b46..7ed52cb 100644
+index 3e95b4687..7ed52cb7c 100644
 --- a/shell.te
 +++ b/shell.te
 @@ -150,4 +150,4 @@ allow shell media_rw_data_file:file create_file_perms;
@@ -124,7 +186,7 @@ index 3e95b46..7ed52cb 100644
 -neverallowxperm shell domain:{ rawip_socket tcp_socket udp_socket } ioctl priv_sock_ioctls;
 +#neverallowxperm shell domain:{ rawip_socket tcp_socket udp_socket } ioctl priv_sock_ioctls;
 diff --git a/untrusted_app.te b/untrusted_app.te
-index b9a72ed..3a1d839 100644
+index 07bfbf4cf..2002e8bdc 100644
 --- a/untrusted_app.te
 +++ b/untrusted_app.te
 @@ -158,8 +158,8 @@ neverallow untrusted_app sysfs_mac_address:file no_rw_file_perms;
@@ -138,6 +200,4 @@ index b9a72ed..3a1d839 100644
  neverallow untrusted_app *:{
    socket netlink_socket packet_socket key_socket appletalk_socket
    netlink_firewall_socket netlink_tcpdiag_socket netlink_nflog_socket
--- 
-2.7.4
 
