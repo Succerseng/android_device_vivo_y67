@@ -88,3 +88,6 @@ allow vtservice devmap_device:chr_file ioctl;
 allow vtservice surfaceflinger_service:service_manager find;
 
 allow vtservice system_data_file:dir { write open read getattr setattr };
+
+allow vtservice system_data_file:dir { remove_name add_name };
+allow vtservice system_data_file:sock_file { unlink create link };

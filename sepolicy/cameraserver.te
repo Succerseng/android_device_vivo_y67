@@ -21,3 +21,9 @@ allow cameraserver sensorservice_service:service_manager { find };
 allow cameraserver sysfs:file { read write open getattr };
 allow cameraserver system_server:unix_stream_socket { read write connectto };
 
+allow cameraserver sysfs_boot_mode_file:file { read open getattr };
+allow cameraserver storage_file:lnk_file { read open getattr };
+allow cameraserver tmpfs:dir search;
+allow cameraserver nvdata_file:dir { search };
+allow cameraserver kmsg_device:chr_file { write };
+allow cameraserver mnt_user_file:dir { search };

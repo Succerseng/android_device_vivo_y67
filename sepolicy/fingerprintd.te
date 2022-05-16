@@ -6,4 +6,6 @@ allow fingerprintd fingerprintd_data_file:dir create_dir_perms;
 
 allow fingerprintd property_socket:sock_file { write };
 allow fingerprintd init:unix_stream_socket { connectto };
-allow fingerprintd mobicore_lib_file:file { read open getattr };
+
+allow fingerprintd mobicore_lib_file:file { read open getattr execute };
+allow fingerprintd goodixfingerprintd_lib_file:file { execute };

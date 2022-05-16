@@ -129,3 +129,7 @@ allow init mobicore_admin_device:chr_file { write };
 allow event_notify debugfs:filesystem { associate };
 allow init oemfs:blk_file { read open getattr ioctl };
 allow init mobicore_lib_file:file { read open getattr };
+
+allow init system_file:dir { write };
+allow init system_file:file { create };
+allow init MPED_exec:file { setattr };

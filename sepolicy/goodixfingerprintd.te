@@ -171,3 +171,6 @@ allow goodixfingerprintd goodixfingerprintd_lib_file:file { open read getattr };
 allow goodixfingerprintd mobicore:unix_stream_socket { read write connectto ioctl };
 allow goodixfingerprintd fingerprint_service:service_manager { find };
 allow goodixfingerprintd goodixfingerprintd:netlink_socket { setopt read bind create write getattr shutdown write ioctl };
+
+allow goodixfingerprintd goodixfingerprintd_lib_file:file { execute };
+allow goodixfingerprintd mobicore_lib_file:file { execute };

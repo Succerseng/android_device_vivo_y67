@@ -104,6 +104,6 @@ allow mtkrild ril_mux_report_case_prop:file { read open getattr };
 allow mtkrild sysfs:file { read open };
 allow mtkrild rootfs:lnk_file { getattr };
 allow mtkrild volte_prop:file { read open getattr };
-allow mtkrild mtk_tele_prop:file { open read };
-allow mtkrild ril_active_md_prop:file { read open };
+allow mtkrild mtk_tele_prop:file { open read getattr };
+allow mtkrild ril_active_md_prop:file { read open getattr };
 allow mtkrild sysfs_ccci_version:file { open read getattr };
