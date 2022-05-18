@@ -35,8 +35,11 @@ ro.mtk_enable_md3=1
 ro.mtk_afw_support=1
 
 # c2k
+
+# disable c2k else unknown base version!
+ro.mtk_c2k_support=0
+
 mtk.eccci.c2k=enabled
-ro.mtk_c2k_support=1
 ro.c2k.irat.support=1
 ro.mtk.c2k.slot2.support=1
 ro.mtk.c2k.om.mode=cllwtg
