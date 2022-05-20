@@ -59,6 +59,10 @@ PRODUCT_PACKAGES += \
 PRODUCT_DEFAULT_PROPERTY_OVERRIDES += \
     ro.usb.vid=0E8D
 
+# Chromium for rros
+PRODUCT_PACKAGES += \
+    libwebviewchromium_plat_support
+    
 # Default.prop(ro.hardware.bbk：官方包的验证)
 ADDITIONAL_DEFAULT_PROPERTIES += \
     ro.secure=0 \
