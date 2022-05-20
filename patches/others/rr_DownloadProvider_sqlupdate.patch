@@ -1,0 +1,62 @@
+diff --git a/src/com/android/providers/downloads/DownloadProvider.java b/src/com/android/providers/downloads/DownloadProvider.java
+index 5078a585..f2ed365a 100644
+--- a/src/com/android/providers/downloads/DownloadProvider.java
++++ b/src/com/android/providers/downloads/DownloadProvider.java
+@@ -147,12 +147,12 @@ public final class DownloadProvider extends ContentProvider {
+         addMapping(map, DownloadManager.COLUMN_LOCAL_FILENAME,
+                 Downloads.Impl._DATA);
+         addMapping(map, DownloadManager.COLUMN_MEDIAPROVIDER_URI);
+-        addMapping(map, DownloadManager.COLUMN_DESTINATION);
++        addMapping(map, Downloads.Impl.COLUMN_DESCRIPTION);
+         addMapping(map, DownloadManager.COLUMN_TITLE);
+         addMapping(map, DownloadManager.COLUMN_DESCRIPTION);
+         addMapping(map, DownloadManager.COLUMN_URI);
+         addMapping(map, DownloadManager.COLUMN_STATUS);
+-        addMapping(map, DownloadManager.COLUMN_FILE_NAME_HINT);
++        addMapping(map, Downloads.Impl.COLUMN_FILE_NAME_HINT);
+         addMapping(map, DownloadManager.COLUMN_MEDIA_TYPE,
+                 Downloads.Impl.COLUMN_MIME_TYPE);
+         addMapping(map, DownloadManager.COLUMN_TOTAL_SIZE_BYTES,
+@@ -1130,7 +1130,7 @@ public final class DownloadProvider extends ContentProvider {
+                 }
+ 
+                 final SQLiteQueryBuilder qb = getQueryBuilder(uri, match);
+-                count = qb.update(db, filteredValues, where, whereArgs);
++                count = db.update(qb.getTables(), filteredValues, where, whereArgs);
+                 if (updateSchedule || isCompleting) {
+                     final long token = Binder.clearCallingIdentity();
+                     try (Cursor cursor = qb.query(db, null, where, whereArgs, null, null, null)) {
+@@ -1234,8 +1234,8 @@ public final class DownloadProvider extends ContentProvider {
+         qb.setTables(table);
+         qb.setProjectionMap(projectionMap);
+         qb.setStrict(true);
+-        qb.setStrictColumns(true);
+-        qb.setStrictGrammar(true);
++        //qb.setStrictColumns(true);
++        //qb.setStrictGrammar(true);
+         qb.appendWhere(where);
+         return qb;
+     }
+@@ -1313,7 +1313,7 @@ public final class DownloadProvider extends ContentProvider {
+                     }
+                 }
+ 
+-                count = qb.delete(db, where, whereArgs);
++                count = db.delete(qb.getTables(), where, whereArgs);
+                 break;
+ 
+             default:
+diff --git a/src/com/android/providers/downloads/DownloadStorageProvider.java b/src/com/android/providers/downloads/DownloadStorageProvider.java
+index 6f632b44..c33e901e 100644
+--- a/src/com/android/providers/downloads/DownloadStorageProvider.java
++++ b/src/com/android/providers/downloads/DownloadStorageProvider.java
+@@ -322,8 +322,7 @@ public class DownloadStorageProvider extends DocumentsProvider {
+         final long token = Binder.clearCallingIdentity();
+         Cursor cursor = null;
+         try {
+-            cursor = mDm.query(new DownloadManager.Query().setOnlyIncludeVisibleInDownloadsUi(true)
+-                    .setFilterByString(query));
++            cursor = mDm.query(new DownloadManager.Query().setOnlyIncludeVisibleInDownloadsUi(true));
+             copyNotificationUri(result, cursor);
+             while (cursor.moveToNext()) {
+                 includeDownloadFromCursor(result, cursor);
