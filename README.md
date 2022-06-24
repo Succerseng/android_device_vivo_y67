@@ -38,8 +38,6 @@ GPU     | Mali-T860
 - [ ] Fingerprint	20%
 - [ ] RIL(CDMA)     0%
 
-虽然咱很菜，但咱相信，总有一天咱会修完哒
-
 ## 致谢
 ### [rote66](https://github.com/rote66)
 ### [ReallySnow](https://github.com/ReallySnow)
